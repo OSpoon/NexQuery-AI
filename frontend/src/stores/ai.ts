@@ -1,0 +1,201 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import api from '@/lib/api'
+import { toast } from 'vue-sonner'
+
+export interface AgentStep {
+  type: 'thought' | 'tool'
+  content?: string // For thoughts
+  toolName?: string
+  toolInput?: any
+  toolOutput?: string
+  toolId?: string
+  status?: 'running' | 'done' | 'error'
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+  prompt?: string // For assistant messages, stores the question that triggered it
+  feedback?: 'up' | 'down' | null
+  agentSteps?: AgentStep[]
+}
+
+export const useAiStore = defineStore('ai', () => {
+  const isOpen = ref(false)
+  const messages = ref<ChatMessage[]>([
+    { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+  ])
+  const isLoading = ref(false)
+
+  // Context
+  const currentSchema = ref<any>(null)
+  const currentDbType = ref('mysql')
+  const dataSourceId = ref<number | undefined>(undefined)
+
+  function toggleOpen() {
+    isOpen.value = !isOpen.value
+  }
+
+  function setContext(schema: any, dbType: string = 'mysql') {
+    currentSchema.value = schema
+    currentDbType.value = dbType
+  }
+
+  async function sendMessage(content: string) {
+    if (!content.trim()) return
+
+    // Add user message
+    messages.value.push({ role: 'user', content })
+    isLoading.value = true
+
+    try {
+      await sendMessageStream(content)
+    } catch (error: any) {
+      console.error(error)
+      messages.value.push({
+        role: 'assistant',
+        content: 'Sorry, I encountered an error creating that query.',
+      })
+      toast.error('AI Request Failed')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  async function sendMessageStream(content: string) {
+    const payload: any = {
+      question: content,
+      schema: currentSchema.value,
+      dbType: currentDbType.value,
+      dataSourceId: dataSourceId.value,
+      history: messages.value.slice(1, -1).map((m) => ({
+        role: m.role,
+        content: m.content,
+        agentSteps: m.agentSteps,
+      })),
+    }
+
+    // Add empty assistant message to populate during stream
+    messages.value.push({
+      role: 'assistant',
+      content: '',
+      prompt: content,
+      agentSteps: [],
+    })
+    const activeMessage = messages.value[messages.value.length - 1]
+
+    if (!activeMessage) return
+
+    try {
+      const response = await fetch('/api/ai/chat/stream', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+        },
+        body: JSON.stringify(payload),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || 'Stream request failed')
+      }
+
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (!reader) return
+
+      let buffer = '' // Buffer to hold incomplete chunks
+
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+
+        buffer += decoder.decode(value, { stream: true })
+        const lines = buffer.split('\n')
+        buffer = lines.pop() || ''
+
+        for (const line of lines) {
+          if (line.trim().startsWith('data: ')) {
+            try {
+              const params = line.trim().slice(6)
+              if (params === '[DONE]') continue
+
+              const data = JSON.parse(params)
+
+              // Initialize agentSteps if undefined
+              if (!activeMessage.agentSteps) activeMessage.agentSteps = []
+
+              if (data.type === 'thought') {
+                // Append content to main message
+                activeMessage.content += data.content
+
+                // Also update the last thought step or create one
+                const lastStep = activeMessage.agentSteps[activeMessage.agentSteps.length - 1]
+                if (lastStep && lastStep.type === 'thought') {
+                  lastStep.content = (lastStep.content || '') + data.content
+                } else {
+                  activeMessage.agentSteps.push({
+                    type: 'thought',
+                    content: data.content,
+                  })
+                }
+              } else if (data.type === 'tool_start') {
+                activeMessage.agentSteps.push({
+                  type: 'tool',
+                  toolName: data.tool,
+                  toolInput: data.input,
+                  toolId: data.id,
+                  status: 'running',
+                })
+              } else if (data.type === 'tool_end') {
+                // Find the running tool step with matching ID
+                // Use slice() to create a copy before reversing, as reverse() is in-place
+                const toolStep = activeMessage.agentSteps
+                  .slice()
+                  .reverse()
+                  .find((s) => s.type === 'tool' && s.toolId === data.id)
+                if (toolStep) {
+                  toolStep.toolOutput = data.output
+                  toolStep.status = 'done'
+                }
+              } else if (data.type === 'error') {
+                throw new Error(data.content)
+              } else if (data.chunk) {
+                // Legacy fallback
+                activeMessage.content += data.chunk
+              }
+            } catch (e) {
+              // Ignore parsing errors for partial chunks
+            }
+          }
+        }
+      }
+    } catch (error: any) {
+      console.error('Stream Error:', error)
+      activeMessage.content += '\n\n**Error:** ' + error.message
+    }
+  }
+
+  function clearMessages() {
+    messages.value = [
+      { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+    ]
+  }
+
+  return {
+    isOpen,
+    messages,
+    isLoading,
+    currentSchema,
+    currentDbType,
+    dataSourceId,
+    toggleOpen,
+    setContext,
+    sendMessage,
+    sendMessageStream,
+    clearMessages,
+  }
+})

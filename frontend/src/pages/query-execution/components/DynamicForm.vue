@@ -1,0 +1,100 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { Play } from 'lucide-vue-next'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import * as z from 'zod'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+
+const props = defineProps<{
+  schema: any[]
+  isExecuting: boolean
+}>()
+
+const emit = defineEmits(['execute'])
+
+// Dynamically build Zod schema based on JSON schema
+const dynamicZodSchema = computed(() => {
+  const shape: any = {}
+  props.schema.forEach((field) => {
+    let validator: z.ZodTypeAny = z.any()
+    if (field.type === 'number') {
+      validator = z.number()
+    } else if (field.required) {
+      validator = z.string().min(1, `${field.label} is required`)
+    } else {
+      validator = z.string().optional().or(z.literal(''))
+    }
+    shape[field.name] = validator
+  })
+  return toTypedSchema(z.object(shape))
+})
+
+const { handleSubmit, setFieldValue } = useForm({
+  validationSchema: dynamicZodSchema,
+})
+
+const onSubmit = handleSubmit((values) => {
+  emit('execute', values)
+})
+</script>
+
+<template>
+  <form @submit="onSubmit" class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 items-start">
+      <div v-for="field in schema" :key="field.name">
+        <FormField v-slot="{ componentField }" :name="field.name" :validate-on-blur="false">
+          <FormItem>
+            <FormLabel>{{ field.label }}</FormLabel>
+            <FormControl>
+              <template v-if="field.type === 'select'">
+                <Select
+                  v-bind="componentField"
+                  @update:model-value="(v) => setFieldValue(field.name, v)"
+                >
+                  <SelectTrigger>
+                    <SelectValue :placeholder="field.placeholder || 'Select...'" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem v-for="opt in field.options" :key="opt.value" :value="opt.value">
+                      {{ opt.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </template>
+              <template v-else>
+                <Input
+                  :type="field.type || 'text'"
+                  :placeholder="field.placeholder"
+                  v-bind="componentField"
+                  @input="
+                    field.type === 'number'
+                      ? setFieldValue(field.name, parseInt($event.target.value))
+                      : null
+                  "
+                />
+              </template>
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        </FormField>
+      </div>
+    </div>
+
+    <div class="flex justify-start pt-2" :class="{ 'mt-0': schema.length === 0 }">
+      <Button type="submit" class="w-full md:w-auto px-8" :disabled="isExecuting">
+        <Play class="mr-2 h-4 w-4" v-if="!isExecuting" />
+        {{ isExecuting ? 'Running Query...' : 'Execute' }}
+      </Button>
+    </div>
+  </form>
+</template>

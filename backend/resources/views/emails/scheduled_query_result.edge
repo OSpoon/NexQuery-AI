@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <style>
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: #333;
+        line-height: 1.6;
+      }
+      
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      
+      .header {
+        background-color: #f8fafc;
+        padding: 20px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      
+      .content {
+        padding: 24px;
+      }
+      
+      .footer {
+        background-color: #f1f5f9;
+        padding: 16px;
+        font-size: 12px;
+        color: #64748b;
+        text-align: center;
+      }
+      
+      .label {
+        font-weight: 600;
+        color: #475569;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h2 style="margin: 0; color: #1e293b;">
+          NexQuery AI 定时任务结果
+        </h2>
+      </div>
+      <div class="content">
+        <p>
+          您好，
+        </p>
+        <p>
+          定时查询任务 <strong>{{ taskName }}</strong>已执行完成。
+        </p>
+
+        <div style="margin: 16px 0; padding: 16px; background-color: #f8fafc; border-radius: 6px;">
+          <div>
+            <span class="label">执行时间:</span>{{ executedAt }}
+          </div>
+          <div>
+            <span class="label">任务 ID:</span>{{ taskId }}
+          </div>
+        </div>
+
+        <p>
+          查询结果已生成并作为 CSV 附件随信发送，请查收。
+        </p>
+      </div>
+      <div class="footer">
+        此邮件由 NexQuery AI 系统自动发送，请勿直接回复。
+      </div>
+    </div>
+  </body>
+</html>
