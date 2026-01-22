@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
@@ -92,7 +93,7 @@ const lastPasswordChangeAtFormatted = computed(() => {
   if (!lastPasswordChangeAt.value) {
     return createdAt.value
       ? DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED) +
-          ' (Account Created)'
+      ' (Account Created)'
       : 'Never'
   }
   return DateTime.fromISO(lastPasswordChangeAt.value).toLocaleString(DateTime.DATETIME_MED)
@@ -186,6 +187,55 @@ const confirmDisable2FA = async () => {
     isLoading.value = false
   }
 }
+
+const fileInput = ref<HTMLInputElement | null>(null)
+const isUploading = ref(false)
+
+const triggerFileInput = () => {
+  fileInput.value?.click()
+}
+
+const handleFileChange = async (event: Event) => {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  if (!file) return
+
+  // Validation
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
+  if (!allowedTypes.includes(file.type)) {
+    toast.error('Only JPEG and PNG images are allowed')
+    return
+  }
+
+  const maxSize = 2 * 1024 * 1024 // 2MB
+  if (file.size > maxSize) {
+    toast.error('Image size must be less than 2MB')
+    return
+  }
+
+  isUploading.value = true
+  const formData = new FormData()
+  formData.append('avatar', file)
+
+  try {
+    const res = await api.post('/auth/avatar', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    })
+    toast.success('Avatar updated successfully')
+    // Update local user state
+    if (authStore.user) {
+      authStore.user.avatar = res.data.avatar
+      localStorage.setItem('user', JSON.stringify(authStore.user))
+    }
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Failed to upload avatar')
+  } finally {
+    isUploading.value = false
+    if (fileInput.value) fileInput.value.value = ''
+  }
+}
 </script>
 
 <template>
@@ -201,6 +251,29 @@ const confirmDisable2FA = async () => {
         <CardDescription>{{ t('profile.info_desc') }}</CardDescription>
       </CardHeader>
       <CardContent class="space-y-4">
+        <div class="flex items-center gap-6 mb-6">
+          <div class="relative group">
+            <Avatar class="h-24 w-24 border-2 border-muted">
+              <AvatarImage :src="user?.avatar" v-if="user?.avatar" />
+              <AvatarFallback class="text-xl">
+                {{ user?.fullName?.slice(0, 2).toUpperCase() || '?' }}
+              </AvatarFallback>
+            </Avatar>
+            <div v-if="isUploading" class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
+              <div class="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
+            </div>
+          </div>
+          <div class="space-y-2">
+            <input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleFileChange" />
+            <Button variant="outline" size="sm" @click="triggerFileInput" :disabled="isUploading">
+              {{ t('profile.change_avatar') }}
+            </Button>
+            <p class="text-xs text-muted-foreground">
+              {{ t('profile.avatar_help') }}
+            </p>
+          </div>
+        </div>
+
         <div class="grid w-full max-w-sm items-center gap-1.5">
           <Label>{{ t('profile.full_name') }}</Label>
           <Input :model-value="user?.fullName" disabled />
@@ -263,20 +336,11 @@ const confirmDisable2FA = async () => {
               {{ t('profile.enable_2fa') }}
             </Button>
             <div v-else>
-              <Button
-                v-if="settingsStore.require2fa"
-                variant="secondary"
-                @click="handleDisableClick"
-                :disabled="isLoading"
-              >
+              <Button v-if="settingsStore.require2fa" variant="secondary" @click="handleDisableClick"
+                :disabled="isLoading">
                 {{ t('profile.enabled_mandatory') }}
               </Button>
-              <Button
-                v-else
-                variant="destructive"
-                @click="handleDisableClick"
-                :disabled="isLoading"
-              >
+              <Button v-else variant="destructive" @click="handleDisableClick" :disabled="isLoading">
                 {{ t('profile.disable_2fa') }}
               </Button>
             </div>
@@ -359,11 +423,7 @@ const confirmDisable2FA = async () => {
           </DialogDescription>
         </DialogHeader>
         <div class="grid grid-cols-2 gap-4 py-4">
-          <div
-            v-for="code in recoveryCodes"
-            :key="code"
-            class="bg-muted p-2 text-center rounded text-sm font-mono"
-          >
+          <div v-for="code in recoveryCodes" :key="code" class="bg-muted p-2 text-center rounded text-sm font-mono">
             {{ code }}
           </div>
         </div>

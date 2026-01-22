@@ -83,7 +83,9 @@
     "verify_enable": "Verify & Enable",
     "recovery_codes": "Recovery Codes",
     "recovery_desc": "Store these codes safely. They are the only way to access your account if you lose your authenticator device.",
-    "saved_codes": "I have saved them"
+    "saved_codes": "I have saved them",
+    "change_avatar": "Change Avatar",
+    "avatar_help": "JPG, JPEG or PNG. Max 2MB."
   },
   "dashboard": {
     "title": "Dashboard",

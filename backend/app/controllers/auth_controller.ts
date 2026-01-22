@@ -148,6 +148,7 @@ export default class AuthController {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
         twoFactorEnabled: user.twoFactorEnabled,
         lastPasswordChangeAt: user.lastPasswordChangeAt?.toISO(),
         createdAt: user.createdAt.toISO(),
@@ -239,6 +240,7 @@ export default class AuthController {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
         twoFactorEnabled: user.twoFactorEnabled,
         createdAt: user.createdAt.toISO(),
       },
@@ -264,6 +266,7 @@ export default class AuthController {
         id: user.id,
         fullName: user.fullName,
         email: user.email,
+        avatar: user.avatar,
         twoFactorEnabled: user.twoFactorEnabled,
         lastPasswordChangeAt: user.lastPasswordChangeAt?.toISO(),
         createdAt: user.createdAt.toISO(),
@@ -381,5 +384,38 @@ export default class AuthController {
     })
 
     return response.ok({ message: 'Password changed successfully' })
+  }
+
+  async updateAvatar({ auth, request, response }: HttpContext) {
+    const user = auth.user!
+    const image = request.file('avatar', {
+      size: '2mb',
+      extnames: ['jpg', 'png', 'jpeg'],
+    })
+
+    if (!image) {
+      return response.badRequest({ message: 'No image uploaded' })
+    }
+
+    if (!image.isValid) {
+      return response.badRequest({ message: image.errors[0].message })
+    }
+
+    const fileName = `${user.id}_${DateTime.now().toMillis()}.${image.extname}`
+    await image.move('./uploads/avatars', {
+      name: fileName,
+      overwrite: true,
+    })
+
+    // Delete old avatar if exists
+    // (Optional but good for storage)
+
+    user.avatar = `/api/uploads/avatars/${fileName}`
+    await user.save()
+
+    return response.ok({
+      message: 'Avatar updated successfully',
+      avatar: user.avatar,
+    })
   }
 }

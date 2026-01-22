@@ -83,7 +83,9 @@
     "verify_enable": "验证并开启",
     "recovery_codes": "恢复代码",
     "recovery_desc": "请务必安全保存这些代码。如果您丢失了验证器设备，这是恢复账户访问权限的唯一方式。",
-    "saved_codes": "我已保存"
+    "saved_codes": "我已保存",
+    "change_avatar": "更换头像",
+    "avatar_help": "支持 JPG, JPEG 或 PNG 格式。最大 2MB。"
   },
   "dashboard": {
     "title": "仪表盘",

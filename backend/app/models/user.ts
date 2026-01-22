@@ -40,6 +40,9 @@ export default class User extends UserBase {
   @column()
   declare email: string
 
+  @column()
+  declare avatar: string | null
+
   @column({ consume: (value: any) => Boolean(value) })
   declare isActive: boolean
 

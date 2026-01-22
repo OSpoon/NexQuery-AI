@@ -30,13 +30,13 @@ const userData = computed(() => {
     return {
       name: authStore.user.fullName || 'User',
       email: authStore.user.email,
-      avatar: '/avatars/default.jpg',
+      avatar: authStore.user.avatar || '',
     }
   }
   return {
     name: 'Guest',
     email: 'guest@example.com',
-    avatar: '/avatars/default.jpg',
+    avatar: '',
   }
 })
 
@@ -144,8 +144,7 @@ const navData = computed(() => {
           <SidebarMenuButton size="lg" as-child>
             <RouterLink to="/">
               <div
-                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-              >
+                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
                 <img src="/logo.png" alt="NexQuery AI" class="size-6 object-contain" />
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
@@ -159,11 +158,7 @@ const navData = computed(() => {
     </SidebarHeader>
     <SidebarContent>
       <NavMain :items="navData.navMain" :title="t('sidebar.platform')" />
-      <NavMain
-        :items="navData.admin"
-        :title="t('sidebar.admin.title')"
-        v-if="navData.admin.length > 0"
-      />
+      <NavMain :items="navData.admin" :title="t('sidebar.admin.title')" v-if="navData.admin.length > 0" />
     </SidebarContent>
     <SidebarFooter>
       <NavUser :user="userData" />

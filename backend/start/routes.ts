@@ -37,6 +37,11 @@ router
     router.post('password/reset', [PasswordResetsController, 'reset'])
     router.get('settings', [SettingsController, 'index'])
 
+    // Public Static Avatars (No Auth, No Encryption)
+    router.get('uploads/avatars/:filename', async ({ params, response }) => {
+      return response.download(`./uploads/avatars/${params.filename}`)
+    })
+
     // Authenticated Routes
     router
       .group(() => {
@@ -44,6 +49,7 @@ router
         router.get('me', [AuthController, 'me'])
         router.post('logout', [AuthController, 'logout'])
         router.post('auth/password/change', [AuthController, 'changePassword'])
+        router.post('auth/avatar', [AuthController, 'updateAvatar'])
 
         // 2FA Management
         router.post('auth/2fa/generate', [TwoFactorAuthController, 'generate'])
