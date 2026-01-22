@@ -1,14 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
 import * as monaco from 'monaco-editor'
 import { Braces, Eraser, CheckCircle2, AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { format } from 'sql-formatter'
 import api from '@/lib/api'
-import 'monaco-sql-languages'
-import { Parser } from 'node-sql-parser'
-
-const parser = new Parser()
+import {
+  setupMonacoSql,
+  registerSchema,
+  unregisterSchema,
+  type Schema,
+} from '@/lib/monaco-sql-init'
 
 const props = defineProps<{
   modelValue: string
@@ -22,90 +23,43 @@ const emit = defineEmits(['update:modelValue', 'run'])
 
 const editorRef = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
-const currentSchema = ref<
-  Array<{ name: string; columns: Array<{ name: string; type: string; comment: string }> }>
->([])
+const currentSchema = ref<Schema>([])
 const syntaxError = ref<string | null>(null)
-let providers: monaco.IDisposable[] = []
+let variableProvider: monaco.IDisposable | null = null
 
-const sqlKeywords = [
-  'SELECT',
-  'FROM',
-  'WHERE',
-  'AND',
-  'OR',
-  'NOT',
-  'NULL',
-  'IS',
-  'IN',
-  'BETWEEN',
-  'LIKE',
-  'ORDER BY',
-  'GROUP BY',
-  'HAVING',
-  'LIMIT',
-  'OFFSET',
-  'JOIN',
-  'LEFT JOIN',
-  'RIGHT JOIN',
-  'INNER JOIN',
-  'OUTER JOIN',
-  'ON',
-  'AS',
-  'DISTINCT',
-  'COUNT',
-  'SUM',
-  'AVG',
-  'MIN',
-  'MAX',
-  'INSERT',
-  'INTO',
-  'VALUES',
-  'UPDATE',
-  'SET',
-  'DELETE',
-  'CREATE',
-  'TABLE',
-  'DROP',
-  'ALTER',
-  'INDEX',
-  'VIEW',
-  'TRIGGER',
-  'PROCEDURE',
-  'FUNCTION',
-  'DATABASE',
-  'SCHEMA',
-  'GRANT',
-  'REVOKE',
-  'WITH',
-  'RECURSIVE',
-  'CASE',
-  'WHEN',
-  'THEN',
-  'ELSE',
-  'END',
-  'UNION',
-  'ALL',
-]
+// Compute Language ID for Monaco
+const monacoLanguage = computed(() => {
+  if (props.language && props.language !== 'sql') return props.language // shell, json
+  if (props.dbType === 'postgresql') return 'pgsql'
+  return 'mysql' // Default to mysql for SQL
+})
 
 const fetchSchema = async () => {
   if (!props.dataSourceId || props.language === 'shell' || props.language === 'json') return
   try {
     const response = await api.get(`/data-sources/${props.dataSourceId}/schema`)
     currentSchema.value = response.data
+    // Update Registry if editor exists
+    if (editor) {
+      registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
+    }
   } catch (error) {
     console.error('Failed to fetch schema:', error)
   }
 }
 
-const registerProviders = () => {
-  providers.forEach((p) => p.dispose())
-  providers = []
+const registerVariableProvider = () => {
+  if (variableProvider) {
+    variableProvider.dispose()
+    variableProvider = null
+  }
 
-  const lang = props.language || 'sql'
+  if (!props.variables || props.variables.length === 0) return
 
-  const completionProvider = monaco.languages.registerCompletionItemProvider(lang, {
-    triggerCharacters: [' ', '.', '{'],
+  // Register a simple provider just for variables
+  // Use the computed language
+  variableProvider = monaco.languages.registerCompletionItemProvider(monacoLanguage.value, {
+    triggerCharacters: ['{'],
     provideCompletionItems: (model, position) => {
       const word = model.getWordUntilPosition(position)
       const range = {
@@ -116,277 +70,112 @@ const registerProviders = () => {
       }
 
       const suggestions: monaco.languages.CompletionItem[] = []
-
-      // Template Variables
-      if (props.variables) {
-        props.variables.forEach((v) => {
-          suggestions.push({
-            label: `{{${v.name}}}`,
-            kind: monaco.languages.CompletionItemKind.Variable,
-            insertText: `{{${v.name}}}`,
-            range,
-            detail: v.description || '变量',
-          })
-        })
-      }
-
-      // Keyword Suggestions
-      sqlKeywords.forEach((kw) => {
+      props.variables?.forEach((v) => {
         suggestions.push({
-          label: kw,
-          kind: monaco.languages.CompletionItemKind.Keyword,
-          insertText: kw,
+          label: `{{${v.name}}}`,
+          kind: monaco.languages.CompletionItemKind.Variable,
+          insertText: `{{${v.name}}}`,
+          detail: v.description || 'Variable',
+          sortText: '0_' + v.name, // Top priority
           range,
-          detail: 'Keyword',
         })
       })
-
-      // Context Awareness Helpers
-      const lineContent = model.getLineContent(position.lineNumber)
-      const textBeforeCursor = lineContent
-        .substring(0, position.column - 1)
-        .trim()
-        .toUpperCase()
-      const isAfterFrom =
-        textBeforeCursor.endsWith('FROM') ||
-        textBeforeCursor.endsWith('JOIN') ||
-        textBeforeCursor.endsWith('UPDATE') ||
-        textBeforeCursor.endsWith('INTO')
-      const isAfterSelect =
-        textBeforeCursor.endsWith('SELECT') ||
-        textBeforeCursor.endsWith('SET') ||
-        textBeforeCursor.endsWith('WHERE') ||
-        textBeforeCursor.endsWith('AND') ||
-        textBeforeCursor.endsWith('OR') ||
-        textBeforeCursor.endsWith(',')
-
-      // Schema Awareness
-      if (currentSchema.value.length > 0) {
-        currentSchema.value.forEach((table) => {
-          // Suggest tables only after FROM/JOIN etc, or if no specific context
-          if (isAfterFrom || (!isAfterSelect && !textBeforeCursor.includes('.'))) {
-            suggestions.push({
-              label: table.name,
-              kind: monaco.languages.CompletionItemKind.Class,
-              insertText: table.name,
-              range,
-              detail: 'Table',
-              documentation: `Table: ${table.name}`,
-            })
-          }
-
-          // Columns if we are after a dot (table.column) or in a SELECT/WHERE context
-          const dotMatch = lineContent.substring(0, position.column - 1).match(/(\w+)\.$/)
-          if (dotMatch) {
-            const tableAlias = dotMatch[1]
-            if (table.name === tableAlias) {
-              table.columns.forEach((col) => {
-                suggestions.push({
-                  label: col.name,
-                  kind: monaco.languages.CompletionItemKind.Field,
-                  insertText: col.name,
-                  range,
-                  detail: `${col.type}`,
-                  documentation: col.comment || `Column of ${table.name}`,
-                })
-              })
-            }
-          } else if (isAfterSelect) {
-            // Suggest all columns if we don't know the table yet but are in SELECT/WHERE
-            table.columns.forEach((col) => {
-              suggestions.push({
-                label: col.name,
-                kind: monaco.languages.CompletionItemKind.Field,
-                insertText: col.name,
-                range,
-                detail: `${table.name}.${col.type}`,
-                documentation: col.comment || `Column of ${table.name}`,
-              })
-            })
-          }
-        })
-      }
-
       return { suggestions }
     },
   })
-  providers.push(completionProvider)
+}
 
-  // Hover Provider (Advanced Schema Discovery)
-  const hoverProvider = monaco.languages.registerHoverProvider(lang, {
-    provideHover: (model, position) => {
-      const word = model.getWordAtPosition(position)
-      if (!word) return null
+import { format } from 'sql-formatter'
 
-      const tableName = currentSchema.value.find(
-        (t) => t.name.toLowerCase() === word.word.toLowerCase(),
-      )
-      if (tableName) {
-        return {
-          range: new monaco.Range(
-            position.lineNumber,
-            word.startColumn,
-            position.lineNumber,
-            word.endColumn,
-          ),
-          contents: [
-            { value: `**Table: ${tableName.name}**` },
-            {
-              value:
-                tableName.columns
-                  .map((c) => `- ${c.name} (${c.type}) ${c.comment ? '-- ' + c.comment : ''}`)
-                  .slice(0, 10)
-                  .join('\n') + (tableName.columns.length > 10 ? '\n... (more)' : ''),
-            },
-          ],
-        }
-      }
+// ...
 
-      // Check for columns across all tables
-      for (const table of currentSchema.value) {
-        const col = table.columns.find((c) => c.name.toLowerCase() === word.word.toLowerCase())
-        if (col) {
-          return {
-            range: new monaco.Range(
-              position.lineNumber,
-              word.startColumn,
-              position.lineNumber,
-              word.endColumn,
-            ),
-            contents: [
-              { value: `**Column: ${table.name}.${col.name}**` },
-              { value: `Type: \`${col.type}\`` },
-              { value: col.comment || 'No comment provided' },
-            ],
-          }
-        }
-      }
+const formatSql = () => {
+  if (!editor) return
+  try {
+    let value = editor.getValue()
 
-      return null
-    },
-  })
-  providers.push(hoverProvider)
+    // Mask {{variables}} to avoid formatter errors
+    // We replace {{var}} with "var_PLACEHOLDER" (identifier) to keep SQL valid
+    const placeholders: Record<string, string> = {}
+    let placeholderIdx = 0
 
-  if (lang !== 'shell') {
-    const formatProvider = monaco.languages.registerDocumentFormattingEditProvider(lang, {
-      provideDocumentFormattingEdits: (model) => {
-        try {
-          let value = model.getValue()
-          const placeholders: Map<string, string> = new Map()
-
-          value = value.replace(/\{\{\s*(\w+)\s*\}\}/g, (match, name) => {
-            const placeholder = `__VAR_${name}_VAR__`
-            placeholders.set(placeholder, match)
-            return placeholder
-          })
-
-          let formatted = format(value, {
-            language: props.dbType === 'postgresql' ? 'postgresql' : 'mysql',
-            keywordCase: 'upper',
-          })
-
-          placeholders.forEach((original, placeholder) => {
-            const regex = new RegExp(placeholder, 'g')
-            formatted = formatted.replace(regex, original)
-          })
-
-          return [{ range: model.getFullModelRange(), text: formatted }]
-        } catch (e) {
-          return []
-        }
-      },
+    // Regex to capture {{...}}
+    value = value.replace(/\{\{.*?\}\}/g, (match) => {
+      const key = `__TEMPLATE_VAR_${placeholderIdx++}__`
+      placeholders[key] = match
+      // Return a valid SQL identifier
+      return key
     })
-    providers.push(formatProvider)
+
+    let formatted = format(value, {
+      language: props.dbType === 'postgresql' ? 'postgresql' : 'mysql',
+      keywordCase: 'upper',
+      linesBetweenQueries: 2,
+    })
+
+    // Restore {{variables}}
+    Object.keys(placeholders).forEach((key) => {
+      // Formatter might upper case the identifier if likely
+      // We need to match case insensitive just in case, or simpler:
+      // Since we used __TEMPLATE_VAR_...__ which is distinct, plain replace should work
+      // unless formatter put spaces? identifiers usually stick together.
+      formatted = formatted.replace(new RegExp(key, 'g'), placeholders[key])
+    })
+
+    editor.setValue(formatted)
+  } catch (e) {
+    console.error('Format failed:', e)
+    // Fallback to basic monaco format if available (though likely failed)
+    editor.getAction('editor.action.formatDocument')?.run()
   }
 }
 
 const validateSql = () => {
-  if (!editor || props.language === 'shell' || props.language === 'json') return
-  const model = editor.getModel()
-  if (!model) return
-
+  if (!editor) return
   const value = editor.getValue()
+
+  // 1. Check for Chinese Punctuation (Strict Error)
   const fullWidthChars = /[；，。“”（）]/
   if (fullWidthChars.test(value)) {
     const match = value.match(fullWidthChars)
     const char = match ? match[0] : ''
     syntaxError.value = `检测到非法的中文字符: "${char}"，请使用英文标点符号。`
-
-    // Find position of the first full-width char
-    const index = value.indexOf(char)
-    const linesBefore = value.substring(0, index).split('\n')
-    const lineNumber = linesBefore.length
-    const lineContent = linesBefore[lineNumber - 1] || ''
-    const columnNumber = lineContent.length + 1
-
-    monaco.editor.setModelMarkers(model, 'sql-validation', [
-      {
-        severity: monaco.MarkerSeverity.Error,
-        message: syntaxError.value,
-        startLineNumber: lineNumber,
-        startColumn: columnNumber,
-        endLineNumber: lineNumber,
-        endColumn: columnNumber + 1,
-      },
-    ])
     return
   }
 
-  // Pre-process: replace {{variable}} with a dummy identifier
-  const processedSql = value.replace(/\{\{\s*(\w+)\s*\}\}/g, '__variable__')
-
-  try {
-    const dbOption =
-      props.dbType === 'postgresql' ? { database: 'PostgreSQL' } : { database: 'MySQL' }
-    parser.astify(processedSql, dbOption)
-    monaco.editor.setModelMarkers(model, 'sql-validation', [])
-    syntaxError.value = null
-  } catch (err: any) {
-    let message = err.message
-    if (message.includes('Expected') && message.includes('but') && message.includes('found')) {
-      const parts = message.split('but')
-      if (parts.length > 1) {
-        let foundPart = parts[parts.length - 1].trim()
-        foundPart = foundPart.replace('found', '').trim()
-        message = `Syntax error at or near ${foundPart}`
-      }
-    }
-
-    syntaxError.value = message
-    const markers: monaco.editor.IMarkerData[] = []
-
-    if (err.location) {
-      markers.push({
-        severity: monaco.MarkerSeverity.Error,
-        message: message,
-        startLineNumber: err.location.start.line,
-        startColumn: err.location.start.column,
-        endLineNumber: err.location.end.line,
-        endColumn: err.location.end.column,
-      })
-    } else {
-      markers.push({
-        severity: monaco.MarkerSeverity.Error,
-        message: err.message,
-        startLineNumber: 1,
-        startColumn: 1,
-        endLineNumber: model.getLineCount(),
-        endColumn: model.getLineMaxColumn(model.getLineCount()),
-      })
-    }
-    monaco.editor.setModelMarkers(model, 'sql-validation', markers)
+  // 2. Safety Check (Warning)
+  // Simple heuristic: DELETE/UPDATE without WHERE
+  const upperVal = value.toUpperCase()
+  // Strip comments and strings for better accuracy? (Simplified for now)
+  if ((/\bDELETE\b/.test(upperVal) || /\bUPDATE\b/.test(upperVal)) && !/\bWHERE\b/.test(upperVal)) {
+    syntaxError.value = '⚠️ 高风险警告: 检测到 DELETE/UPDATE 语句缺失 WHERE 子句！'
+    return
   }
+
+  // 3. Check Monaco Internal Markers (Syntax Errors from Parser)
+  // Monaco markers are async, but if they exist, we must block save
+  const model = editor.getModel()
+  if (model) {
+    const markers = monaco.editor.getModelMarkers({ resource: model.uri })
+    const error = markers.find((m) => m.severity === monaco.MarkerSeverity.Error)
+    if (error) {
+      syntaxError.value = error.message
+      return
+    }
+  }
+
+  // Reset if no manual errors and no parser errors
+  syntaxError.value = null
 }
 
 onMounted(() => {
+  setupMonacoSql() // Initialize global language features
+
   nextTick(() => {
     if (editorRef.value) {
-      registerProviders()
-      fetchSchema()
-
       editor = monaco.editor.create(editorRef.value, {
         value: props.modelValue,
-        language: props.language || 'sql',
+        language: monacoLanguage.value,
         theme: 'vs-dark-premium',
         automaticLayout: true,
         minimap: { enabled: false },
@@ -397,17 +186,25 @@ onMounted(() => {
         hover: {
           enabled: true,
           delay: 300,
-          sticky: true, // Critical: Allows moving mouse into the hover widget
-          above: false, // Prefer below/to the side close to cursor
+          sticky: true,
+          above: false,
         },
         unicodeHighlight: { ambiguousCharacters: false },
-        fixedOverflowWidgets: false, // Changed to false: Forces widget to render inside editor, usually closer to cursor
+        fixedOverflowWidgets: false,
         roundedSelection: true,
         cursorSmoothCaretAnimation: 'on',
         smoothScrolling: true,
         fontFamily: "'Fira Code', 'Monaco', 'Cascadia Code', monospace",
         fontLigatures: true,
       })
+
+      // Register Schema for this editor instance
+      if (currentSchema.value.length > 0) {
+        registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
+      }
+
+      fetchSchema()
+      registerVariableProvider()
 
       monaco.editor.defineTheme('vs-dark-premium', {
         base: 'vs-dark',
@@ -425,36 +222,22 @@ onMounted(() => {
       })
       monaco.editor.setTheme('vs-dark-premium')
 
-      const lang = props.language || 'sql'
-      if (lang !== 'shell' && lang !== 'json') {
-        monaco.languages.setMonarchTokensProvider(lang, {
-          tokenizer: {
-            root: [
-              [/\{\{\s*\w+\s*\}\}/, 'custom-variable'],
-              [
-                /[a-zA-Z_]\w*/,
-                {
-                  cases: {
-                    '@keywords': 'keyword',
-                    '@default': 'identifier',
-                  },
-                },
-              ],
-              [/[{}()\[\]]/, '@brackets'],
-              [/[<>=\!]+/, 'operator'],
-              [/\d+/, 'number'],
-              [/'([^'\\]|\\.)*'/, 'string'],
-              [/"([^"\\]|\\.)*"/, 'string'],
-              [/\/\/.*$/, 'comment'],
-              [/\/\*/, 'comment', '@comment'],
-            ],
-            comment: [
-              [/[^\/*]+/, 'comment'],
-              [/\*\//, 'comment', '@pop'],
-              [/[\/*]/, 'comment'],
-            ],
-          },
-          keywords: sqlKeywords,
+      // Listen for Model Markers (Errors) to update UI
+      const model = editor.getModel()
+      if (model) {
+        monaco.editor.onDidChangeMarkers(([uri]) => {
+          if (uri.toString() === model.uri.toString()) {
+            const markers = monaco.editor.getModelMarkers({ resource: uri })
+            const error = markers.find((m) => m.severity === monaco.MarkerSeverity.Error)
+            if (error && !syntaxError.value) {
+              // Don't overwrite Chinese char error if present (handled in validateSql)
+              // Actually validateSql runs on content change.
+              // Let's rely on markers.
+              syntaxError.value = error.message
+            } else if (!error && !fullWidthChars.test(editor?.getValue() || '')) {
+              syntaxError.value = null
+            }
+          }
         })
       }
 
@@ -463,13 +246,11 @@ onMounted(() => {
         emit('update:modelValue', value)
         validateSql()
       })
-
-      editor.addCommand(monaco.KeyMod.Shift | monaco.KeyMod.Alt | monaco.KeyCode.KeyF, () => {
-        editor?.getAction('editor.action.formatDocument')?.run()
-      })
     }
   })
 })
+
+const fullWidthChars = /[；，。“”（）]/ // Moved out to be accessible
 
 watch(
   () => props.modelValue,
@@ -480,18 +261,26 @@ watch(
   },
 )
 
+// Watch for DB Type or Language changes to update Editor Language
 watch(
-  () => [props.variables, props.dbType, props.dataSourceId, props.language],
+  () => [props.dbType, props.language],
   () => {
-    registerProviders()
-    fetchSchema()
+    if (editor) {
+      const model = editor.getModel()
+      if (model) {
+        monaco.editor.setModelLanguage(model, monacoLanguage.value)
+        registerVariableProvider() // Re-register for new language
+      }
+    }
   },
-  { deep: true },
 )
 
-const formatSql = () => {
-  editor?.getAction('editor.action.formatDocument')?.run()
-}
+watch(
+  () => [props.dataSourceId],
+  () => {
+    fetchSchema()
+  },
+)
 
 const clearSql = () => {
   editor?.setValue('')
@@ -508,9 +297,15 @@ const insertVariable = (variableName: string) => {
 
 onBeforeUnmount(() => {
   if (editor) {
+    const model = editor.getModel()
+    if (model) {
+      unregisterSchema(model.uri.toString())
+    }
     editor.dispose()
   }
-  providers.forEach((p) => p.dispose())
+  if (variableProvider) {
+    variableProvider.dispose()
+  }
 })
 
 defineExpose({
@@ -522,35 +317,19 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex flex-col border rounded-md overflow-hidden h-full min-h-[500px]">
+  <div class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px]">
     <div class="flex items-center justify-between px-2 py-1 bg-muted/30 border-b">
       <div class="flex items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          title="Format"
-          @click="formatSql"
-          class="h-8 w-8"
-        >
+        <Button type="button" variant="ghost" size="icon" title="Format" @click="formatSql" class="h-8 w-8">
           <Braces class="h-4 w-4" />
         </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          title="Clear"
-          @click="clearSql"
-          class="h-8 w-8 text-destructive"
-        >
+        <Button type="button" variant="ghost" size="icon" title="Clear" @click="clearSql"
+          class="h-8 w-8 text-destructive">
           <Eraser class="h-4 w-4" />
         </Button>
         <div class="h-4 w-px bg-border mx-1"></div>
-        <div
-          v-if="syntaxError"
-          class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
-          :title="syntaxError"
-        >
+        <div v-if="syntaxError" class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
+          :title="syntaxError">
           <AlertCircle class="h-3 w-3 shrink-0" />
           <span class="truncate">Error</span>
         </div>
@@ -562,15 +341,8 @@ defineExpose({
       <div class="flex items-center gap-2" v-if="variables && variables.length > 0">
         <span class="text-xs text-muted-foreground">Insert:</span>
         <div class="flex gap-1">
-          <Button
-            v-for="v in variables"
-            :key="v.name"
-            type="button"
-            variant="outline"
-            size="sm"
-            class="h-6 text-xs px-2"
-            @click="insertVariable(v.name)"
-          >
+          <Button v-for="v in variables" :key="v.name" type="button" variant="outline" size="sm"
+            class="h-6 text-xs px-2" @click="insertVariable(v.name)">
             {{ v.name }}
           </Button>
         </div>
@@ -587,10 +359,10 @@ defineExpose({
 
 /* Limit hover widget height */
 .monaco-editor .monaco-hover {
-  max-height: 300px !important;
+  max-height: 180px !important;
 }
 
 .monaco-editor .monaco-hover .monaco-scrollable-element {
-  max-height: 300px !important;
+  max-height: 180px !important;
 }
 </style>

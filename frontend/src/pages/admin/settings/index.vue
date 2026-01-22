@@ -156,14 +156,24 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'general')" :key="s.key" class="grid gap-2">
-            <div v-if="['allow_export', 'require_2fa'].includes(s.key)" class="flex items-center justify-between py-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'general')"
+            :key="s.key"
+            class="grid gap-2"
+          >
+            <div
+              v-if="['allow_export', 'require_2fa'].includes(s.key)"
+              class="flex items-center justify-between py-2"
+            >
               <div class="space-y-0.5">
                 <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
                 <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
               </div>
-              <Switch :id="s.key" :model-value="s.value === 'true'"
-                @update:model-value="(val) => (s.value = val ? 'true' : 'false')" />
+              <Switch
+                :id="s.key"
+                :model-value="s.value === 'true'"
+                @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
+              />
             </div>
             <div v-else class="grid gap-2">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
@@ -185,7 +195,11 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'execution')" :key="s.key" class="grid gap-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'execution')"
+            :key="s.key"
+            class="grid gap-2"
+          >
             <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
             <Input :id="s.key" v-model="s.value" type="number" />
             <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
@@ -204,18 +218,29 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'integration')" :key="s.key" class="grid gap-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'integration')"
+            :key="s.key"
+            class="grid gap-2"
+          >
             <div class="flex items-center justify-between">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-              <span v-if="s.key === 'glm_api_key' && !s.value"
-                class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse">
+              <span
+                v-if="s.key === 'glm_api_key' && !s.value"
+                class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
+              >
                 MISSING
               </span>
             </div>
-            <Input :id="s.key" v-model="s.value" :type="s.type || 'text'" :class="{
-              'border-destructive/50 focus-visible:ring-destructive':
-                s.key === 'glm_api_key' && !s.value,
-            }" />
+            <Input
+              :id="s.key"
+              v-model="s.value"
+              :type="s.type || 'text'"
+              :class="{
+                'border-destructive/50 focus-visible:ring-destructive':
+                  s.key === 'glm_api_key' && !s.value,
+              }"
+            />
             <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
           </div>
         </CardContent>
