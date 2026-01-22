@@ -18,7 +18,13 @@ export default class SettingsController {
 
     // If not logged in, only return whitelisted non-sensitive settings
     if (!auth.isAuthenticated) {
-      const whitelist = ['platform_name', 'allow_export', 'query_timeout_ms', 'system_timezone']
+      const whitelist = [
+        'platform_name',
+        'allow_export',
+        'query_timeout_ms',
+        'system_timezone',
+        'show_watermark',
+      ]
       const publicSettings = settings.filter((s) => whitelist.includes(s.key))
       if (!publicSettings.find((s) => s.key === 'system_timezone')) {
         publicSettings.push({ key: 'system_timezone', value: systemTimezone } as any)

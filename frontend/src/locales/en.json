@@ -270,6 +270,8 @@
       "require_2fa_desc": "Enforce Two-Factor Authentication for all users.",
       "system_timezone": "System Timezone",
       "system_timezone_desc": "Overrides the server timezone for scheduled tasks and logs (e.g. Asia/Shanghai).",
+      "show_watermark": "Show Watermark",
+      "show_watermark_desc": "Display a watermark with user information on all pages.",
       "query_timeout_ms": "Query Timeout (ms)",
       "query_timeout_ms_desc": "Maximum time a query is allowed to run.",
       "allow_export": "Allow Data Export",

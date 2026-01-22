@@ -64,8 +64,13 @@ const breadcrumbs = computed(() => {
           </Breadcrumb>
         </div>
       </header>
-      <div class="flex-1 overflow-auto bg-muted/5 font-sans">
-        <RouterView />
+      <div class="flex-1 overflow-auto bg-muted/5 font-sans flex flex-col">
+        <div class="flex-1">
+          <RouterView />
+        </div>
+        <footer class="py-4 text-center text-sm text-muted-foreground">
+          Built with ❤️ by the NexQuery AI Team.
+        </footer>
       </div>
     </SidebarInset>
     <AiChatAssistant />

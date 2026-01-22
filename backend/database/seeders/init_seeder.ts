@@ -228,6 +228,7 @@ export default class extends BaseSeeder {
       { key: 'glm_api_key', value: '', type: 'string', group: 'integration' },
       { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'integration' },
       { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'integration' },
+      { key: 'show_watermark', value: 'true', type: 'boolean', group: 'general' },
     ]
 
     for (const s of defaultSettings) {

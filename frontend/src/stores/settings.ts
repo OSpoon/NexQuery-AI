@@ -55,6 +55,7 @@ export const useSettingsStore = defineStore('settings', () => {
   const queryTimeoutMs = computed(() => parseInt(settings.value['query_timeout_ms'] || '30000'))
   const systemTimezone = computed(() => settings.value['system_timezone'] || 'UTC')
   const require2fa = computed(() => settings.value['require_2fa'] !== 'false') // Default to true if not present
+  const showWatermark = computed(() => settings.value['show_watermark'] !== 'false') // Default to true if not present
   const hasGlmKey = computed(() => !!settings.value['glm_api_key'])
 
   return {
@@ -66,6 +67,7 @@ export const useSettingsStore = defineStore('settings', () => {
     queryTimeoutMs,
     systemTimezone,
     require2fa,
+    showWatermark,
     hasGlmKey,
     themeColor,
     setThemeColor,

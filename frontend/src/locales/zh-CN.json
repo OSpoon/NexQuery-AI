@@ -270,6 +270,8 @@
       "require_2fa_desc": "强制所有用户开启双因素认证。",
       "system_timezone": "系统时区",
       "system_timezone_desc": "覆盖服务器时区，用于调度任务和日志（例如 Asia/Shanghai）。",
+      "show_watermark": "显示水印",
+      "show_watermark_desc": "在所有页面上显示包含当前用户信息的水印。",
       "query_timeout_ms": "查询超时 (ms)",
       "query_timeout_ms_desc": "允许查询运行的最大时间。",
       "allow_export": "允许数据导出",
