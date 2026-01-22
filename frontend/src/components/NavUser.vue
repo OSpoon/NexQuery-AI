@@ -13,6 +13,9 @@ import {
   Languages,
   Webhook,
   Mail,
+  Database,
+  HardDrive,
+  Activity,
 } from 'lucide-vue-next'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -143,19 +146,19 @@ const setTheme = (themeValue: string) => {
                   <Check v-if="locale === 'zh-CN'" class="h-4 w-4 ml-auto" />
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
+
             </DropdownMenuSub>
             <DropdownMenuItem as-child>
-              <a href="https://webhook.site" target="_blank" rel="noopener noreferrer"
-                class="flex items-center gap-2 cursor-pointer w-full">
-                <Webhook class="size-4" />
-                Webhook.site
-              </a>
-            </DropdownMenuItem>
-            <DropdownMenuItem as-child>
-              <a href="http://localhost:1080" target="_blank" rel="noopener noreferrer"
-                class="flex items-center gap-2 cursor-pointer w-full">
-                <Mail class="size-4" />
-                MailCatcher
+              <a :href="item.href" target="_blank" rel="noopener noreferrer"
+                class="flex items-center gap-2 cursor-pointer w-full" v-for="item in [
+                  { href: 'https://webhook.site', icon: Webhook, label: 'Webhook.site' },
+                  { href: 'http://localhost:1080', icon: Mail, label: 'MailCatcher' },
+                  { href: 'http://localhost:8080', icon: Database, label: 'Adminer' },
+                  { href: 'http://localhost:6333/dashboard', icon: HardDrive, label: 'Qdrant' },
+                  { href: 'https://us.cloud.langfuse.com', icon: Activity, label: 'Langfuse' },
+                ]" :key="item.label">
+                <component :is="item.icon" class="size-4" />
+                {{ item.label }}
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem as-child>
