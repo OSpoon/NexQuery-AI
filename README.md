@@ -2,7 +2,7 @@
 
 NexQuery AI 是一个**面向运营与非技术人员**的智能数据协作平台。它通过 AI 驱动的交互方式，致力于**打破技术壁垒**，让运营人员在日常数据获取中**大幅降低对运维或开发工程师的依赖**，实现安全、自主的数据消费。
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
 ![Vue](https://img.shields.io/badge/Frontend-Vue%203%20%2B%20Shadcn-42b883)
 ![AdonisJS](https://img.shields.io/badge/Backend-AdonisJS%206-5a45ff)
 
