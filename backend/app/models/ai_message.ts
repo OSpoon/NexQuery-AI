@@ -28,6 +28,8 @@ export default class AiMessage extends BaseModel {
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
 
-  @belongsTo(() => AiConversation)
+  @belongsTo(() => AiConversation, {
+    foreignKey: 'conversationId',
+  })
   declare conversation: BelongsTo<typeof AiConversation>
 }

@@ -30,6 +30,8 @@ export default class AiConversation extends BaseModel {
   @belongsTo(() => DataSource)
   declare dataSource: BelongsTo<typeof DataSource>
 
-  @hasMany(() => AiMessage)
+  @hasMany(() => AiMessage, {
+    foreignKey: 'conversationId',
+  })
   declare messages: HasMany<typeof AiMessage>
 }
