@@ -13,9 +13,33 @@
 			}
 		},
 		{
+			"path": "pages/history/detail",
+			"style": {
+				"navigationBarTitleText": "任务详情"
+			}
+		},
+		{
 			"path": "pages/profile/index",
 			"style": {
 				"navigationBarTitleText": "个人中心"
+			}
+		},
+		{
+			"path": "pages/profile/security",
+			"style": {
+				"navigationBarTitleText": "账号安全"
+			}
+		},
+		{
+			"path": "pages/profile/about",
+			"style": {
+				"navigationBarTitleText": "关于我们"
+			}
+		},
+		{
+			"path": "pages/profile/policy",
+			"style": {
+				"navigationBarTitleText": "协议条款"
 			}
 		},
 		{
@@ -52,8 +76,8 @@
 			{
 				"pagePath": "pages/index/index",
 				"text": "任务",
-				"iconPath": "static/tabs/home.png",
-				"selectedIconPath": "static/tabs/home_active.png"
+				"iconPath": "static/tabs/task.png",
+				"selectedIconPath": "static/tabs/task_active.png"
 			},
 			{
 				"pagePath": "pages/history/index",
@@ -64,8 +88,8 @@
 			{
 				"pagePath": "pages/profile/index",
 				"text": "我的",
-				"iconPath": "static/tabs/profile.png",
-				"selectedIconPath": "static/tabs/profile_active.png"
+				"iconPath": "static/tabs/person.png",
+				"selectedIconPath": "static/tabs/person_active.png"
 			}
 		]
 	},

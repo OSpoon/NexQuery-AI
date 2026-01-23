@@ -5,62 +5,75 @@ import type { QueryTask } from '@nexquery/shared'
 
 const tasks = ref<QueryTask[]>([])
 const loading = ref(false)
+const searchQuery = ref('')
+let searchTimeout: any = null
 
 const fetchTasks = async () => {
-    loading.value = true
-    try {
-        const res = await api.get('/query-tasks')
-        tasks.value = res
-    } catch (error: any) {
-        console.error('Failed to fetch tasks', error)
-        if (error.statusCode === 401) {
-            uni.reLaunch({ url: '/pages/login/index' })
-        }
-    } finally {
-        loading.value = false
-        uni.stopPullDownRefresh()
+  loading.value = true
+  try {
+    const res = await api.get('/query-tasks', {
+      search: searchQuery.value
+    })
+    tasks.value = res
+  } catch (error: any) {
+    console.error('Failed to fetch tasks', error)
+    if (error.statusCode === 401) {
+      uni.reLaunch({ url: '/pages/login/index' })
     }
+  } finally {
+    loading.value = false
+    uni.stopPullDownRefresh()
+  }
+}
+
+const onSearchInput = (e: any) => {
+  searchQuery.value = e.detail.value
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    fetchTasks()
+  }, 500)
 }
 
 const goToExecute = (task: QueryTask) => {
-    uni.navigateTo({
-        url: `/pages/task/execute?id=${task.id}`
-    })
+  uni.navigateTo({
+    url: `/pages/task/execute?id=${task.id}`
+  })
 }
 
 onMounted(() => {
-    const token = uni.getStorageSync('auth_token')
-    if (!token) {
-        uni.reLaunch({ url: '/pages/login/index' })
-    } else {
-        fetchTasks()
-    }
+  const token = uni.getStorageSync('auth_token')
+  if (!token) {
+    uni.reLaunch({ url: '/pages/login/index' })
+  } else {
+    fetchTasks()
+  }
 })
 
 // Listen for pull down refresh in Uni-app
 import { onPullDownRefresh } from '@dcloudio/uni-app'
 onPullDownRefresh(() => {
-    fetchTasks()
+  fetchTasks()
 })
 </script>
 
 <template>
   <view class="container">
+    <view class="search-bar">
+      <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit"></image>
+      <input class="search-input" placeholder="搜索任务..." v-model="searchQuery" @input="onSearchInput"
+        confirm-type="search" />
+    </view>
+
     <view v-if="loading && tasks.length === 0" class="loading-state">
       <text>加载中...</text>
     </view>
-    
+
     <view v-else-if="tasks.length === 0" class="empty-state">
       <text>暂无查询任务</text>
     </view>
-    
+
     <view v-else class="task-list">
-      <view 
-        v-for="task in tasks" 
-        :key="task.id" 
-        class="task-item"
-        @click="goToExecute(task)"
-      >
+      <view v-for="task in tasks" :key="task.id" class="task-item" @click="goToExecute(task)">
         <view class="task-info">
           <text class="task-name">{{ task.name }}</text>
           <text class="task-desc">{{ task.description || '无描述' }}</text>
@@ -81,7 +94,34 @@ onPullDownRefresh(() => {
   padding: 20rpx;
 }
 
-.loading-state, .empty-state {
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.search-icon {
+  width: 32rpx;
+  height: 32rpx;
+  margin-right: 16rpx;
+  opacity: 0.4;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.loading-state,
+.empty-state {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -102,7 +142,7 @@ onPullDownRefresh(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  box-shadow: 0 2rpx 10rpx rgba(0,0,0,0.05);
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
 }
 
 .task-info {

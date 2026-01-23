@@ -5,12 +5,17 @@ import { onPullDownRefresh } from '@dcloudio/uni-app'
 
 const logs = ref<any[]>([])
 const loading = ref(false)
+const searchQuery = ref('')
+const statusFilter = ref('')
+let searchTimeout: any = null
 
 const fetchLogs = async () => {
   loading.value = true
   try {
-    // Backend returns pagination object { meta: ..., data: [...] }
-    const res = await api.get('/query-logs')
+    const res = await api.get('/query-logs', {
+      search: searchQuery.value,
+      status: statusFilter.value
+    })
     logs.value = res.data || []
   } catch (error) {
     console.error('Failed to fetch logs', error)
@@ -18,6 +23,20 @@ const fetchLogs = async () => {
     loading.value = false
     uni.stopPullDownRefresh()
   }
+}
+
+const onSearchInput = (e: any) => {
+  searchQuery.value = e.detail.value
+  if (searchTimeout) clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    fetchLogs()
+  }, 500)
+}
+
+const setStatus = (status: string) => {
+  if (statusFilter.value === status) return
+  statusFilter.value = status
+  fetchLogs()
 }
 
 const formatDate = (dateStr: string) => {
@@ -30,10 +49,10 @@ const formatDate = (dateStr: string) => {
 }
 
 const viewResult = (log: any) => {
-  // Re-use result page by storing the data temporarily
-  uni.setStorageSync('last_query_result', JSON.stringify(log.results || log.result))
+  // Navigate to detail page
+  uni.setStorageSync('current_log_detail', JSON.stringify(log))
   uni.navigateTo({
-    url: '/pages/result/index'
+    url: '/pages/history/detail'
   })
 }
 
@@ -48,6 +67,19 @@ onPullDownRefresh(() => {
 
 <template>
   <view class="container">
+    <view class="filter-header">
+      <view class="search-bar">
+        <image class="search-icon" src="/static/tabs/history_active.png" mode="aspectFit"></image>
+        <input class="search-input" placeholder="搜索运行记录..." v-model="searchQuery" @input="onSearchInput"
+          confirm-type="search" />
+      </view>
+      <view class="status-tabs">
+        <view class="tab-item" :class="{ active: statusFilter === '' }" @click="setStatus('')">全部</view>
+        <view class="tab-item" :class="{ active: statusFilter === 'success' }" @click="setStatus('success')">成功</view>
+        <view class="tab-item" :class="{ active: statusFilter === 'failed' }" @click="setStatus('failed')">失败</view>
+      </view>
+    </view>
+
     <view v-if="loading && logs.length === 0" class="loading-state">
       <text>加载中...</text>
     </view>
@@ -78,6 +110,58 @@ onPullDownRefresh(() => {
   min-height: 100vh;
   background-color: #f5f5f5;
   padding: 20rpx;
+}
+
+.filter-header {
+  background-color: #fff;
+  padding: 20rpx;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #f5f5f5;
+  padding: 12rpx 20rpx;
+  border-radius: 8rpx;
+  margin-bottom: 20rpx;
+}
+
+.search-icon {
+  width: 28rpx;
+  height: 28rpx;
+  margin-right: 12rpx;
+  opacity: 0.4;
+}
+
+.search-input {
+  flex: 1;
+  font-size: 26rpx;
+  color: #333;
+}
+
+.status-tabs {
+  display: flex;
+  gap: 20rpx;
+}
+
+.tab-item {
+  font-size: 26rpx;
+  color: #666;
+  padding: 8rpx 24rpx;
+  border-radius: 30rpx;
+  background-color: #f5f5f5;
+}
+
+.tab-item.active {
+  background-color: #e6f7ff;
+  color: #1890ff;
+  font-weight: bold;
 }
 
 .loading-state,

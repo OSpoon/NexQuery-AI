@@ -188,54 +188,6 @@ const confirmDisable2FA = async () => {
   }
 }
 
-const fileInput = ref<HTMLInputElement | null>(null)
-const isUploading = ref(false)
-
-const triggerFileInput = () => {
-  fileInput.value?.click()
-}
-
-const handleFileChange = async (event: Event) => {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (!file) return
-
-  // Validation
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg']
-  if (!allowedTypes.includes(file.type)) {
-    toast.error('Only JPEG and PNG images are allowed')
-    return
-  }
-
-  const maxSize = 2 * 1024 * 1024 // 2MB
-  if (file.size > maxSize) {
-    toast.error('Image size must be less than 2MB')
-    return
-  }
-
-  isUploading.value = true
-  const formData = new FormData()
-  formData.append('avatar', file)
-
-  try {
-    const res = await api.post('/auth/avatar', formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    })
-    toast.success('Avatar updated successfully')
-    // Update local user state
-    if (authStore.user) {
-      authStore.user.avatar = res.data.avatar
-      localStorage.setItem('user', JSON.stringify(authStore.user))
-    }
-  } catch (e: any) {
-    toast.error(e.response?.data?.message || 'Failed to upload avatar')
-  } finally {
-    isUploading.value = false
-    if (fileInput.value) fileInput.value.value = ''
-  }
-}
 </script>
 
 <template>
@@ -252,26 +204,12 @@ const handleFileChange = async (event: Event) => {
       </CardHeader>
       <CardContent class="space-y-4">
         <div class="flex items-center gap-6 mb-6">
-          <div class="relative group">
-            <Avatar class="h-24 w-24 border-2 border-muted">
-              <AvatarImage :src="user?.avatar" v-if="user?.avatar" />
-              <AvatarFallback class="text-xl">
-                {{ user?.fullName?.slice(0, 2).toUpperCase() || '?' }}
-              </AvatarFallback>
-            </Avatar>
-            <div v-if="isUploading" class="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full">
-              <div class="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-            </div>
-          </div>
-          <div class="space-y-2">
-            <input type="file" ref="fileInput" class="hidden" accept="image/*" @change="handleFileChange" />
-            <Button variant="outline" size="sm" @click="triggerFileInput" :disabled="isUploading">
-              {{ t('profile.change_avatar') }}
-            </Button>
-            <p class="text-xs text-muted-foreground">
-              {{ t('profile.avatar_help') }}
-            </p>
-          </div>
+          <Avatar class="h-24 w-24 border-2 border-muted">
+            <AvatarImage :src="user?.avatar" v-if="user?.avatar" />
+            <AvatarFallback class="text-xl">
+              {{ user?.fullName?.slice(0, 2).toUpperCase() || '?' }}
+            </AvatarFallback>
+          </Avatar>
         </div>
 
         <div class="grid w-full max-w-sm items-center gap-1.5">
@@ -367,7 +305,7 @@ const handleFileChange = async (event: Event) => {
         <DialogFooter>
           <Button variant="outline" @click="showDisableDialog = false">{{
             t('common.cancel')
-          }}</Button>
+            }}</Button>
           <Button variant="destructive" @click="confirmDisable2FA" :disabled="isLoading">
             {{ t('profile.disable_2fa') }}
           </Button>
@@ -405,10 +343,10 @@ const handleFileChange = async (event: Event) => {
         <DialogFooter>
           <Button variant="outline" @click="showEnableDialog = false">{{
             t('common.cancel')
-          }}</Button>
+            }}</Button>
           <Button @click="confirmEnable2FA" :disabled="isLoading">{{
             t('profile.verify_enable')
-          }}</Button>
+            }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

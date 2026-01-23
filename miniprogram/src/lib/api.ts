@@ -121,7 +121,7 @@ const request = (options: RequestOptions): Promise<any> => {
 }
 
 export default {
-    get: (url: string, header?: any) => request({ url, method: 'GET', header }),
+    get: (url: string, data?: any, header?: any) => request({ url, method: 'GET', data, header }),
     post: (url: string, data?: any, header?: any) => request({ url, method: 'POST', data, header }),
     put: (url: string, data?: any, header?: any) => request({ url, method: 'PUT', data, header }),
     delete: (url: string, header?: any) => request({ url, method: 'DELETE', header }),

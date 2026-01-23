@@ -58,7 +58,7 @@ const handleWechatLogin = () => {
     fail: (err) => {
       console.error('uni.login failed', err)
       loading.value = false
-      
+
       let errorMsg = '获取微信Code失败'
       if (err.errMsg && err.errMsg.includes('需要重新登录')) {
         errorMsg = '微信工具登录过期，请在开发者工具上方点击头像重新登录'
@@ -88,7 +88,12 @@ const handleWechatLogin = () => {
       <button class="login-btn" type="primary" :loading="loading" @click="handleWechatLogin">
         微信一键登录
       </button>
-      <text class="tips">登录即代表您同意用户协议和隐私政策</text>
+      <view class="agreement-box">
+        <text class="tips">登录即代表您同意</text>
+        <text class="link" @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })">《用户协议》</text>
+        <text class="tips">和</text>
+        <text class="link" @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })">《隐私政策》</text>
+      </view>
     </view>
   </view>
 </template>
@@ -143,11 +148,21 @@ const handleWechatLogin = () => {
   font-size: 32rpx;
 }
 
+.agreement-box {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 30rpx;
+  flex-wrap: wrap;
+}
+
 .tips {
-  display: block;
-  text-align: center;
   font-size: 24rpx;
   color: #ccc;
-  margin-top: 30rpx;
+}
+
+.link {
+  font-size: 24rpx;
+  color: #576b95;
 }
 </style>
