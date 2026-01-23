@@ -71,6 +71,7 @@ const fetchData = async () => {
       twoFactorEnabled.value = !!res.data.user.twoFactorEnabled
       lastPasswordChangeAt.value = res.data.user.lastPasswordChangeAt
       createdAt.value = res.data.user.createdAt
+      isWechatBound.value = !!res.data.user.isWechatBound
 
       // Auto-trigger setup if mandatory and not enabled
       if (!twoFactorEnabled.value) {
@@ -188,6 +189,28 @@ const confirmDisable2FA = async () => {
   }
 }
 
+// WeChat Unbind
+const isWechatBound = ref(false)
+const showUnbindDialog = ref(false)
+
+const handleUnbindClick = () => {
+  showUnbindDialog.value = true
+}
+
+const confirmUnbind = async () => {
+  isLoading.value = true
+  try {
+    await api.post('/auth/miniprogram/unbind')
+    isWechatBound.value = false
+    showUnbindDialog.value = false
+    toast.success('WeChat account unbound successfully')
+  } catch (e: any) {
+    toast.error(e.response?.data?.message || 'Unbind failed')
+  } finally {
+    isLoading.value = false
+  }
+}
+
 </script>
 
 <template>
@@ -287,6 +310,31 @@ const confirmDisable2FA = async () => {
       </CardContent>
     </Card>
 
+    <Card>
+      <CardHeader>
+        <CardTitle>Third Party Binding</CardTitle>
+        <CardDescription>Manage your connected third-party accounts.</CardDescription>
+      </CardHeader>
+      <CardContent class="space-y-6">
+        <div class="flex items-center justify-between">
+          <div class="space-y-0.5">
+            <div class="font-medium">WeChat (Mini Program)</div>
+            <div class="text-sm text-muted-foreground">
+              {{ isWechatBound ? 'Bound to a WeChat account.' : 'Not bound to any WeChat account.' }}
+            </div>
+          </div>
+          <div>
+            <Button v-if="isWechatBound" variant="destructive" @click="handleUnbindClick" :disabled="isLoading">
+              Unbind
+            </Button>
+            <Button v-else variant="outline" disabled>
+              Unbound
+            </Button>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
     <!-- Disable 2FA Dialog -->
     <Dialog v-model:open="showDisableDialog">
       <DialogContent>
@@ -367,6 +415,25 @@ const confirmDisable2FA = async () => {
         </div>
         <DialogFooter>
           <Button @click="showRecoveryCodes = false">{{ t('profile.saved_codes') }}</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Unbind Dialog -->
+    <Dialog v-model:open="showUnbindDialog">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Unbind WeChat Account</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to unbind your WeChat account? You will no longer be able to use WeChat One-Click
+            Login.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="showUnbindDialog = false">{{ t('common.cancel') }}</Button>
+          <Button variant="destructive" @click="confirmUnbind" :disabled="isLoading">
+            Confirm Unbind
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

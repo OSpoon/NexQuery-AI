@@ -52,6 +52,7 @@ router
         router.post('logout', [AuthController, 'logout'])
         router.post('auth/password/change', [AuthController, 'changePassword'])
         router.post('auth/avatar', [AuthController, 'updateAvatar'])
+        router.post('auth/miniprogram/unbind', [AuthController, 'unbindMiniProgram'])
 
         // 2FA Management
         router.post('auth/2fa/generate', [TwoFactorAuthController, 'generate'])

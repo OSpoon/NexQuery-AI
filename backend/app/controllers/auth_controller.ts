@@ -152,6 +152,7 @@ export default class AuthController {
         twoFactorEnabled: user.twoFactorEnabled,
         lastPasswordChangeAt: user.lastPasswordChangeAt?.toISO(),
         createdAt: user.createdAt.toISO(),
+        isWechatBound: !!user.wechatOpenid,
       },
     })
   }
@@ -243,6 +244,7 @@ export default class AuthController {
         avatar: user.avatar,
         twoFactorEnabled: user.twoFactorEnabled,
         createdAt: user.createdAt.toISO(),
+        isWechatBound: !!user.wechatOpenid,
       },
     })
   }
@@ -270,6 +272,7 @@ export default class AuthController {
         twoFactorEnabled: user.twoFactorEnabled,
         lastPasswordChangeAt: user.lastPasswordChangeAt?.toISO(),
         createdAt: user.createdAt.toISO(),
+        isWechatBound: !!user.wechatOpenid,
       },
       permissions: Array.from(permissions),
       roles: user.roles.map((r) => r.slug),
@@ -487,6 +490,7 @@ export default class AuthController {
           avatar: user.avatar,
           twoFactorEnabled: user.twoFactorEnabled,
           createdAt: user.createdAt.toISO(),
+          isWechatBound: !!user.wechatOpenid,
         },
       })
     } catch (error: any) {
@@ -544,10 +548,60 @@ export default class AuthController {
           avatar: user.avatar,
           twoFactorEnabled: user.twoFactorEnabled,
           createdAt: user.createdAt.toISO(),
+          isWechatBound: !!user.wechatOpenid,
         },
       })
     } catch (error: any) {
       return response.unauthorized({ message: '账号或密码错误' })
     }
+  }
+
+  async unbindMiniProgram({ auth, response, request }: HttpContext) {
+    const user = auth.user!
+
+    if (!user.wechatOpenid) {
+      return response.badRequest({ message: '当前账号未绑定微信' })
+    }
+
+    user.wechatOpenid = null
+    await user.save()
+
+    // Revoke all other tokens (invalidate Mini Program sessions)
+    try {
+      if (user.currentAccessToken) {
+        const currentTokenId = user.currentAccessToken.identifier
+
+        await user.load('apiTokens')
+
+        // Iterate and delete individually to be safe
+        for (const token of user.apiTokens) {
+          // Compare ID. AccessToken model uses 'id', not 'identifier'.
+          // We ensure we don't delete the current session's token.
+          if (String(token.id) !== String(currentTokenId)) {
+            try {
+              await User.accessTokens.delete(user, token.id)
+            } catch (innerError) {
+              // Log failure for individual token but continue
+              // console.error(`Failed to delete token ${token.id}: ${innerError.message}`)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      logger.error({ error, userId: user.id }, 'Failed to revoke other tokens during unbind')
+      // We don't block the unbind if token revocation fails, but we log it.
+    }
+
+    await AuditLog.create({
+      userId: user.id,
+      action: 'auth:miniprogram_unbind',
+      status: 'success',
+      // details: { revokedTokensCount: '...' }, // Details not easily available if errors occur or counting is tricky without accumulating
+      ipAddress: request.ip(),
+      userAgent: request.header('user-agent'),
+      isInternalIp: isInternalIP(request.ip()),
+    })
+
+    return response.ok({ message: '解绑成功' })
   }
 }

@@ -108,7 +108,9 @@ const request = (options: RequestOptions): Promise<any> => {
                     if (res.statusCode === 401) {
                         uni.removeStorageSync('auth_token')
                         uni.removeStorageSync('user')
-                        // Handle redirect to login if necessary
+                        uni.reLaunch({
+                            url: '/pages/login/index'
+                        })
                     }
                     reject(responseData || { message: 'Request failed' })
                 }

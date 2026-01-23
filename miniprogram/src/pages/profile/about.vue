@@ -14,10 +14,6 @@ const version = '1.0.0'
 
         <view class="content-card">
             <view class="info-item">
-                <text class="label">开发者</text>
-                <text class="value">Open Source Project</text>
-            </view>
-            <view class="info-item">
                 <text class="label">官方网站</text>
                 <text class="value">nexquery.ai</text>
             </view>
