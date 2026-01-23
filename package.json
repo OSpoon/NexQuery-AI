@@ -9,10 +9,14 @@
         "install:all": "pnpm install -r",
         "lint": "pnpm -r run lint",
         "type-check": "pnpm -r run type-check",
-        "postinstall": "pnpm --filter @nexquery/shared build"
+        "postinstall": "pnpm --filter @nexquery/shared build",
+        "test:e2e": "pnpm --filter @nexquery/e2e test",
+        "test:e2e:ui": "pnpm --filter @nexquery/e2e test:ui"
     },
     "workspaces": [
         "backend",
-        "frontend"
+        "frontend",
+        "miniprogram",
+        "packages/*"
     ]
 }

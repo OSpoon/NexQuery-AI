@@ -1,0 +1,38 @@
+{
+  "cookies": [],
+  "origins": [
+    {
+      "origin": "http://localhost:3000",
+      "localStorage": [
+        {
+          "name": "__VUE_DEVTOOLS_NEXT_PLUGIN_SETTINGS__dev.esm.pinia__",
+          "value": "{\"logStoreChanges\":true}"
+        },
+        {
+          "name": "auth_token",
+          "value": "oat_OA.VjhYeGtaQnRuZ3FmQ3JwcDVmY2tuRk54ajBYNFdLM1lnX2xRd21SUTM5MTQ4Njc0MzU"
+        },
+        {
+          "name": "__vue-devtools-frame-state__",
+          "value": "{\"width\":80,\"height\":60,\"top\":0,\"left\":50,\"open\":false,\"route\":\"/\",\"position\":\"bottom\",\"isFirstVisit\":true,\"closeOnOutsideClick\":false,\"minimizePanelInactive\":5000,\"preferShowFloatingPanel\":true,\"reduceMotion\":false}"
+        },
+        {
+          "name": "user",
+          "value": "{\"id\":4,\"fullName\":\"E2E Test User\",\"email\":\"e2e@nexquery.ai\",\"avatar\":null,\"twoFactorEnabled\":false,\"createdAt\":\"2026-01-23T13:22:55.000+08:00\"}"
+        },
+        {
+          "name": "locale",
+          "value": "en"
+        },
+        {
+          "name": "__vue-devtools-theme__",
+          "value": "auto"
+        },
+        {
+          "name": "vueuse-color-scheme",
+          "value": "auto"
+        }
+      ]
+    }
+  ]
+}

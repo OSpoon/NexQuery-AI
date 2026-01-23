@@ -32,6 +32,8 @@ router
     // Public Auth
     router.post('auth/2fa/verify', [AuthController, 'verify2fa']) // 2FA Verification during login
     router.post('login', [AuthController, 'login'])
+    router.post('auth/miniprogram/login', [AuthController, 'miniProgramLogin'])
+    router.post('auth/miniprogram/bind', [AuthController, 'bindMiniProgram'])
     router.post('register', [AuthController, 'register'])
     router.post('password/email', [PasswordResetsController, 'sendResetLink'])
     router.post('password/reset', [PasswordResetsController, 'reset'])

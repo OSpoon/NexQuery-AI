@@ -55,6 +55,9 @@ export default class User extends UserBase {
   @column()
   declare twoFactorRecoveryCodes: string | null
 
+  @column()
+  declare wechatOpenid: string | null
+
   @column({ serializeAs: null })
   declare password: string
 

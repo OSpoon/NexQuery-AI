@@ -418,4 +418,136 @@ export default class AuthController {
       avatar: user.avatar,
     })
   }
+
+  async miniProgramLogin({ request, response }: HttpContext) {
+    const { code } = request.all()
+    if (!code) {
+      return response.badRequest({ message: 'Code is required' })
+    }
+
+    const appId = env.get('WECHAT_APP_ID')
+    const appSecret = env.get('WECHAT_APP_SECRET')
+
+    if (!appId || !appSecret) {
+      return response.internalServerError({ message: 'WeChat configuration missing' })
+    }
+
+    try {
+      const wechatResponse = await fetch(
+        `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`
+      )
+      const data = (await wechatResponse.json()) as any
+
+      if (data.errcode) {
+        logger.error({ wechatError: data }, 'WeChat login failed')
+        return response.badRequest({ message: 'WeChat login failed', error: data.errmsg })
+      }
+
+      const openid = data.openid
+      let user = await User.findBy('wechat_openid', openid)
+
+      if (!user) {
+        // Option 1: Create a new user (inactive by default as per register logic)
+        // Option 2: Error and ask to bind (safer for enterprise tools)
+        // We'll go with Option 1 but keep them inactive, so admin still approves.
+        // We need a dummy email/password or something if they don't exist.
+        // Actually, let's just return a "not_bound" status if the user doesn't exist,
+        // allowing the mini-program to show a "Please contact admin" or "Bind account" screen.
+        return response.notFound({
+          code: 'USER_NOT_FOUND',
+          message: 'WeChat account not bound to any user. Please contact admin.',
+          openid,
+        })
+      }
+
+      if (!user.isActive) {
+        return response.unauthorized({ message: 'Your account is pending approval.' })
+      }
+
+      const token = await User.accessTokens.create(user, ['*'], {
+        expiresIn: '24h',
+      })
+
+      // Audit Log
+      await AuditLog.create({
+        userId: user.id,
+        action: 'auth:miniprogram_login',
+        status: 'success',
+        ipAddress: request.ip(),
+        userAgent: request.header('user-agent'),
+        isInternalIp: isInternalIP(request.ip()),
+      })
+
+      return response.ok({
+        token: token.value?.release(),
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          avatar: user.avatar,
+          twoFactorEnabled: user.twoFactorEnabled,
+          createdAt: user.createdAt.toISO(),
+        },
+      })
+    } catch (error: any) {
+      logger.error({ error: error.message }, 'Mini program login internal error')
+      return response.internalServerError({ message: 'Internal server error' })
+    }
+  }
+
+  async bindMiniProgram({ request, response }: HttpContext) {
+    const { email, password, openid } = request.all()
+
+    if (!email || !password || !openid) {
+      return response.badRequest({ message: '邮箱、密码和 OpenID 必填' })
+    }
+
+    try {
+      const user = await User.verifyCredentials(email, password)
+
+      // 检查该 OpenID 是否已被绑定
+      const existingUser = await User.findBy('wechat_openid', openid)
+      if (existingUser) {
+        return response.badRequest({ message: '该微信账号已绑定其他用户' })
+      }
+
+      // 如果用户当前已绑定了其他 OpenID，允许更新吗？
+      // 这里暂时只允许绑定一次，防止误操作
+      if (user.wechatOpenid) {
+        return response.badRequest({ message: '该账号已绑定过微信，请先解绑或联系管理员' })
+      }
+
+      user.wechatOpenid = openid
+      await user.save()
+
+      const token = await User.accessTokens.create(user, ['*'], {
+        expiresIn: '24h',
+      })
+
+      // Audit Log
+      await AuditLog.create({
+        userId: user.id,
+        action: 'auth:miniprogram_bind',
+        status: 'success',
+        ipAddress: request.ip(),
+        userAgent: request.header('user-agent'),
+        isInternalIp: isInternalIP(request.ip()),
+      })
+
+      return response.ok({
+        message: '绑定成功',
+        token: token.value?.release(),
+        user: {
+          id: user.id,
+          fullName: user.fullName,
+          email: user.email,
+          avatar: user.avatar,
+          twoFactorEnabled: user.twoFactorEnabled,
+          createdAt: user.createdAt.toISO(),
+        },
+      })
+    } catch (error: any) {
+      return response.unauthorized({ message: '账号或密码错误' })
+    }
+  }
 }

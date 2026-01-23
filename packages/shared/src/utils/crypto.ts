@@ -1,5 +1,22 @@
 import CryptoJS from 'crypto-js';
 
+// IMPORTANT: Deep fix for "Native crypto module could not be used" in environments without window.crypto (like WeChat)
+try {
+    const lib = (CryptoJS as any).lib;
+    if (lib && lib.WordArray) {
+        lib.WordArray.random = function (nBytes: number) {
+            const words = [];
+            for (let i = 0; i < nBytes; i += 4) {
+                words.push(Math.floor(Math.random() * 0x100000000));
+            }
+            return lib.WordArray.create(words, nBytes);
+        };
+        console.log('NexQuery: CryptoJS.lib.WordArray.random has been patched');
+    }
+} catch (e) {
+    console.error('NexQuery: Failed to patch CryptoJS', e);
+}
+
 export class CryptoService {
     private key: string;
 

@@ -66,4 +66,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   QDRANT_HOST: Env.schema.string({ format: 'host' }),
   QDRANT_PORT: Env.schema.number(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for WeChat Mini Program
+  |----------------------------------------------------------
+  */
+  WECHAT_APP_ID: Env.schema.string.optional(),
+  WECHAT_APP_SECRET: Env.schema.string.optional(),
 })
