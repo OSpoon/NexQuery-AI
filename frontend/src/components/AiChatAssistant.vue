@@ -32,7 +32,16 @@ import {
   ThumbsUp,
   ThumbsDown,
   Check,
+  History,
+  Plus,
+  Trash2,
 } from 'lucide-vue-next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 import { useSettingsStore } from '@/stores/settings'
@@ -70,6 +79,7 @@ watch(
 
 onMounted(() => {
   dataSourceStore.fetchDataSources()
+  store.fetchConversations()
 })
 
 // Refresh data sources whenever chat is opened to ensure sync
@@ -78,6 +88,7 @@ watch(
   (isOpen) => {
     if (isOpen) {
       dataSourceStore.fetchDataSources()
+      store.fetchConversations()
       scrollToBottom()
     }
   },
@@ -192,32 +203,60 @@ const submitCorrection = async () => {
 <template>
   <div class="fixed bottom-4 right-4 z-50 flex flex-col items-end gap-2">
     <!-- Chat Window -->
-    <div
-      v-if="store.isOpen"
-      class="w-[480px] h-[600px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden transition-all duration-200 animate-in slide-in-from-bottom-5 fade-in"
-    >
+    <div v-if="store.isOpen"
+      class="w-[480px] h-[600px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden transition-all duration-200 animate-in slide-in-from-bottom-5 fade-in">
       <!-- Header -->
       <div class="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground">
         <div class="flex items-center gap-2">
           <Bot class="h-5 w-5" />
           <span class="font-medium">NexQuery AI</span>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          class="h-6 w-6 text-primary-foreground hover:bg-primary/90"
-          @click="store.toggleOpen"
-        >
-          <X class="h-4 w-4" />
-        </Button>
+        <div class="flex items-center gap-1">
+          <!-- History Dropdown -->
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="ghost" size="icon"
+                class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground" title="History">
+                <History class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" class="w-64 max-h-[400px] overflow-y-auto">
+              <div v-if="store.conversations.length === 0" class="p-4 text-center text-xs text-muted-foreground">
+                No history yet
+              </div>
+              <DropdownMenuItem v-for="conv in store.conversations" :key="conv.id"
+                class="flex items-center justify-between group" @click="store.loadConversation(conv.id)">
+                <span class="truncate flex-1" :class="{ 'font-bold': store.currentConversationId === conv.id }">
+                  {{ conv.title }}
+                </span>
+                <Button variant="ghost" size="icon"
+                  class="h-6 w-6 opacity-0 group-hover:opacity-100 text-destructive hover:bg-destructive/10"
+                  @click.stop="store.deleteConversation(conv.id)">
+                  <Trash2 class="h-3 w-3" />
+                </Button>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <!-- New Chat Button -->
+          <Button variant="ghost" size="icon"
+            class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+            @click="store.startNewChat" title="New Chat">
+            <Plus class="h-4 w-4" />
+          </Button>
+
+          <Button variant="ghost" size="icon"
+            class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+            @click="store.toggleOpen">
+            <X class="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       <!-- Context Selector & Warning -->
       <div class="px-4 py-2 border-b bg-muted/30 space-y-2">
-        <div
-          v-if="!settingsStore.hasGlmKey"
-          class="flex items-center justify-between p-2 rounded bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-medium animate-in fade-in slide-in-from-top-1"
-        >
+        <div v-if="!settingsStore.hasGlmKey"
+          class="flex items-center justify-between p-2 rounded bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-medium animate-in fade-in slide-in-from-top-1">
           <span class="flex items-center gap-1.5">
             <Sparkles class="h-3 w-3" />
             {{ t('settings.keys.glm_key_missing') }}
@@ -233,11 +272,7 @@ const submitCorrection = async () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">No Context (General Chat)</SelectItem>
-            <SelectItem
-              v-for="ds in dataSourceStore.databaseSources"
-              :key="ds.id"
-              :value="String(ds.id)"
-            >
+            <SelectItem v-for="ds in dataSourceStore.databaseSources" :key="ds.id" :value="String(ds.id)">
               {{ ds.name }}
             </SelectItem>
           </SelectContent>
@@ -248,64 +283,34 @@ const submitCorrection = async () => {
       <div class="flex-1 min-h-0 p-4">
         <ScrollArea ref="scrollAreaRef" class="h-full">
           <div class="space-y-4 pr-4">
-            <div
-              v-for="(msg, index) in store.messages"
-              :key="index"
-              class="flex gap-3 text-sm group"
-              :class="msg.role === 'user' ? 'flex-row-reverse' : ''"
-            >
-              <div
-                class="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
-                :class="msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'"
-              >
+            <div v-for="(msg, index) in store.messages" :key="index" class="flex gap-3 text-sm group"
+              :class="msg.role === 'user' ? 'flex-row-reverse' : ''">
+              <div class="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
+                :class="msg.role === 'user' ? 'bg-primary text-primary-foreground' : 'bg-muted'">
                 <User v-if="msg.role === 'user'" class="h-4 w-4" />
                 <Bot v-else class="h-4 w-4" />
               </div>
 
-              <div
-                class="p-3 rounded-lg max-w-[85%]"
-                :class="
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-foreground'
-                "
-              >
+              <div class="p-3 rounded-lg max-w-[85%]" :class="msg.role === 'user'
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-foreground'
+                ">
                 <div v-if="msg.role === 'assistant'">
-                  <AgentSteps
-                    v-if="msg.agentSteps && msg.agentSteps.length > 0"
-                    :steps="msg.agentSteps"
-                  />
+                  <AgentSteps v-if="msg.agentSteps && msg.agentSteps.length > 0" :steps="msg.agentSteps" />
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
 
                   <!-- Feedback Actions -->
-                  <div
-                    v-if="!store.isLoading && msg.content && index > 0"
+                  <div v-if="!store.isLoading && msg.content && index > 0"
                     class="flex items-center justify-end gap-0.5 mt-2 transition-opacity duration-200"
-                    :class="msg.feedback ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'"
-                  >
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-6 w-6 rounded-md hover:bg-primary/10"
-                      @click="handleFeedback(msg, true)"
-                      title="Helpful"
-                    >
-                      <ThumbsUp
-                        class="h-3 w-3"
-                        :class="{ 'fill-primary text-primary': msg.feedback === 'up' }"
-                      />
+                    :class="msg.feedback ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'">
+                    <Button variant="ghost" size="icon" class="h-6 w-6 rounded-md hover:bg-primary/10"
+                      @click="handleFeedback(msg, true)" title="Helpful">
+                      <ThumbsUp class="h-3 w-3" :class="{ 'fill-primary text-primary': msg.feedback === 'up' }" />
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-6 w-6 rounded-md hover:bg-destructive/10"
-                      @click="handleFeedback(msg, false)"
-                      title="Not helpful"
-                    >
-                      <ThumbsDown
-                        class="h-3 w-3"
-                        :class="{ 'fill-destructive text-destructive': msg.feedback === 'down' }"
-                      />
+                    <Button variant="ghost" size="icon" class="h-6 w-6 rounded-md hover:bg-destructive/10"
+                      @click="handleFeedback(msg, false)" title="Not helpful">
+                      <ThumbsDown class="h-3 w-3"
+                        :class="{ 'fill-destructive text-destructive': msg.feedback === 'down' }" />
                     </Button>
                   </div>
                 </div>
@@ -327,14 +332,8 @@ const submitCorrection = async () => {
       <!-- Input -->
       <div class="p-3 pt-0">
         <form @submit.prevent="handleSend" class="flex gap-2">
-          <Input
-            v-model="input"
-            :placeholder="
-              settingsStore.hasGlmKey ? 'Ask a question...' : t('settings.keys.glm_key_missing')
-            "
-            class="flex-1"
-            :disabled="store.isLoading || !settingsStore.hasGlmKey"
-          />
+          <Input v-model="input" :placeholder="settingsStore.hasGlmKey ? 'Ask a question...' : t('settings.keys.glm_key_missing')
+            " class="flex-1" :disabled="store.isLoading || !settingsStore.hasGlmKey" />
           <Button type="submit" size="icon" :disabled="store.isLoading || !settingsStore.hasGlmKey">
             <Send class="h-4 w-4" />
           </Button>
@@ -343,12 +342,9 @@ const submitCorrection = async () => {
     </div>
 
     <!-- Toggle Button -->
-    <Button
-      v-else
-      size="lg"
+    <Button v-else size="lg"
       class="h-14 w-14 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90 transition-transform hover:scale-105"
-      @click="store.toggleOpen"
-    >
+      @click="store.toggleOpen">
       <MessageCircle class="h-7 w-7" />
     </Button>
 
@@ -362,11 +358,7 @@ const submitCorrection = async () => {
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <Textarea
-            v-model="correctionText"
-            placeholder="输入正确的 SQL..."
-            class="h-32 font-mono text-xs"
-          />
+          <Textarea v-model="correctionText" placeholder="输入正确的 SQL..." class="h-32 font-mono text-xs" />
         </div>
         <DialogFooter>
           <Button variant="outline" @click="isCorrectionOpen = false">取消</Button>

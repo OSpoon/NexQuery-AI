@@ -119,6 +119,9 @@ router
         router.post('ai/chat', [AiController, 'chat'])
         router.post('ai/chat/stream', [AiController, 'chatStream'])
         router.post('ai/learn', [AiController, 'learn'])
+        router.get('ai/conversations', [AiController, 'getConversations'])
+        router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])
+        router.delete('ai/conversations/:id', [AiController, 'deleteConversation'])
 
         // Public Menu Access
         router.get('menus/route-permissions', [MenusController, 'getRoutePermissions'])

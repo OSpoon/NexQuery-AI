@@ -33,6 +33,10 @@ export const useAiStore = defineStore('ai', () => {
   const currentDbType = ref('mysql')
   const dataSourceId = ref<number | undefined>(undefined)
 
+  // Persistence
+  const conversations = ref<any[]>([])
+  const currentConversationId = ref<number | null>(null)
+
   function toggleOpen() {
     isOpen.value = !isOpen.value
   }
@@ -40,6 +44,57 @@ export const useAiStore = defineStore('ai', () => {
   function setContext(schema: any, dbType: string = 'mysql') {
     currentSchema.value = schema
     currentDbType.value = dbType
+  }
+
+  async function fetchConversations() {
+    try {
+      const res = await api.get('/ai/conversations')
+      conversations.value = res.data
+    } catch (e) {
+      console.error('Failed to fetch conversations', e)
+    }
+  }
+
+  async function loadConversation(id: number) {
+    isLoading.value = true
+    try {
+      const res = await api.get(`/ai/conversations/${id}`)
+      currentConversationId.value = id
+      messages.value = res.data.messages.map((m: any) => ({
+        role: m.role,
+        content: m.content,
+        agentSteps: m.agentSteps,
+      }))
+      // Restore data source context if saved
+      if (res.data.dataSourceId) {
+        dataSourceId.value = res.data.dataSourceId
+      }
+    } catch (e) {
+      console.error('Failed to load conversation', e)
+      toast.error('Failed to load history')
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  function startNewChat() {
+    currentConversationId.value = null
+    messages.value = [
+      { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+    ]
+  }
+
+  async function deleteConversation(id: number) {
+    try {
+      await api.delete(`/ai/conversations/${id}`)
+      conversations.value = conversations.value.filter((c) => c.id !== id)
+      if (currentConversationId.value === id) {
+        startNewChat()
+      }
+    } catch (e) {
+      console.error('Failed to delete conversation', e)
+      toast.error('Failed to delete conversation')
+    }
   }
 
   async function sendMessage(content: string) {
@@ -69,6 +124,7 @@ export const useAiStore = defineStore('ai', () => {
       schema: currentSchema.value,
       dbType: currentDbType.value,
       dataSourceId: dataSourceId.value,
+      conversationId: currentConversationId.value,
       history: messages.value.slice(1, -1).map((m) => ({
         role: m.role,
         content: m.content,
@@ -124,6 +180,12 @@ export const useAiStore = defineStore('ai', () => {
               if (params === '[DONE]') continue
 
               const data = JSON.parse(params)
+
+              if (data.type === 'conversation_id') {
+                currentConversationId.value = data.id
+                fetchConversations() // Refresh list
+                continue
+              }
 
               // Initialize agentSteps if undefined
               if (!activeMessage.agentSteps) activeMessage.agentSteps = []
@@ -183,6 +245,7 @@ export const useAiStore = defineStore('ai', () => {
     messages.value = [
       { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
     ]
+    currentConversationId.value = null
   }
 
   return {
@@ -192,10 +255,16 @@ export const useAiStore = defineStore('ai', () => {
     currentSchema,
     currentDbType,
     dataSourceId,
+    conversations,
+    currentConversationId,
     toggleOpen,
     setContext,
     sendMessage,
     sendMessageStream,
     clearMessages,
+    fetchConversations,
+    loadConversation,
+    startNewChat,
+    deleteConversation,
   }
 })

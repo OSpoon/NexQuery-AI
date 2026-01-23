@@ -1,5 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import LangChainService from '#services/lang_chain_service'
+import AiConversation from '#models/ai_conversation'
+import AiMessage from '#models/ai_message'
+import { DateTime } from 'luxon'
 
 export default class AiController {
   async optimizeSql({ request, response }: HttpContext) {
@@ -57,10 +60,65 @@ export default class AiController {
     }
   }
 
-  async chatStream({ request, response }: HttpContext) {
+  async getConversations({ auth, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const conversations = await AiConversation.query()
+      .where('user_id', user.id)
+      .orderBy('updated_at', 'desc')
+    return response.ok(conversations)
+  }
+
+  async getConversationMessages({ auth, params, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const conversation = await AiConversation.query()
+      .where('id', params.id)
+      .where('user_id', user.id)
+      .preload('messages', (query) => query.orderBy('created_at', 'asc'))
+      .firstOrFail()
+
+    return response.ok(conversation)
+  }
+
+  async deleteConversation({ auth, params, response }: HttpContext) {
+    const user = auth.getUserOrFail()
+    const conversation = await AiConversation.query()
+      .where('id', params.id)
+      .where('user_id', user.id)
+      .firstOrFail()
+
+    await conversation.delete()
+    return response.ok({ message: 'Conversation deleted' })
+  }
+
+  async chatStream({ auth, request, response }: HttpContext) {
     if (!request.input('question')) {
       return response.badRequest({ message: 'Question is required' })
     }
+
+    const user = auth.getUserOrFail()
+    const { question, dbType, dataSourceId, history, conversationId } = request.all()
+
+    // Handle Conversation Persistence
+    let conversation: AiConversation
+    if (conversationId) {
+      conversation = await AiConversation.query()
+        .where('id', conversationId)
+        .where('user_id', user.id)
+        .firstOrFail()
+    } else {
+      conversation = await AiConversation.create({
+        userId: user.id,
+        title: question.substring(0, 50) + (question.length > 50 ? '...' : ''),
+        dataSourceId: dataSourceId ? Number(dataSourceId) : null,
+      })
+    }
+
+    // Save User Message
+    await AiMessage.create({
+      conversationId: conversation.id,
+      role: 'user',
+      content: question,
+    })
 
     // Set standard SSE headers using framework methods
     response.header('Content-Type', 'text/event-stream')
@@ -71,10 +129,12 @@ export default class AiController {
     // Explicitly send headers to the client immediately
     response.response.flushHeaders()
 
+    // Notify frontend of conversation ID (always send it so frontend can sync)
+    response.response.write(`data: ${JSON.stringify({ type: 'conversation_id', id: conversation.id })}\n\n`)
+
     try {
-      const { question, dbType, dataSourceId, history } = request.all()
       const langChainService = new LangChainService()
-      const dsId = dataSourceId ? Number(dataSourceId) : undefined
+      const dsId = dataSourceId ? Number(dataSourceId) : (conversation.dataSourceId || undefined)
 
       const stream = langChainService.naturalLanguageToSqlStream(question, {
         dbType,
@@ -82,9 +142,56 @@ export default class AiController {
         history,
       })
 
+      let fullAssistantContent = ''
+      let agentSteps: any[] = []
+
       for await (const chunk of stream) {
         // chunk is already a JSON string from the service (e.g. {"type": "thought", ...})
         response.response.write(`data: ${chunk}\n\n`)
+
+        // Parse chunk to collect content and steps for saving
+        try {
+          const data = JSON.parse(chunk)
+          if (data.type === 'thought') {
+            fullAssistantContent += data.content
+            const lastStep = agentSteps[agentSteps.length - 1]
+            if (lastStep && lastStep.type === 'thought') {
+              lastStep.content = (lastStep.content || '') + data.content
+            } else {
+              agentSteps.push({ type: 'thought', content: data.content })
+            }
+          } else if (data.type === 'tool_start') {
+            agentSteps.push({
+              type: 'tool',
+              toolName: data.tool,
+              toolInput: data.input,
+              toolId: data.id,
+              status: 'running',
+            })
+          } else if (data.type === 'tool_end') {
+            const toolStep = agentSteps.find((s) => s.type === 'tool' && s.toolId === data.id)
+            if (toolStep) {
+              toolStep.toolOutput = data.output
+              toolStep.status = 'done'
+            }
+          }
+        } catch (e) {
+          // Chunk parsing failed
+        }
+      }
+
+      // Save Assistant Message
+      if (fullAssistantContent) {
+        await AiMessage.create({
+          conversationId: conversation.id,
+          role: 'assistant',
+          content: fullAssistantContent,
+          agentSteps: agentSteps,
+        })
+
+        // Update conversation timestamp
+        conversation.updatedAt = DateTime.now()
+        await conversation.save()
       }
 
       response.response.end()
