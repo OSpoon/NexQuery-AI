@@ -391,7 +391,6 @@ export const setupMonacoSql = () => {
               }
 
               if (referencedTables.size > 0) {
-                console.log('[MonacoSQL] Detected tables for autocomplete:', Array.from(referencedTables))
               }
 
               const hasReferencedTables = referencedTables.size > 0

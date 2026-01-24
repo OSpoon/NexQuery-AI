@@ -70,7 +70,6 @@ const handleExecute = async () => {
         const decrypted = cryptoService.decrypt(finalData.data)
         if (decrypted !== null) {
           finalData = decrypted
-          console.log('[TaskExecute] Auto-decrypted nested result')
         }
       } catch (e) {
         console.warn('[TaskExecute] Failed to decrypt nested result:', e)

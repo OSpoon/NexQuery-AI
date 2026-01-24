@@ -1,22 +1,46 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '@/lib/api'
 import type { QueryTask } from '@nexquery/shared'
+import { onPullDownRefresh } from '@dcloudio/uni-app'
 
 const tasks = ref<QueryTask[]>([])
+const fullTasks = ref<QueryTask[]>([]) // Cache to store all tags
 const loading = ref(false)
 const searchQuery = ref('')
+const selectedTag = ref('All')
 let searchTimeout: any = null
+
+const availableTags = computed(() => {
+  const tags = new Set<string>()
+  // Always derive available tags from all possible tasks (ignore current filter for the set)
+  const source = fullTasks.value.length > 0 ? fullTasks.value : tasks.value
+
+  if (Array.isArray(source)) {
+    source.forEach(task => {
+      if (task.tags) {
+        task.tags.forEach(t => tags.add(t))
+      }
+    })
+  }
+  return ['All', ...Array.from(tags)]
+})
 
 const fetchTasks = async () => {
   loading.value = true
   try {
     const res = await api.get('/query-tasks', {
-      search: searchQuery.value
+      search: searchQuery.value,
+      tag: selectedTag.value === 'All' ? undefined : selectedTag.value
     })
     tasks.value = res
+
+    // If we're fetching all (no tag, no search), update fullTasks cache for the tag bar
+    if (selectedTag.value === 'All' && !searchQuery.value) {
+      fullTasks.value = res
+    }
   } catch (error: any) {
-    console.error('Failed to fetch tasks', error)
+    console.error('[FetchTasks] Failed', error)
     if (error.statusCode === 401) {
       uni.reLaunch({ url: '/pages/login/index' })
     }
@@ -49,8 +73,11 @@ onMounted(() => {
   }
 })
 
-// Listen for pull down refresh in Uni-app
-import { onPullDownRefresh } from '@dcloudio/uni-app'
+const selectTag = (tag: string) => {
+  selectedTag.value = tag
+  fetchTasks()
+}
+
 onPullDownRefresh(() => {
   fetchTasks()
 })
@@ -64,6 +91,15 @@ onPullDownRefresh(() => {
         confirm-type="search" />
     </view>
 
+    <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
+      <view class="tag-list">
+        <view v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+          @click="selectTag(tag)">
+          {{ tag }}
+        </view>
+      </view>
+    </scroll-view>
+
     <view v-if="loading && tasks.length === 0" class="loading-state">
       <text>加载中...</text>
     </view>
@@ -74,12 +110,17 @@ onPullDownRefresh(() => {
 
     <view v-else class="task-list">
       <view v-for="task in tasks" :key="task.id" class="task-item" @click="goToExecute(task)">
-        <view class="task-info">
+        <view class="task-header">
           <text class="task-name">{{ task.name }}</text>
-          <text class="task-desc">{{ task.description || '无描述' }}</text>
-        </view>
-        <view class="task-meta">
           <text class="ds-name">{{ task.dataSource?.name }}</text>
+        </view>
+
+        <view v-if="task.tags && task.tags.length > 0" class="task-tags">
+          <text v-for="tag in task.tags" :key="tag" class="task-tag">{{ tag }}</text>
+        </view>
+
+        <view class="task-footer">
+          <text class="task-desc">{{ task.description || '无描述' }}</text>
           <view class="arrow-icon"></view>
         </view>
       </view>
@@ -100,8 +141,8 @@ onPullDownRefresh(() => {
   background-color: #fff;
   padding: 16rpx 24rpx;
   border-radius: 12rpx;
-  margin-bottom: 20rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.02);
+  margin: 10rpx 0 24rpx 0;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 100;
@@ -120,6 +161,36 @@ onPullDownRefresh(() => {
   color: #333;
 }
 
+.tag-filter {
+  width: 100%;
+  margin-bottom: 30rpx;
+  white-space: nowrap;
+}
+
+.tag-list {
+  display: inline-flex;
+  padding: 4rpx 10rpx;
+  gap: 16rpx;
+}
+
+.tag-chip {
+  display: inline-block;
+  padding: 10rpx 28rpx;
+  background-color: #fff;
+  color: #666;
+  border-radius: 30rpx;
+  font-size: 24rpx;
+  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
+  transition: all 0.2s ease;
+}
+
+.tag-chip.active {
+  background-color: #007aff;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.2);
+}
+
 .loading-state,
 .empty-state {
   display: flex;
@@ -132,61 +203,81 @@ onPullDownRefresh(() => {
 .task-list {
   display: flex;
   flex-direction: column;
-  gap: 20rpx;
 }
 
 .task-item {
   background-color: #fff;
   padding: 30rpx;
-  border-radius: 12rpx;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.05);
+  border-radius: 20rpx;
+  margin-bottom: 24rpx;
+  box-shadow: 0 8rpx 20rpx rgba(0, 0, 0, 0.04);
+  position: relative;
 }
 
-.task-info {
-  flex: 1;
+.task-header {
   display: flex;
-  flex-direction: column;
-  gap: 8rpx;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12rpx;
 }
 
 .task-name {
-  font-size: 32rpx;
-  font-weight: bold;
-  color: #333;
+  font-size: 34rpx;
+  font-weight: 700;
+  color: #1a1a1a;
+  flex: 1;
+  margin-right: 20rpx;
+}
+
+.ds-name {
+  font-size: 20rpx;
+  background-color: #f0fdf4;
+  color: #22c55e;
+  padding: 6rpx 20rpx;
+  border-radius: 30rpx;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.task-tag {
+  font-size: 20rpx;
+  background-color: #f0f7ff;
+  color: #007aff;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #ddecff;
+}
+
+.task-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
 .task-desc {
-  font-size: 24rpx;
-  color: #999;
+  font-size: 26rpx;
+  color: #888;
+  line-height: 1.4;
+  flex: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
 }
 
-.task-meta {
-  display: flex;
-  align-items: center;
-  gap: 10rpx;
-}
-
-.ds-name {
-  font-size: 20rpx;
-  background-color: #e3f2fd;
-  color: #1976d2;
-  padding: 4rpx 12rpx;
-  border-radius: 4rpx;
-}
-
 .arrow-icon {
-  width: 16rpx;
-  height: 16rpx;
-  border-top: 4rpx solid #ccc;
-  border-right: 4rpx solid #ccc;
+  width: 14rpx;
+  height: 14rpx;
+  border-top: 3rpx solid #dcdcdc;
+  border-right: 3rpx solid #dcdcdc;
   transform: rotate(45deg);
-  margin-left: 10rpx;
+  margin-left: 20rpx;
 }
 </style>

@@ -84,6 +84,28 @@ const columns: ColumnDef<QueryTask>[] = [
     },
   },
   {
+    accessorKey: 'tags',
+    header: () => 'Tags',
+    cell: ({ row }) => {
+      const tags = row.original.tags
+      if (!tags || tags.length === 0) return '-'
+      return h(
+        'div',
+        { class: 'flex flex-wrap gap-1' },
+        tags.map((tag: string) =>
+          h(
+            'span',
+            {
+              class:
+                'px-1.5 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[10px]',
+            },
+            tag,
+          ),
+        ),
+      )
+    },
+  },
+  {
     accessorKey: 'dataSource',
     header: () => t('query_tasks.data_source'),
     cell: ({ row }) => {
@@ -162,13 +184,8 @@ onMounted(fetchTasks)
     </div>
 
     <div class="border rounded-lg bg-card p-4">
-      <DataTable
-        :columns="columns"
-        :data="tasks"
-        search-key="name"
-        storage-key="query-tasks-columns"
-        empty-message="No query tasks found. Create one to get started."
-      />
+      <DataTable :columns="columns" :data="tasks" search-key="name" storage-key="query-tasks-columns"
+        empty-message="No query tasks found. Create one to get started." />
     </div>
 
     <Dialog v-model:open="isDialogOpen">
@@ -181,19 +198,13 @@ onMounted(fetchTasks)
             Configure your SQL template. Parameters will be detected automatically.
           </DialogDescription>
         </DialogHeader>
-        <QueryTaskForm
-          v-if="isDialogOpen"
-          :initial-values="editingTask"
-          :is-editing="!!editingTask"
-          class="flex-1 overflow-hidden"
-          @success="
+        <QueryTaskForm v-if="isDialogOpen" :initial-values="editingTask" :is-editing="!!editingTask"
+          class="flex-1 overflow-hidden" @success="
             () => {
               isDialogOpen = false
               fetchTasks()
             }
-          "
-          @cancel="isDialogOpen = false"
-        />
+          " @cancel="isDialogOpen = false" />
       </DialogContent>
     </Dialog>
   </div>

@@ -8,6 +8,7 @@ export const createQueryTaskValidator = vine.compile(
     formSchema: vine.any().optional(),
     dataSourceId: vine.number(),
     storeResults: vine.boolean().optional(),
+    tags: vine.array(vine.string().maxLength(15)).maxLength(3).optional(),
   })
 )
 
@@ -19,5 +20,6 @@ export const updateQueryTaskValidator = vine.compile(
     formSchema: vine.any().optional(),
     dataSourceId: vine.number().optional(),
     storeResults: vine.boolean().optional(),
+    tags: vine.array(vine.string().maxLength(15)).maxLength(3).optional(),
   })
 )

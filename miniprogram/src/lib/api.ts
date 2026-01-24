@@ -12,7 +12,6 @@ try {
             }
             return lib.WordArray.create(words, nBytes);
         };
-        console.log('NexQuery: API lib - CryptoJS random patched');
     }
 } catch (e) {
     console.error('NexQuery: API lib - Failed to patch CryptoJS', e);
@@ -89,13 +88,17 @@ const request = (options: RequestOptions): Promise<any> => {
                     responseData.data &&
                     typeof responseData.data === 'string'
                 ) {
-                    const isEncrypted = res.header['x-encryption-enabled'] === 'true' || res.header['X-Encryption-Enabled'] === 'true'
+                    const isEncrypted = res.header['x-encryption-enabled'] === 'true' ||
+                        res.header['X-Encryption-Enabled'] === 'true' ||
+                        res.header['X-Encryption-Enabled']?.toLowerCase() === 'true'
 
                     if (isEncrypted) {
                         try {
                             const decrypted = cryptoService.decrypt(responseData.data)
                             if (decrypted !== null) {
                                 responseData = decrypted
+                            } else {
+                                console.error('Decryption failed: decryption result is null')
                             }
                         } catch (e) {
                             console.error('Response decryption failed', e)
@@ -106,6 +109,7 @@ const request = (options: RequestOptions): Promise<any> => {
                 if (res.statusCode >= 200 && res.statusCode < 300) {
                     resolve(responseData)
                 } else {
+                    console.error('Request status error:', res.statusCode, responseData)
                     if (res.statusCode === 401) {
                         uni.removeStorageSync('auth_token')
                         uni.removeStorageSync('user')

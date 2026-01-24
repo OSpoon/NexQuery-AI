@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import QueryTask from '#models/query_task'
 import { createQueryTaskValidator, updateQueryTaskValidator } from '#validators/query_task'
+import logger from '@adonisjs/core/services/logger'
 
 export default class QueryTasksController {
   /**
@@ -8,15 +9,27 @@ export default class QueryTasksController {
    */
   async index({ request, response }: HttpContext) {
     const search = request.input('search')
+    const tag = request.input('tag')
+
+
+    const allCountResult = await QueryTask.query().count('* as total')
+    const totalInDb = allCountResult[0].$extras.total
+
     const query = QueryTask.query()
       .preload('dataSource')
       .preload('creator')
       .orderBy('createdAt', 'desc')
 
-    if (search) {
+
+    if (search && search !== '' && search !== 'undefined') {
       query.where((q) => {
         q.where('name', 'like', `%${search}%`).orWhere('description', 'like', `%${search}%`)
       })
+    }
+
+    if (tag && tag !== 'undefined' && tag !== 'null' && tag !== '' && tag !== 'All') {
+      // PostgreSQL jsonb check for array contains
+      query.whereRaw('tags @> ?::jsonb', [JSON.stringify([tag])])
     }
 
     const tasks = await query
@@ -37,6 +50,7 @@ export default class QueryTasksController {
       formSchema: payload.formSchema || null,
       dataSourceId: payload.dataSourceId,
       storeResults: payload.storeResults ?? false,
+      tags: payload.tags || null,
       createdBy: user.id,
     })
 
@@ -68,6 +82,7 @@ export default class QueryTasksController {
     if (payload.formSchema !== undefined) task.formSchema = payload.formSchema
     if (payload.dataSourceId !== undefined) task.dataSourceId = payload.dataSourceId
     if (payload.storeResults !== undefined) task.storeResults = payload.storeResults
+    if (payload.tags !== undefined) task.tags = payload.tags
 
     await task.save()
 

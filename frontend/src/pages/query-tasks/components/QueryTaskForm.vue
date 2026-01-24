@@ -2,7 +2,7 @@
 import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useDebounceFn } from '@vueuse/core'
-import { Sparkles } from 'lucide-vue-next'
+import { Sparkles, X } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import * as z from 'zod'
@@ -123,6 +123,7 @@ const formSchema = toTypedSchema(
 
     dataSourceId: z.number(),
     storeResults: z.boolean().default(false),
+    tags: z.array(z.string().max(15)).max(3).optional(),
   }),
 )
 
@@ -143,6 +144,7 @@ const form = useForm({
       if (typeof val === 'number') return val === 1
       return !!val
     })(),
+    tags: props.initialValues?.tags || [],
   },
 })
 
@@ -165,6 +167,7 @@ watch(
 
         dataSourceId: newVal?.dataSourceId,
         storeResults: booleanStoreResults,
+        tags: newVal?.tags || [],
       },
     })
   },
@@ -288,6 +291,38 @@ const optimizeSql = async () => {
   }
 }
 
+
+const tagInput = ref('')
+const addTag = () => {
+  const val = tagInput.value.trim()
+  if (!val) return
+
+  const currentTags = Array.isArray(form.values.tags) ? form.values.tags : []
+  if (currentTags.length >= 3) {
+    toast.error('Maximum 3 tags allowed')
+    return
+  }
+
+  if (val.length > 15) {
+    toast.error('Tag must be 15 characters or less')
+    return
+  }
+
+  if (currentTags.includes(val)) {
+    toast.error('Tag already exists')
+    return
+  }
+
+  form.setFieldValue('tags', [...currentTags, val])
+  tagInput.value = ''
+}
+
+const removeTag = (index: number) => {
+  const currentTags = [...(form.values.tags || [])]
+  currentTags.splice(index, 1)
+  form.setFieldValue('tags', currentTags)
+}
+
 const onSubmit = form.handleSubmit(async (values) => {
   // Validate SQL
   if (sqlEditorRef.value) {
@@ -340,7 +375,7 @@ onMounted(fetchDataSources)
           <TabsTrigger value="definition">{{ t('query_tasks.definition') }}</TabsTrigger>
           <TabsTrigger value="schedules" :disabled="!isEditing">{{
             t('query_tasks.schedules')
-            }}</TabsTrigger>
+          }}</TabsTrigger>
         </TabsList>
       </div>
 
@@ -398,6 +433,33 @@ onMounted(fetchDataSources)
               </FormItem>
             </FormField>
           </div>
+
+          <div class="col-span-2">
+            <FormField v-slot="{ value }" name="tags">
+              <FormItem>
+                <FormLabel>Tags (Max 3)</FormLabel>
+                <div class="space-y-3">
+                  <div class="flex gap-2">
+                    <Input placeholder="Enter tag and press enter..." v-model="tagInput" @keydown.enter.prevent="addTag"
+                      :disabled="(value || []).length >= 3" />
+                    <Button type="button" variant="secondary" @click="addTag" :disabled="(value || []).length >= 3">
+                      Add
+                    </Button>
+                  </div>
+                  <div class="flex flex-wrap gap-2">
+                    <div v-for="(tag, idx) in (value || [])" :key="tag"
+                      class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm">
+                      {{ tag }}
+                      <button type="button" @click="removeTag(idx)" class="hover:text-destructive">
+                        <X class="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+                <FormMessage />
+              </FormItem>
+            </FormField>
+          </div>
         </div>
 
         <FormField v-slot="{ componentField }" name="description" :validate-on-blur="false">
@@ -413,7 +475,7 @@ onMounted(fetchDataSources)
         <div class="space-y-2" v-if="currentDataSource">
           <Label>{{
             dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
-            }}</Label>
+          }}</Label>
           <div class="flex items-center justify-between">
             <p class="text-xs text-muted-foreground" v-if="dbType !== 'api'">
               {{ t('query_tasks.placeholders_hint') }}
@@ -463,7 +525,7 @@ onMounted(fetchDataSources)
       v-if="activeTab === 'definition'">
       <Button type="button" variant="ghost" @click="emit('cancel')">{{
         t('common.cancel')
-        }}</Button>
+      }}</Button>
       <Button type="submit" :disabled="isSubmitting">
         {{
           isSubmitting

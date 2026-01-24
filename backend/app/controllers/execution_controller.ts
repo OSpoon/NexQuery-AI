@@ -6,12 +6,10 @@ import QueryExecutionService from '#services/query_execution_service'
 
 @inject()
 export default class ExecutionController {
-  constructor(protected executionService: QueryExecutionService) {}
+  constructor(protected executionService: QueryExecutionService) { }
 
   async execute({ params, request, response, auth }: HttpContext) {
     const task = await QueryTask.query().where('id', params.id).preload('dataSource').firstOrFail()
-
-    logger.debug({ taskId: task.id, userId: auth.user?.id }, 'Starting query execution')
 
     const inputParams = request.input('params', {})
 

@@ -7,10 +7,13 @@ export default class QueryLogsController {
     const limit = request.input('limit', 20)
     const search = request.input('search')
     const status = request.input('status')
+    const tag = request.input('tag')
 
     const query = QueryLog.query()
       .preload('user')
-      .preload('task')
+      .preload('task', (taskQuery) => {
+        taskQuery.preload('dataSource')
+      })
       .orderBy('createdAt', 'desc')
 
     if (status) {
@@ -20,6 +23,12 @@ export default class QueryLogsController {
     if (search) {
       query.whereHas('task', (taskQuery) => {
         taskQuery.where('name', 'like', `%${search}%`)
+      })
+    }
+
+    if (tag && tag !== 'undefined' && tag !== 'null' && tag !== '' && tag !== 'All') {
+      query.whereHas('task', (taskQuery) => {
+        taskQuery.whereRaw('tags @> ?::jsonb', [JSON.stringify([tag])])
       })
     }
 

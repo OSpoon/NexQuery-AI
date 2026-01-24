@@ -136,13 +136,7 @@ export default class DataSourcesController {
 
     const result = await this.validateConnection(config)
 
-    logger.debug({ success: result.success, host: config.host }, 'Connection test performed')
-
-    if (result.success) {
-      return response.ok({ message: result.message })
-    } else {
-      return response.badRequest({ message: result.message })
-    }
+    return response.ok(result)
   }
 
   /**

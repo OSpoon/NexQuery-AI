@@ -13,7 +13,6 @@ try {
       }
       return lib.WordArray.create(words, nBytes);
     };
-    console.log('NexQuery: Main entry - CryptoJS random patched');
   }
 } catch (e) {
   console.error('NexQuery: Main entry - Failed to patch CryptoJS', e);

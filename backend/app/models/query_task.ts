@@ -29,6 +29,9 @@ export default class QueryTask extends BaseModel {
   @column({ columnName: 'created_by' })
   declare createdBy: number | null
 
+  @column()
+  declare tags: string[] | null
+
   @belongsTo(() => DataSource)
   declare dataSource: BelongsTo<typeof DataSource>
 

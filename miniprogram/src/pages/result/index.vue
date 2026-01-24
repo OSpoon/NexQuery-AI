@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { cryptoService } from '@/lib/api'
 
 const result = ref<any[]>([])
 const headers = ref<string[]>([])
@@ -9,9 +10,22 @@ onMounted(() => {
   const data = uni.getStorageSync('last_query_result')
   if (data) {
     try {
-      const parsed = JSON.parse(data)
+      let parsed = JSON.parse(data)
+
+      // Defensive check: if storage contains { data: "ciphertext" }
+      if (parsed && typeof parsed === 'object' && parsed.data && typeof parsed.data === 'string' && cryptoService) {
+        try {
+          const decrypted = cryptoService.decrypt(parsed.data)
+          if (decrypted) {
+            parsed = decrypted
+          }
+        } catch (e) {
+          // console.error('Decryption in result view failed', e) // Removed log
+        }
+      }
+
       result.value = parsed
-      if (parsed.length > 0) {
+      if (Array.isArray(parsed) && parsed.length > 0) {
         headers.value = Object.keys(parsed[0])
       }
     } catch (e) {
@@ -21,7 +35,7 @@ onMounted(() => {
 })
 
 const toggleView = () => {
-    viewMode.value = viewMode.value === 'card' ? 'table' : 'card'
+  viewMode.value = viewMode.value === 'card' ? 'table' : 'card'
 }
 
 const handleBack = () => {
@@ -32,63 +46,51 @@ const handleBack = () => {
 <template>
   <view class="container">
     <view class="header-toolbar">
-        <text class="result-count">共 {{ result.length }} 条结果</text>
-        <button class="toggle-btn" size="mini" @click="toggleView">
-            {{ viewMode === 'card' ? '文字视图' : '表格视图' }}
-        </button>
+      <text class="result-count">共 {{ result.length }} 条结果</text>
+      <button class="toggle-btn" size="mini" @click="toggleView">
+        {{ viewMode === 'card' ? '文字视图' : '表格视图' }}
+      </button>
     </view>
 
     <view v-if="result.length === 0" class="empty-state">
       <text>暂无数据</text>
     </view>
-    
-    <view v-else class="content-area">
-        <!-- Card View -->
-        <scroll-view v-if="viewMode === 'card'" scroll-y class="card-list">
-            <view v-for="(row, idx) in result" :key="idx" class="result-card">
-                <view class="card-header">
-                    <text class="card-index">#{{ idx + 1 }}</text>
-                </view>
-                <view class="card-body">
-                    <view v-for="header in headers" :key="header" class="data-item">
-                        <text class="data-label">{{ header }}</text>
-                        <text class="data-value">{{ row[header] ?? '-' }}</text>
-                    </view>
-                </view>
-            </view>
-            <view class="list-bottom-tip">到底了</view>
-        </scroll-view>
 
-        <!-- Table View (Legacy Scroll) -->
-        <scroll-view v-else scroll-x class="table-scroll">
-          <view class="table">
-            <view class="table-header">
-              <view 
-                v-for="header in headers" 
-                :key="header" 
-                class="header-cell"
-              >
-                {{ header }}
+    <view v-else class="content-area">
+      <!-- Card View -->
+      <scroll-view v-if="viewMode === 'card'" scroll-y class="card-list">
+        <view v-for="(row, idx) in result" :key="idx" class="result-card">
+          <view class="card-header">
+            <text class="card-index">#{{ idx + 1 }}</text>
+          </view>
+          <view class="card-body">
+            <view v-for="header in headers" :key="header" class="data-item">
+              <text class="data-label">{{ header }}</text>
+              <text class="data-value">{{ row[header] ?? '-' }}</text>
+            </view>
+          </view>
+        </view>
+        <view class="list-bottom-tip">到底了</view>
+      </scroll-view>
+
+      <!-- Table View (Legacy Scroll) -->
+      <scroll-view v-else scroll-x class="table-scroll">
+        <view class="table">
+          <view class="table-header">
+            <view v-for="header in headers" :key="header" class="header-cell">
+              {{ header }}
+            </view>
+          </view>
+
+          <scroll-view scroll-y class="table-body-scroll">
+            <view v-for="(row, idx) in result" :key="idx" class="table-row">
+              <view v-for="header in headers" :key="header" class="body-cell">
+                {{ row[header] }}
               </view>
             </view>
-            
-            <scroll-view scroll-y class="table-body-scroll">
-              <view 
-                v-for="(row, idx) in result" 
-                :key="idx" 
-                class="table-row"
-              >
-                <view 
-                  v-for="header in headers" 
-                  :key="header" 
-                  class="body-cell"
-                >
-                  {{ row[header] }}
-                </view>
-              </view>
-            </scroll-view>
-          </view>
-        </scroll-view>
+          </scroll-view>
+        </view>
+      </scroll-view>
     </view>
 
     <view class="footer">
@@ -126,67 +128,67 @@ const handleBack = () => {
 }
 
 .content-area {
-    flex: 1;
-    overflow: hidden;
+  flex: 1;
+  overflow: hidden;
 }
 
 .card-list {
-    height: 100%;
-    padding: 20rpx;
-    box-sizing: border-box;
+  height: 100%;
+  padding: 20rpx;
+  box-sizing: border-box;
 }
 
 .result-card {
-    background-color: #fff;
-    border-radius: 16rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.08);
-    margin-bottom: 30rpx;
-    overflow: hidden;
+  background-color: #fff;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+  margin-bottom: 30rpx;
+  overflow: hidden;
 }
 
 .card-header {
-    background-color: #f0f7ff;
-    padding: 10rpx 20rpx;
-    border-bottom: 2rpx solid #e1effe;
+  background-color: #f0f7ff;
+  padding: 10rpx 20rpx;
+  border-bottom: 2rpx solid #e1effe;
 }
 
 .card-index {
-    font-size: 22rpx;
-    font-weight: bold;
-    color: #409eff;
+  font-size: 22rpx;
+  font-weight: bold;
+  color: #409eff;
 }
 
 .card-body {
-    padding: 20rpx;
+  padding: 20rpx;
 }
 
 .data-item {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 16rpx;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16rpx;
 }
 
 .data-item:last-child {
-    margin-bottom: 0;
+  margin-bottom: 0;
 }
 
 .data-label {
-    font-size: 24rpx;
-    color: #999;
-    margin-bottom: 4rpx;
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 4rpx;
 }
 
 .data-value {
-    font-size: 28rpx;
-    color: #333;
-    word-break: break-all;
+  font-size: 28rpx;
+  color: #333;
+  word-break: break-all;
 }
 
 .list-bottom-tip {
-    text-align: center;
-    padding: 30rpx;
-    font-size: 24rpx;
-    color: #ccc;
+  text-align: center;
+  padding: 30rpx;
+  font-size: 24rpx;
+  color: #ccc;
 }
 
 .empty-state {

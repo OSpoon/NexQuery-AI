@@ -58,7 +58,6 @@ const onExecute = async (params: any) => {
         const decrypted = cryptoService.decrypt(finalData.data)
         if (decrypted !== null) {
           finalData = decrypted
-          console.log('[QueryExecution] Auto-decrypted nested result')
         }
       } catch (e) {
         console.warn('[QueryExecution] Failed to decrypt nested result:', e)
@@ -185,7 +184,7 @@ onMounted(fetchTask)
                 <TableRow>
                   <TableHead v-for="col in columns" :key="col" class="whitespace-nowrap">{{
                     col
-                    }}</TableHead>
+                  }}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
