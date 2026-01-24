@@ -1,10 +1,12 @@
-# NexQuery AI - 智能数据库查询与分析平台
+<div align="center">
+  <img src="./frontend/public/logo.png" alt="NexQuery AI Logo" width="128px" />
+  <h1>NexQuery AI</h1>
+  <p>面向运营与非技术人员的智能数据协作平台。它通过 AI 驱动的交互方式，致力于打破技术壁垒，让运营人员在日常数据获取中大幅降低对运维或开发工程师的依赖，实现安全、自主的数据消费。</p>
+</div>
 
-NexQuery AI 是一个**面向运营与非技术人员**的智能数据协作平台。它通过 AI 驱动的交互方式，致力于**打破技术壁垒**，让运营人员在日常数据获取中**大幅降低对运维或开发工程师的依赖**，实现安全、自主的数据消费。
-
-![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
 ![Vue](https://img.shields.io/badge/Frontend-Vue%203%20%2B%20Shadcn-42b883)
 ![AdonisJS](https://img.shields.io/badge/Backend-AdonisJS%206-5a45ff)
+![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
 
 ## 🎯 核心价值
 
@@ -94,4 +96,6 @@ NexQuery AI 是一个**面向运营与非技术人员**的智能数据协作平�
 
 ---
 
-Built with ❤️ by the NexQuery AI Team.
+<div align="center">
+    Built with ❤️ by the NexQuery AI Team.
+</div>
