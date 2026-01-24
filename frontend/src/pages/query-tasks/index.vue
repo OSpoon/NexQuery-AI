@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import { ref, onMounted, h, defineAsyncComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { Plus, Play, Edit, Trash2, FileCode, ArrowUpDown } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
@@ -11,11 +11,19 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import api from '@/lib/api'
-import QueryTaskForm from './components/QueryTaskForm.vue'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useI18n } from 'vue-i18n'
+
+import type { QueryTask } from '@nexquery/shared'
+
+const QueryTaskForm = defineAsyncComponent({
+  loader: () => import('./components/QueryTaskForm.vue'),
+  loadingComponent: {
+    template: '<div class="p-8 text-center text-muted-foreground">Loading editor...</div>',
+  },
+})
 
 import type { QueryTask } from '@nexquery/shared'
 
@@ -184,13 +192,8 @@ onMounted(fetchTasks)
     </div>
 
     <div class="border rounded-lg bg-card p-4">
-      <DataTable
-        :columns="columns"
-        :data="tasks"
-        search-key="name"
-        storage-key="query-tasks-columns"
-        empty-message="No query tasks found. Create one to get started."
-      />
+      <DataTable :columns="columns" :data="tasks" search-key="name" storage-key="query-tasks-columns"
+        empty-message="No query tasks found. Create one to get started." />
     </div>
 
     <Dialog v-model:open="isDialogOpen">
@@ -198,24 +201,18 @@ onMounted(fetchTasks)
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>{{
             editingTask ? t('query_tasks.edit_task') : t('query_tasks.create_task')
-          }}</DialogTitle>
+            }}</DialogTitle>
           <DialogDescription>
             Configure your SQL template. Parameters will be detected automatically.
           </DialogDescription>
         </DialogHeader>
-        <QueryTaskForm
-          v-if="isDialogOpen"
-          :initial-values="editingTask"
-          :is-editing="!!editingTask"
-          class="flex-1 overflow-hidden"
-          @success="
+        <QueryTaskForm v-if="isDialogOpen" :initial-values="editingTask" :is-editing="!!editingTask"
+          class="flex-1 overflow-hidden" @success="
             () => {
               isDialogOpen = false
               fetchTasks()
             }
-          "
-          @cancel="isDialogOpen = false"
-        />
+          " @cancel="isDialogOpen = false" />
       </DialogContent>
     </Dialog>
   </div>

@@ -1,7 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import QueryTask from '#models/query_task'
 import { createQueryTaskValidator, updateQueryTaskValidator } from '#validators/query_task'
-import logger from '@adonisjs/core/services/logger'
 
 export default class QueryTasksController {
   /**
@@ -11,8 +10,6 @@ export default class QueryTasksController {
     const search = request.input('search')
     const tag = request.input('tag')
 
-    const allCountResult = await QueryTask.query().count('* as total')
-    const totalInDb = allCountResult[0].$extras.total
 
     const query = QueryTask.query()
       .preload('dataSource')
