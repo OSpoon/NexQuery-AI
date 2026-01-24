@@ -6,7 +6,7 @@
 
 ![Vue](https://img.shields.io/badge/Frontend-Vue%203%20%2B%20Shadcn-42b883)
 ![AdonisJS](https://img.shields.io/badge/Backend-AdonisJS%206-5a45ff)
-![License](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## 🎯 核心价值
 
