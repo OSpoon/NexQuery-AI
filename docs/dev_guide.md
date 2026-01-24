@@ -19,7 +19,7 @@
 ### 前置要求
 *   Node.js v20+
 *   pnpm
-*   MySQL 8.0+ (本地运行)
+*   PostgreSQL 16+ (本地运行)
 
 ### 2.1 安装依赖
 在根目录执行依赖安装，参考 [`package.json`](../package.json)：
@@ -30,7 +30,7 @@ pnpm install
 ### 2.2 后端配置
 1.  进入 `/backend`。
 2.  `cp .env.example .env`。
-3.  配置本地数据库连接 (`DB_HOST=localhost`, `DB_PORT=3306`, etc.)。
+3.  配置本地数据库连接 (`DB_HOST=localhost`, `DB_PORT=5432`, etc.)。
 4.  运行迁移：`node ace migration:run`。
 5.  启动开发服务器 (自动读取 [`adonisrc.ts`](../backend/adonisrc.ts))：
     ```bash

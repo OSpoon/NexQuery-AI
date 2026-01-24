@@ -1,14 +1,15 @@
 services:
   db:
-    image: mysql:8.0
+    image: postgres:alpine
     restart: always
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE:-nexquery_ai}
-      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-root123}
+      POSTGRES_DB: ${DB_DATABASE:-nexquery_ai}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-root123}
     ports:
-      - "${DB_PORT:-3306}:3306"
+      - "${DB_PORT:-5432}:5432"
     volumes:
-      - db_data:/var/lib/mysql
+      - db_data:/var/lib/postgresql/data
     networks:
       - nexquery_network
 

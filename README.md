@@ -28,7 +28,7 @@
 
 ### 🔌 多数据源支持
 由 [`DataSourcesController`](backend/app/controllers/data_sources_controller.ts) 管理。
--   **关系型数据库**: 原生支持 **MySQL** 和 **PostgreSQL**。
+-   **关系型数据库**: 原生支持 **PostgreSQL** 和 **MySQL**。
 -   **HTTP API**: 支持通过 `curl` 风格命令将 API 响应作为数据表进行查询。
 -   **高级配置**: 支持字段级数据脱敏 (手机号, 邮箱, 银行卡) 和枚举值自动映射。
 
