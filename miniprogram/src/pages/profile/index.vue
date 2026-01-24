@@ -93,12 +93,6 @@ onMounted(() => {
         </view>
 
         <view class="menu-list">
-            <view class="menu-item" @click="uni.navigateTo({ url: '/pages/profile/security' })">
-                <view class="menu-left">
-                    <text class="menu-text">账号安全</text>
-                </view>
-                <view class="arrow-icon"></view>
-            </view>
             <view class="menu-item" @click="uni.navigateTo({ url: '/pages/profile/about' })">
                 <view class="menu-left">
                     <text class="menu-text">关于 NexQuery</text>

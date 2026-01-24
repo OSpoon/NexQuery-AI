@@ -144,8 +144,8 @@ const navData = computed(() => {
           <SidebarMenuButton size="lg" as-child>
             <RouterLink to="/">
               <div
-                class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <img src="/logo.png" alt="NexQuery AI" class="size-6 object-contain" />
+                class="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground">
+                <img src="/logo.png" alt="NexQuery AI" class="size-10 object-contain" />
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-medium">{{ settingsStore.platformName }}</span>

@@ -36,6 +36,19 @@ const fetchTask = async () => {
 }
 
 const handleExecute = async () => {
+  // Validate required fields
+  if (task.value?.formSchema) {
+    for (const item of task.value.formSchema) {
+      if (item.required && (!formData.value[item.name] && formData.value[item.name] !== 0)) {
+        uni.showToast({
+          title: `请输入${item.label}`,
+          icon: 'none'
+        })
+        return
+      }
+    }
+  }
+
   executing.value = true
   try {
     const res = await api.post(`/query-tasks/${taskId.value}/execute`, {
@@ -43,10 +56,17 @@ const handleExecute = async () => {
     })
     
     // Log success and go to result page
-    uni.setStorageSync('last_query_result', JSON.stringify(res.data))
-    uni.navigateTo({
-      url: '/pages/result/index'
-    })
+    if (res.data && res.data.length > 0) {
+      uni.setStorageSync('last_query_result', JSON.stringify(res.data))
+      uni.navigateTo({
+        url: '/pages/result/index'
+      })
+    } else {
+      uni.showToast({
+        title: '查询成功，暂无数据',
+        icon: 'success'
+      })
+    }
   } catch (error: any) {
     console.error('Execution failed', error)
     uni.showModal({

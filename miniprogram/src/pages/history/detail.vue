@@ -91,9 +91,8 @@ const viewResults = () => {
         </view>
     </view>
 
-    <!-- Actions -->
-    <view class="footer-actions">
-        <button class="view-result-btn" type="primary" @click="viewResults" v-if="log.status === 'success'">
+    <view class="footer-actions" v-if="log.status === 'success' && log.results && log.results.length > 0">
+        <button class="view-result-btn" type="primary" @click="viewResults">
             查看查询结果
         </button>
     </view>

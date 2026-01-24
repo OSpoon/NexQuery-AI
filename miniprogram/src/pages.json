@@ -25,12 +25,6 @@
 			}
 		},
 		{
-			"path": "pages/profile/security",
-			"style": {
-				"navigationBarTitleText": "账号安全"
-			}
-		},
-		{
 			"path": "pages/profile/about",
 			"style": {
 				"navigationBarTitleText": "关于我们"
