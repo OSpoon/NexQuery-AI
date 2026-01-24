@@ -52,7 +52,10 @@ export default class ApiEncryptionMiddleware {
         // 4. Replace body with decrypted data
         request.updateBody(decryptedJson)
       } catch (e: any) {
-        logger.error({ decryptedRaw, error: e.message }, 'Failed to parse decrypted request body as JSON')
+        logger.error(
+          { decryptedRaw, error: e.message },
+          'Failed to parse decrypted request body as JSON'
+        )
         return response.badRequest({
           error: 'Invalid JSON after decryption',
           details: env.get('NODE_ENV') === 'development' ? e.message : undefined,

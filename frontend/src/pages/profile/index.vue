@@ -94,7 +94,7 @@ const lastPasswordChangeAtFormatted = computed(() => {
   if (!lastPasswordChangeAt.value) {
     return createdAt.value
       ? DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED) +
-      ' (Account Created)'
+          ' (Account Created)'
       : 'Never'
   }
   return DateTime.fromISO(lastPasswordChangeAt.value).toLocaleString(DateTime.DATETIME_MED)
@@ -210,7 +210,6 @@ const confirmUnbind = async () => {
     isLoading.value = false
   }
 }
-
 </script>
 
 <template>
@@ -297,11 +296,20 @@ const confirmUnbind = async () => {
               {{ t('profile.enable_2fa') }}
             </Button>
             <div v-else>
-              <Button v-if="settingsStore.require2fa" variant="secondary" @click="handleDisableClick"
-                :disabled="isLoading">
+              <Button
+                v-if="settingsStore.require2fa"
+                variant="secondary"
+                @click="handleDisableClick"
+                :disabled="isLoading"
+              >
                 {{ t('profile.enabled_mandatory') }}
               </Button>
-              <Button v-else variant="destructive" @click="handleDisableClick" :disabled="isLoading">
+              <Button
+                v-else
+                variant="destructive"
+                @click="handleDisableClick"
+                :disabled="isLoading"
+              >
                 {{ t('profile.disable_2fa') }}
               </Button>
             </div>
@@ -320,16 +328,21 @@ const confirmUnbind = async () => {
           <div class="space-y-0.5">
             <div class="font-medium">WeChat (Mini Program)</div>
             <div class="text-sm text-muted-foreground">
-              {{ isWechatBound ? 'Bound to a WeChat account.' : 'Not bound to any WeChat account.' }}
+              {{
+                isWechatBound ? 'Bound to a WeChat account.' : 'Not bound to any WeChat account.'
+              }}
             </div>
           </div>
           <div>
-            <Button v-if="isWechatBound" variant="destructive" @click="handleUnbindClick" :disabled="isLoading">
+            <Button
+              v-if="isWechatBound"
+              variant="destructive"
+              @click="handleUnbindClick"
+              :disabled="isLoading"
+            >
               Unbind
             </Button>
-            <Button v-else variant="outline" disabled>
-              Unbound
-            </Button>
+            <Button v-else variant="outline" disabled> Unbound </Button>
           </div>
         </div>
       </CardContent>
@@ -353,7 +366,7 @@ const confirmUnbind = async () => {
         <DialogFooter>
           <Button variant="outline" @click="showDisableDialog = false">{{
             t('common.cancel')
-            }}</Button>
+          }}</Button>
           <Button variant="destructive" @click="confirmDisable2FA" :disabled="isLoading">
             {{ t('profile.disable_2fa') }}
           </Button>
@@ -391,10 +404,10 @@ const confirmUnbind = async () => {
         <DialogFooter>
           <Button variant="outline" @click="showEnableDialog = false">{{
             t('common.cancel')
-            }}</Button>
+          }}</Button>
           <Button @click="confirmEnable2FA" :disabled="isLoading">{{
             t('profile.verify_enable')
-            }}</Button>
+          }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -409,7 +422,11 @@ const confirmUnbind = async () => {
           </DialogDescription>
         </DialogHeader>
         <div class="grid grid-cols-2 gap-4 py-4">
-          <div v-for="code in recoveryCodes" :key="code" class="bg-muted p-2 text-center rounded text-sm font-mono">
+          <div
+            v-for="code in recoveryCodes"
+            :key="code"
+            class="bg-muted p-2 text-center rounded text-sm font-mono"
+          >
             {{ code }}
           </div>
         </div>
@@ -425,12 +442,14 @@ const confirmUnbind = async () => {
         <DialogHeader>
           <DialogTitle>Unbind WeChat Account</DialogTitle>
           <DialogDescription>
-            Are you sure you want to unbind your WeChat account? You will no longer be able to use WeChat One-Click
-            Login.
+            Are you sure you want to unbind your WeChat account? You will no longer be able to use
+            WeChat One-Click Login.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" @click="showUnbindDialog = false">{{ t('common.cancel') }}</Button>
+          <Button variant="outline" @click="showUnbindDialog = false">{{
+            t('common.cancel')
+          }}</Button>
           <Button variant="destructive" @click="confirmUnbind" :disabled="isLoading">
             Confirm Unbind
           </Button>

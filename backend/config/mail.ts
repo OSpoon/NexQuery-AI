@@ -20,10 +20,10 @@ const mailConfig = defineConfig({
       secure: env.get('SMTP_PORT') === 465,
       auth: env.get('SMTP_USERNAME')
         ? {
-          type: 'login',
-          user: env.get('SMTP_USERNAME')!,
-          pass: env.get('SMTP_PASSWORD') || '',
-        }
+            type: 'login',
+            user: env.get('SMTP_USERNAME')!,
+            pass: env.get('SMTP_PASSWORD') || '',
+          }
         : undefined,
     }),
   },
@@ -32,5 +32,5 @@ const mailConfig = defineConfig({
 export default mailConfig
 
 declare module '@adonisjs/mail/types' {
-  export interface MailersList extends InferMailers<typeof mailConfig> { }
+  export interface MailersList extends InferMailers<typeof mailConfig> {}
 }

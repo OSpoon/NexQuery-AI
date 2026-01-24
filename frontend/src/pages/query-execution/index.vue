@@ -144,7 +144,11 @@ onMounted(fetchTask)
       <!-- Top: Form -->
       <Card class="flex-none shadow-sm border-muted/20">
         <CardContent class="p-6">
-          <DynamicForm :schema="task.formSchema || []" :is-executing="isExecuting" @execute="onExecute" />
+          <DynamicForm
+            :schema="task.formSchema || []"
+            :is-executing="isExecuting"
+            @execute="onExecute"
+          />
         </CardContent>
       </Card>
 
@@ -158,22 +162,34 @@ onMounted(fetchTask)
             </CardDescription>
           </div>
           <div v-if="results" class="flex items-center gap-4">
-            <span class="text-sm font-medium" v-if="isArrayResult">{{ results.length }} rows returned</span>
+            <span class="text-sm font-medium" v-if="isArrayResult"
+              >{{ results.length }} rows returned</span
+            >
             <span class="text-sm font-medium" v-else>JSON Result</span>
-            <Button v-if="settingsStore.allowExport && isArrayResult" variant="outline" size="sm"
-              @click="downloadResults" :disabled="results.length === 0">
+            <Button
+              v-if="settingsStore.allowExport && isArrayResult"
+              variant="outline"
+              size="sm"
+              @click="downloadResults"
+              :disabled="results.length === 0"
+            >
               <Download class="mr-2 h-4 w-4" /> Export CSV
             </Button>
           </div>
         </CardHeader>
         <CardContent class="p-0 flex-1 overflow-hidden relative">
-          <div v-if="isExecuting"
-            class="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-10">
+          <div
+            v-if="isExecuting"
+            class="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-10"
+          >
             <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             <p class="text-muted-foreground text-sm mt-2">Running query...</p>
           </div>
 
-          <div v-if="results && (isArrayResult ? results.length > 0 : true)" class="h-full overflow-auto">
+          <div
+            v-if="results && (isArrayResult ? results.length > 0 : true)"
+            class="h-full overflow-auto"
+          >
             <div v-if="!isArrayResult" class="p-4">
               <pre class="bg-muted p-4 rounded-md overflow-auto font-mono text-sm max-h-[600px]">{{
                 JSON.stringify(results, null, 2)
@@ -189,8 +205,11 @@ onMounted(fetchTask)
               </TableHeader>
               <TableBody>
                 <TableRow v-for="(row, idx) in results" :key="idx">
-                  <TableCell v-for="col in columns" :key="col"
-                    class="min-w-[100px] max-w-[400px] whitespace-normal break-words align-top">
+                  <TableCell
+                    v-for="col in columns"
+                    :key="col"
+                    class="min-w-[100px] max-w-[400px] whitespace-normal break-words align-top"
+                  >
                     {{ row[col] }}
                   </TableCell>
                 </TableRow>
@@ -198,8 +217,10 @@ onMounted(fetchTask)
             </Table>
           </div>
 
-          <div v-else-if="!isExecuting && (!results || (isArrayResult && results.length === 0))"
-            class="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+          <div
+            v-else-if="!isExecuting && (!results || (isArrayResult && results.length === 0))"
+            class="h-full flex flex-col items-center justify-center text-muted-foreground p-8"
+          >
             <Play v-if="!results" class="h-12 w-12 mb-4 opacity-20" />
             <p v-if="!results">Fill in the parameters and click Execute to see results.</p>
             <p v-else>No results returned.</p>

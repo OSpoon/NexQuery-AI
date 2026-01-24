@@ -86,11 +86,15 @@ const setTheme = (themeValue: string) => {
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
-          <SidebarMenuButton size="lg"
-            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground">
+          <SidebarMenuButton
+            size="lg"
+            class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+          >
             <Avatar class="h-8 w-8 rounded-lg">
               <AvatarImage :src="user.avatar" v-if="user.avatar" />
-              <AvatarFallback class="rounded-lg"> {{ user.name.slice(0, 2).toUpperCase() }} </AvatarFallback>
+              <AvatarFallback class="rounded-lg">
+                {{ user.name.slice(0, 2).toUpperCase() }}
+              </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
               <span class="truncate font-medium">{{ user.name }}</span>
@@ -99,13 +103,19 @@ const setTheme = (themeValue: string) => {
             <ChevronsUpDown class="ml-auto size-4" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
-        <DropdownMenuContent class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
-          :side="isMobile ? 'bottom' : 'right'" align="end" :side-offset="4">
+        <DropdownMenuContent
+          class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+          :side="isMobile ? 'bottom' : 'right'"
+          align="end"
+          :side-offset="4"
+        >
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
                 <AvatarImage :src="user.avatar" v-if="user.avatar" />
-                <AvatarFallback class="rounded-lg"> {{ user.name.slice(0, 2).toUpperCase() }} </AvatarFallback>
+                <AvatarFallback class="rounded-lg">
+                  {{ user.name.slice(0, 2).toUpperCase() }}
+                </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-semibold">{{ user.name }}</span>
@@ -125,8 +135,12 @@ const setTheme = (themeValue: string) => {
                 <span>Theme</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                <DropdownMenuItem v-for="theme in themes" :key="theme.value" @click="setTheme(theme.value)"
-                  class="gap-2 cursor-pointer">
+                <DropdownMenuItem
+                  v-for="theme in themes"
+                  :key="theme.value"
+                  @click="setTheme(theme.value)"
+                  class="gap-2 cursor-pointer"
+                >
                   <div class="h-4 w-4 rounded-full border border-muted" :class="theme.color"></div>
                   <span class="flex-1">{{ theme.name }}</span>
                   <Check v-if="settingsStore.themeColor === theme.value" class="h-4 w-4 ml-auto" />
@@ -150,22 +164,34 @@ const setTheme = (themeValue: string) => {
                 </DropdownMenuItem>
               </DropdownMenuSubContent>
             </DropdownMenuSub>
-            <DropdownMenuItem v-for="item in [
-              { href: 'https://webhook.site', icon: Webhook, label: 'Webhook.site' },
-              { href: 'http://localhost:1080', icon: Mail, label: 'MailCatcher' },
-              { href: 'http://localhost:8080', icon: Database, label: 'Adminer' },
-              { href: 'http://localhost:6333/dashboard', icon: HardDrive, label: 'Qdrant' },
-              { href: 'https://us.cloud.langfuse.com', icon: Activity, label: 'Langfuse' },
-            ]" :key="item.label" as-child>
-              <a :href="item.href" target="_blank" rel="noopener noreferrer"
-                class="flex items-center gap-2 cursor-pointer w-full">
+            <DropdownMenuItem
+              v-for="item in [
+                { href: 'https://webhook.site', icon: Webhook, label: 'Webhook.site' },
+                { href: 'http://localhost:1080', icon: Mail, label: 'MailCatcher' },
+                { href: 'http://localhost:8080', icon: Database, label: 'Adminer' },
+                { href: 'http://localhost:6333/dashboard', icon: HardDrive, label: 'Qdrant' },
+                { href: 'https://us.cloud.langfuse.com', icon: Activity, label: 'Langfuse' },
+              ]"
+              :key="item.label"
+              as-child
+            >
+              <a
+                :href="item.href"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 cursor-pointer w-full"
+              >
                 <component :is="item.icon" class="size-4" />
                 {{ item.label }}
               </a>
             </DropdownMenuItem>
             <DropdownMenuItem as-child>
-              <a href="https://github.com/OSpoon/nexquery-ai" target="_blank" rel="noopener noreferrer"
-                class="flex items-center gap-2 cursor-pointer w-full">
+              <a
+                href="https://github.com/OSpoon/nexquery-ai"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="flex items-center gap-2 cursor-pointer w-full"
+              >
                 <Github class="size-4" />
                 GitHub
               </a>

@@ -184,8 +184,13 @@ onMounted(fetchTasks)
     </div>
 
     <div class="border rounded-lg bg-card p-4">
-      <DataTable :columns="columns" :data="tasks" search-key="name" storage-key="query-tasks-columns"
-        empty-message="No query tasks found. Create one to get started." />
+      <DataTable
+        :columns="columns"
+        :data="tasks"
+        search-key="name"
+        storage-key="query-tasks-columns"
+        empty-message="No query tasks found. Create one to get started."
+      />
     </div>
 
     <Dialog v-model:open="isDialogOpen">
@@ -198,13 +203,19 @@ onMounted(fetchTasks)
             Configure your SQL template. Parameters will be detected automatically.
           </DialogDescription>
         </DialogHeader>
-        <QueryTaskForm v-if="isDialogOpen" :initial-values="editingTask" :is-editing="!!editingTask"
-          class="flex-1 overflow-hidden" @success="
+        <QueryTaskForm
+          v-if="isDialogOpen"
+          :initial-values="editingTask"
+          :is-editing="!!editingTask"
+          class="flex-1 overflow-hidden"
+          @success="
             () => {
               isDialogOpen = false
               fetchTasks()
             }
-          " @cancel="isDialogOpen = false" />
+          "
+          @cancel="isDialogOpen = false"
+        />
       </DialogContent>
     </Dialog>
   </div>

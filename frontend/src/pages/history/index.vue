@@ -70,7 +70,13 @@ const openLogDetails = (log: QueryLog) => {
 
   if (isPossiblyApi && processedLog.results) {
     const results = processedLog.results
-    if (results && typeof results === 'object' && results.data && typeof results.data === 'string' && cryptoService) {
+    if (
+      results &&
+      typeof results === 'object' &&
+      results.data &&
+      typeof results.data === 'string' &&
+      cryptoService
+    ) {
       try {
         const decrypted = cryptoService.decrypt(results.data)
         if (decrypted) {
@@ -182,13 +188,13 @@ const columns: ColumnDef<QueryLog>[] = [
         h('span', { class: 'font-mono' }, ip),
         isInternal !== undefined
           ? h(
-            Badge,
-            {
-              variant: isInternal ? 'secondary' : 'outline',
-              class: 'text-[10px] w-fit px-1 h-4 mt-0.5',
-            },
-            () => (isInternal ? 'Int' : 'Ext'),
-          )
+              Badge,
+              {
+                variant: isInternal ? 'secondary' : 'outline',
+                class: 'text-[10px] w-fit px-1 h-4 mt-0.5',
+              },
+              () => (isInternal ? 'Int' : 'Ext'),
+            )
           : null,
       ])
     },
@@ -254,8 +260,13 @@ onMounted(() => {
     </div>
 
     <div class="border rounded-lg bg-card p-4">
-      <DataTable :columns="columns" :data="logs" search-key="status" empty-message="No history found."
-        @row-click="openLogDetails" />
+      <DataTable
+        :columns="columns"
+        :data="logs"
+        search-key="status"
+        empty-message="No history found."
+        @row-click="openLogDetails"
+      />
     </div>
 
     <!-- Log Details Dialog -->
@@ -296,7 +307,9 @@ onMounted(() => {
                   <span class="text-xs text-muted-foreground">{{ t('history.ip_address') }}:</span>
                   <p class="font-mono text-sm">
                     {{ selectedLog.ipAddress }}
-                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground">(Internal)</span>
+                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground"
+                      >(Internal)</span
+                    >
                   </p>
                 </div>
                 <div>
@@ -309,15 +322,20 @@ onMounted(() => {
             </div>
           </div>
 
-          <div v-if="selectedLog.errorMessage" class="p-3 rounded-md bg-destructive/10 text-destructive text-sm">
+          <div
+            v-if="selectedLog.errorMessage"
+            class="p-3 rounded-md bg-destructive/10 text-destructive text-sm"
+          >
             <p class="font-semibold">{{ t('history.error') }}:</p>
             {{ selectedLog.errorMessage }}
           </div>
 
           <div>
             <h4 class="text-sm font-semibold mb-2">{{ t('history.parameters') }}</h4>
-            <div v-if="selectedLog.parameters && Object.keys(selectedLog.parameters).length > 0"
-              class="p-3 bg-muted rounded-md font-mono text-xs whitespace-pre-wrap break-all">
+            <div
+              v-if="selectedLog.parameters && Object.keys(selectedLog.parameters).length > 0"
+              class="p-3 bg-muted rounded-md font-mono text-xs whitespace-pre-wrap break-all"
+            >
               {{ JSON.stringify(selectedLog.parameters, null, 2) }}
             </div>
             <p v-else class="text-sm text-muted-foreground italic">
@@ -335,7 +353,8 @@ onMounted(() => {
           <div v-if="selectedLog.results">
             <h4 class="text-sm font-semibold mb-2">{{ t('history.results_snapshot') }}</h4>
             <div
-              class="p-3 bg-muted rounded-md font-mono text-xs max-h-[300px] overflow-y-auto whitespace-pre-wrap break-all">
+              class="p-3 bg-muted rounded-md font-mono text-xs max-h-[300px] overflow-y-auto whitespace-pre-wrap break-all"
+            >
               {{ JSON.stringify(selectedLog.results, null, 2) }}
             </div>
             <p class="text-xs text-muted-foreground mt-1">

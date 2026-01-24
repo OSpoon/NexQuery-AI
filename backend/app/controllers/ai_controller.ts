@@ -130,11 +130,13 @@ export default class AiController {
     response.response.flushHeaders()
 
     // Notify frontend of conversation ID (always send it so frontend can sync)
-    response.response.write(`data: ${JSON.stringify({ type: 'conversation_id', id: conversation.id })}\n\n`)
+    response.response.write(
+      `data: ${JSON.stringify({ type: 'conversation_id', id: conversation.id })}\n\n`
+    )
 
     try {
       const langChainService = new LangChainService()
-      const dsId = dataSourceId ? Number(dataSourceId) : (conversation.dataSourceId || undefined)
+      const dsId = dataSourceId ? Number(dataSourceId) : conversation.dataSourceId || undefined
 
       const stream = langChainService.naturalLanguageToSqlStream(question, {
         dbType,

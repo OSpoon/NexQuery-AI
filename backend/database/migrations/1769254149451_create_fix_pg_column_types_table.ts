@@ -1,11 +1,9 @@
 import { BaseSchema } from '@adonisjs/lucid/schema'
 
 export default class extends BaseSchema {
-    protected tableName = 'query_tasks'
+  protected tableName = 'query_tasks'
 
-    public async up() {
-    }
+  public async up() {}
 
-    public async down() {
-    }
+  public async down() {}
 }

@@ -378,7 +378,8 @@ export const setupMonacoSql = () => {
               // Regex Fallback (Improved to handle multi-line and schema-qualified names)
               const fullText = model.getValue()
               // Regex matches FROM/JOIN/UPDATE/INTO followed by table name, supporting backticks, double quotes, and schema prefix
-              const tableRegex = /(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([`"]?[a-zA-Z0-9_]+[`"]?(?:\.[`"]?[a-zA-Z0-9_]+[`"]?)?)/gi
+              const tableRegex =
+                /(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([`"]?[a-zA-Z0-9_]+[`"]?(?:\.[`"]?[a-zA-Z0-9_]+[`"]?)?)/gi
               const matches = fullText.matchAll(tableRegex)
               for (const match of matches) {
                 // Strip quotes/backticks
@@ -401,7 +402,9 @@ export const setupMonacoSql = () => {
                 // Explicit alias.col
                 const prefix = dotMatch[1]
                 const resolvedTable = aliasMap.get(prefix) || prefix
-                const table = schema.find((t) => t.name.toLowerCase() === resolvedTable.toLowerCase())
+                const table = schema.find(
+                  (t) => t.name.toLowerCase() === resolvedTable.toLowerCase(),
+                )
                 if (table) {
                   table.columns.forEach((col) => {
                     monacoSuggestions.push({

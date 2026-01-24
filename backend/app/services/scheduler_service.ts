@@ -9,7 +9,7 @@ import { inject } from '@adonisjs/core'
 export default class SchedulerService {
   private jobs: Map<number, Cron> = new Map()
 
-  constructor(protected queryExecutionService: QueryExecutionService) { }
+  constructor(protected queryExecutionService: QueryExecutionService) {}
 
   public async init() {
     const db = await import('@adonisjs/lucid/services/db')

@@ -74,7 +74,7 @@ const decryptedResult = computed(() => {
       try {
         const json = JSON.parse(trimmed)
         if (json.data) cipher = json.data
-      } catch (e) { }
+      } catch (e) {}
     }
 
     const decrypted = cryptoService.decrypt(cipher)
@@ -178,15 +178,24 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'general')" :key="s.key" class="grid gap-2">
-            <div v-if="['allow_export', 'require_2fa', 'show_watermark'].includes(s.key)"
-              class="flex items-center justify-between py-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'general')"
+            :key="s.key"
+            class="grid gap-2"
+          >
+            <div
+              v-if="['allow_export', 'require_2fa', 'show_watermark'].includes(s.key)"
+              class="flex items-center justify-between py-2"
+            >
               <div class="space-y-0.5">
                 <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
                 <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
               </div>
-              <Switch :id="s.key" :model-value="s.value === 'true'"
-                @update:model-value="(val) => (s.value = val ? 'true' : 'false')" />
+              <Switch
+                :id="s.key"
+                :model-value="s.value === 'true'"
+                @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
+              />
             </div>
             <div v-else class="grid gap-2">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
@@ -208,7 +217,11 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'execution')" :key="s.key" class="grid gap-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'execution')"
+            :key="s.key"
+            class="grid gap-2"
+          >
             <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
             <Input :id="s.key" v-model="s.value" type="number" />
             <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
@@ -227,18 +240,29 @@ onMounted(fetchSettings)
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
-          <div v-for="s in settings.filter((s) => s.group === 'integration')" :key="s.key" class="grid gap-2">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'integration')"
+            :key="s.key"
+            class="grid gap-2"
+          >
             <div class="flex items-center justify-between">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-              <span v-if="s.key === 'glm_api_key' && !s.value"
-                class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse">
+              <span
+                v-if="s.key === 'glm_api_key' && !s.value"
+                class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
+              >
                 MISSING
               </span>
             </div>
-            <Input :id="s.key" v-model="s.value" :type="s.type || 'text'" :class="{
-              'border-destructive/50 focus-visible:ring-destructive':
-                s.key === 'glm_api_key' && !s.value,
-            }" />
+            <Input
+              :id="s.key"
+              v-model="s.value"
+              :type="s.type || 'text'"
+              :class="{
+                'border-destructive/50 focus-visible:ring-destructive':
+                  s.key === 'glm_api_key' && !s.value,
+              }"
+            />
             <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
           </div>
         </CardContent>
@@ -257,9 +281,11 @@ onMounted(fetchSettings)
         <CardContent class="space-y-4">
           <div class="grid gap-2">
             <Label>Encryption Helper (Decryption Test)</Label>
-            <textarea v-model="testPayload"
+            <textarea
+              v-model="testPayload"
               class="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
-              placeholder="Paste encrypted payload here (e.g. U2FsdGVk...)"></textarea>
+              placeholder="Paste encrypted payload here (e.g. U2FsdGVk...)"
+            ></textarea>
             <p class="text-[10px] text-muted-foreground">
               Input can be the raw ciphertext or a JSON object containing a "data" field.
             </p>
@@ -267,7 +293,9 @@ onMounted(fetchSettings)
 
           <div v-if="testPayload" class="grid gap-2">
             <Label>Decrypted Result</Label>
-            <div class="bg-muted p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border">
+            <div
+              class="bg-muted p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
+            >
               {{ decryptedResult }}
             </div>
           </div>

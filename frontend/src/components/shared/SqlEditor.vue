@@ -320,16 +320,32 @@ defineExpose({
   <div class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px]">
     <div class="flex items-center justify-between px-2 py-1 bg-muted/30 border-b">
       <div class="flex items-center gap-1">
-        <Button type="button" variant="ghost" size="icon" title="Format" @click="formatSql" class="h-8 w-8">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title="Format"
+          @click="formatSql"
+          class="h-8 w-8"
+        >
           <Braces class="h-4 w-4" />
         </Button>
-        <Button type="button" variant="ghost" size="icon" title="Clear" @click="clearSql"
-          class="h-8 w-8 text-destructive">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          title="Clear"
+          @click="clearSql"
+          class="h-8 w-8 text-destructive"
+        >
           <Eraser class="h-4 w-4" />
         </Button>
         <div class="h-4 w-px bg-border mx-1"></div>
-        <div v-if="syntaxError" class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
-          :title="syntaxError">
+        <div
+          v-if="syntaxError"
+          class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
+          :title="syntaxError"
+        >
           <AlertCircle class="h-3 w-3 shrink-0" />
           <span class="truncate">Error</span>
         </div>
@@ -341,8 +357,15 @@ defineExpose({
       <div class="flex items-center gap-2" v-if="variables && variables.length > 0">
         <span class="text-xs text-muted-foreground">Insert:</span>
         <div class="flex gap-1">
-          <Button v-for="v in variables" :key="v.name" type="button" variant="outline" size="sm"
-            class="h-6 text-xs px-2" @click="insertVariable(v.name)">
+          <Button
+            v-for="v in variables"
+            :key="v.name"
+            type="button"
+            variant="outline"
+            size="sm"
+            class="h-6 text-xs px-2"
+            @click="insertVariable(v.name)"
+          >
             {{ v.name }}
           </Button>
         </div>

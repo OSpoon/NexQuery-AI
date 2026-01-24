@@ -186,9 +186,9 @@ const saveSchedule = async () => {
       recipients: hasWebhook
         ? []
         : form.value.recipients
-          .split(',')
-          .map((e) => e.trim())
-          .filter(Boolean),
+            .split(',')
+            .map((e) => e.trim())
+            .filter(Boolean),
       webhookUrl: hasWebhook ? form.value.webhookUrl : null,
       isActive: form.value.isActive,
     }
@@ -274,7 +274,9 @@ onMounted(fetchSchedules)
                 <code v-if="s.cronExpression" class="bg-muted px-1 py-0.5 rounded text-xs">{{
                   s.cronExpression
                 }}</code>
-                <span v-else class="text-xs font-medium text-orange-500">Run at: {{ formatDate(s.runAt!) }}</span>
+                <span v-else class="text-xs font-medium text-orange-500"
+                  >Run at: {{ formatDate(s.runAt!) }}</span
+                >
               </div>
             </TableCell>
             <TableCell>
@@ -282,8 +284,11 @@ onMounted(fetchSchedules)
                 <div v-for="r in s.recipients" :key="r" class="text-xs flex items-center gap-1">
                   <Mail class="h-3 w-3 text-muted-foreground" /> {{ r }}
                 </div>
-                <div v-if="s.webhookUrl" class="text-xs flex items-center gap-1 text-blue-500 truncate max-w-[150px]"
-                  :title="s.webhookUrl">
+                <div
+                  v-if="s.webhookUrl"
+                  class="text-xs flex items-center gap-1 text-blue-500 truncate max-w-[150px]"
+                  :title="s.webhookUrl"
+                >
                   <Globe class="h-3 w-3" /> Webhook
                 </div>
               </div>
@@ -299,7 +304,13 @@ onMounted(fetchSchedules)
               <Button type="button" variant="ghost" size="icon" @click="openEditDialog(s)">
                 <Edit class="h-4 w-4" />
               </Button>
-              <Button type="button" variant="ghost" size="icon" class="text-destructive" @click="deleteSchedule(s.id)">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                class="text-destructive"
+                @click="deleteSchedule(s.id)"
+              >
                 <Trash2 class="h-4 w-4" />
               </Button>
             </TableCell>
@@ -325,12 +336,19 @@ onMounted(fetchSchedules)
               <div class="space-y-2">
                 <div class="flex justify-between">
                   <Label>Cron Expression</Label>
-                  <a href="https://crontab.guru/" target="_blank"
-                    class="text-xs text-blue-500 hover:underline">Help?</a>
+                  <a
+                    href="https://crontab.guru/"
+                    target="_blank"
+                    class="text-xs text-blue-500 hover:underline"
+                    >Help?</a
+                  >
                 </div>
                 <Input v-model="form.cronExpression" placeholder="0 9 * * *" />
                 <p class="text-xs text-muted-foreground">Format: Minute Hour Day Month DayOfWeek</p>
-                <div v-if="nextExecutions.length > 0" class="mt-2 text-xs bg-muted p-2 rounded text-muted-foreground">
+                <div
+                  v-if="nextExecutions.length > 0"
+                  class="mt-2 text-xs bg-muted p-2 rounded text-muted-foreground"
+                >
                   <p class="font-semibold mb-1">Next executions:</p>
                   <ul class="list-disc pl-4 space-y-0.5">
                     <li v-for="d in nextExecutions" :key="d">{{ d }}</li>
@@ -344,31 +362,49 @@ onMounted(fetchSchedules)
                 <Label>Execution Time</Label>
                 <DateTimePicker v-model="form.runAt" :timezone="systemTimezone" />
                 <div class="flex flex-wrap gap-2 mt-3">
-                  <Button type="button" variant="outline" size="sm" class="h-6 px-2 text-xs" @click="
-                    form.runAt = (DateTime.now()
-                      .setZone(systemTimezone)
-                      .plus({ minutes: 10 })
-                      .toUTC()
-                      .toISO() || '') as string
-                    ">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="h-6 px-2 text-xs"
+                    @click="
+                      form.runAt = (DateTime.now()
+                        .setZone(systemTimezone)
+                        .plus({ minutes: 10 })
+                        .toUTC()
+                        .toISO() || '') as string
+                    "
+                  >
                     +10 Min
                   </Button>
-                  <Button type="button" variant="outline" size="sm" class="h-6 px-2 text-xs" @click="
-                    form.runAt = (DateTime.now()
-                      .setZone(systemTimezone)
-                      .plus({ hours: 1 })
-                      .toUTC()
-                      .toISO() || '') as string
-                    ">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="h-6 px-2 text-xs"
+                    @click="
+                      form.runAt = (DateTime.now()
+                        .setZone(systemTimezone)
+                        .plus({ hours: 1 })
+                        .toUTC()
+                        .toISO() || '') as string
+                    "
+                  >
                     +1 Hour
                   </Button>
-                  <Button type="button" variant="outline" size="sm" class="h-6 px-2 text-xs" @click="
-                    form.runAt = (DateTime.now()
-                      .setZone(systemTimezone)
-                      .plus({ days: 1 })
-                      .toUTC()
-                      .toISO() || '') as string
-                    ">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    class="h-6 px-2 text-xs"
+                    @click="
+                      form.runAt = (DateTime.now()
+                        .setZone(systemTimezone)
+                        .plus({ days: 1 })
+                        .toUTC()
+                        .toISO() || '') as string
+                    "
+                  >
                     Tomorrow
                   </Button>
                 </div>
@@ -379,13 +415,16 @@ onMounted(fetchSchedules)
           <div class="space-y-2">
             <Label>Recipients (comma separated)</Label>
             <Input v-model="form.recipients" placeholder="user@example.com, manager@example.com" />
-            <p class="text-[10px] text-muted-foreground italic">Required if Webhook URL is empty.</p>
+            <p class="text-[10px] text-muted-foreground italic">
+              Required if Webhook URL is empty.
+            </p>
           </div>
           <div class="space-y-2">
             <Label>Webhook URL (Optional)</Label>
             <Input v-model="form.webhookUrl" placeholder="https://api.example.com/webhook" />
-            <p class="text-[10px] text-muted-foreground italic">Required if Recipients is empty. If filled, email will
-              NOT be sent.</p>
+            <p class="text-[10px] text-muted-foreground italic">
+              Required if Recipients is empty. If filled, email will NOT be sent.
+            </p>
           </div>
           <div class="flex flex-row items-center justify-between rounded-lg border p-4">
             <div class="space-y-0.5">
@@ -394,7 +433,11 @@ onMounted(fetchSchedules)
                 Enable or disable this schedule without deleting it.
               </p>
             </div>
-            <Switch id="active" :model-value="form.isActive" @update:model-value="(v) => (form.isActive = v)" />
+            <Switch
+              id="active"
+              :model-value="form.isActive"
+              @update:model-value="(v) => (form.isActive = v)"
+            />
           </div>
         </div>
         <DialogFooter>

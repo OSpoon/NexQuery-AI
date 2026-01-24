@@ -6,7 +6,12 @@ export default class extends BaseSchema {
   async up() {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
-      table.integer('conversation_id').unsigned().references('ai_conversations.id').onDelete('CASCADE').notNullable()
+      table
+        .integer('conversation_id')
+        .unsigned()
+        .references('ai_conversations.id')
+        .onDelete('CASCADE')
+        .notNullable()
       table.enum('role', ['user', 'assistant']).notNullable()
       table.text('content').notNullable()
       table.json('agent_steps').nullable()

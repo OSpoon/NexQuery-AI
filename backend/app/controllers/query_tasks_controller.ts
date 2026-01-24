@@ -11,7 +11,6 @@ export default class QueryTasksController {
     const search = request.input('search')
     const tag = request.input('tag')
 
-
     const allCountResult = await QueryTask.query().count('* as total')
     const totalInDb = allCountResult[0].$extras.total
 
@@ -19,7 +18,6 @@ export default class QueryTasksController {
       .preload('dataSource')
       .preload('creator')
       .orderBy('createdAt', 'desc')
-
 
     if (search && search !== '' && search !== 'undefined') {
       query.where((q) => {
