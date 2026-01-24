@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '@/lib/api'
+import api, { cryptoService } from '@/lib/api'
 import type { QueryTask } from '@nexquery/shared'
 import { onLoad } from '@dcloudio/uni-app'
 
@@ -54,10 +54,32 @@ const handleExecute = async () => {
     const res = await api.post(`/query-tasks/${taskId.value}/execute`, {
       params: formData.value
     })
-    
+
+    let finalData = res.data
+
+    // Check if the result itself is an encrypted packet (common for API tasks calling other platform APIs)
+    if (
+      cryptoService &&
+      finalData &&
+      typeof finalData === 'object' &&
+      finalData.data &&
+      typeof finalData.data === 'string' &&
+      finalData.data.startsWith('U2FsdGVk')
+    ) {
+      try {
+        const decrypted = cryptoService.decrypt(finalData.data)
+        if (decrypted !== null) {
+          finalData = decrypted
+          console.log('[TaskExecute] Auto-decrypted nested result')
+        }
+      } catch (e) {
+        console.warn('[TaskExecute] Failed to decrypt nested result:', e)
+      }
+    }
+
     // Log success and go to result page
-    if (res.data && res.data.length > 0) {
-      uni.setStorageSync('last_query_result', JSON.stringify(res.data))
+    if (finalData && ((Array.isArray(finalData) && finalData.length > 0) || (typeof finalData === 'object' && Object.keys(finalData).length > 0))) {
+      uni.setStorageSync('last_query_result', JSON.stringify(finalData))
       uni.navigateTo({
         url: '/pages/result/index'
       })
@@ -91,51 +113,33 @@ onMounted(() => {
     <view v-if="loading" class="loading-state">
       <text>加载中...</text>
     </view>
-    
+
     <view v-else-if="task" class="task-detail">
       <view class="header">
         <text class="task-name">{{ task.name }}</text>
         <text class="task-desc">{{ task.description || '无描述' }}</text>
       </view>
-      
+
       <view class="form-container">
         <view v-for="item in task.formSchema" :key="item.name" class="form-item">
           <text class="label">{{ item.label }} <text v-if="item.required" class="required">*</text></text>
-          
-          <input 
-            v-if="item.type === 'text' || item.type === 'input'" 
-            class="input" 
-            v-model="formData[item.name]" 
-            :placeholder="'请输入' + item.label"
-          />
-          
-          <input 
-            v-else-if="item.type === 'number'" 
-            class="input" 
-            type="number"
-            v-model="formData[item.name]" 
-            :placeholder="'请输入' + item.label"
-          />
-          
-          <textarea 
-            v-else-if="item.type === 'textarea'" 
-            class="textarea" 
-            v-model="formData[item.name]" 
-            :placeholder="'请输入' + item.label"
-          />
-          
+
+          <input v-if="item.type === 'text' || item.type === 'input'" class="input" v-model="formData[item.name]"
+            :placeholder="'请输入' + item.label" />
+
+          <input v-else-if="item.type === 'number'" class="input" type="number" v-model="formData[item.name]"
+            :placeholder="'请输入' + item.label" />
+
+          <textarea v-else-if="item.type === 'textarea'" class="textarea" v-model="formData[item.name]"
+            :placeholder="'请输入' + item.label" />
+
           <!-- Add more types if needed -->
           <text v-else class="unsupported">不支持的表单类型: {{ item.type }}</text>
         </view>
       </view>
-      
+
       <view class="footer">
-        <button 
-          class="execute-btn" 
-          type="primary" 
-          :loading="executing" 
-          @click="handleExecute"
-        >
+        <button class="execute-btn" type="primary" :loading="executing" @click="handleExecute">
           执行查询
         </button>
       </view>
@@ -167,6 +171,8 @@ onMounted(() => {
   background-color: #fff;
   padding: 40rpx;
   margin-bottom: 20rpx;
+  display: flex;
+  flex-direction: column;
 }
 
 .task-name {

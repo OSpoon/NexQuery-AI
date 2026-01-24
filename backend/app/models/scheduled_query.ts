@@ -17,16 +17,13 @@ export default class ScheduledQuery extends BaseModel {
   @column.dateTime({ columnName: 'run_at' })
   declare runAt: DateTime | null
 
-  @column({
-    prepare: (value: string[]) => JSON.stringify(value),
-    consume: (value: string) => JSON.parse(value),
-  })
+  @column()
   declare recipients: string[]
 
   @column({ columnName: 'webhook_url' })
   declare webhookUrl: string | null
 
-  @column({ columnName: 'is_active', consume: (value: number) => Boolean(value) })
+  @column({ columnName: 'is_active' })
   declare isActive: boolean
 
   @column({ columnName: 'created_by' })

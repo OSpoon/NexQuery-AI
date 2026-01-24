@@ -32,20 +32,32 @@ export class CryptoService {
         return CryptoJS.AES.encrypt(json, this.key).toString();
     }
     /**
-     * Decrypts ciphertext string back to original data.
+     * Decrypts ciphertext string back to raw string.
      */
-    decrypt(ciphertext) {
+    decryptRaw(ciphertext) {
         try {
             const bytes = CryptoJS.AES.decrypt(ciphertext, this.key);
             const originalText = bytes.toString(CryptoJS.enc.Utf8);
-            if (!originalText) {
-                return null;
-            }
-            return JSON.parse(originalText);
+            return originalText || null;
         }
         catch (e) {
             console.error('Decryption failed', e);
             return null;
+        }
+    }
+    /**
+     * Decrypts ciphertext string back to original data (object or string).
+     */
+    decrypt(ciphertext) {
+        const raw = this.decryptRaw(ciphertext);
+        if (raw === null)
+            return null;
+        try {
+            return JSON.parse(raw);
+        }
+        catch (e) {
+            // If it's not JSON, return as is (raw string)
+            return raw;
         }
     }
     /**

@@ -375,21 +375,34 @@ export const setupMonacoSql = () => {
                   }
                 })
               }
-              // Regex Fallback
+              // Regex Fallback (Improved to handle multi-line and schema-qualified names)
               const fullText = model.getValue()
-              const matches = fullText.matchAll(/(?:FROM|JOIN|UPDATE|INTO)\s+([a-zA-Z0-9_]+)/gi)
+              // Regex matches FROM/JOIN/UPDATE/INTO followed by table name, supporting backticks, double quotes, and schema prefix
+              const tableRegex = /(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([`"]?[a-zA-Z0-9_]+[`"]?(?:\.[`"]?[a-zA-Z0-9_]+[`"]?)?)/gi
+              const matches = fullText.matchAll(tableRegex)
               for (const match of matches) {
-                referencedTables.add(match[1].toLowerCase())
+                // Strip quotes/backticks
+                const rawTableName = match[1].replace(/[`"]/g, '')
+                // Handle schema prefix by taking the last part (e.g. public.users -> users)
+                // Actually we should probably keep it, but schemaRegistry usually stores flat names.
+                const parts = rawTableName.split('.')
+                const tableName = parts[parts.length - 1].toLowerCase()
+                referencedTables.add(tableName)
+              }
+
+              if (referencedTables.size > 0) {
+                console.log('[MonacoSQL] Detected tables for autocomplete:', Array.from(referencedTables))
               }
 
               const hasReferencedTables = referencedTables.size > 0
+              const firstTable = hasReferencedTables ? Array.from(referencedTables)[0] : null
               const dotMatch = textBefore.match(/(\w+)\.$/)
 
               if (dotMatch) {
                 // Explicit alias.col
                 const prefix = dotMatch[1]
                 const resolvedTable = aliasMap.get(prefix) || prefix
-                const table = schema.find((t) => t.name === resolvedTable)
+                const table = schema.find((t) => t.name.toLowerCase() === resolvedTable.toLowerCase())
                 if (table) {
                   table.columns.forEach((col) => {
                     monacoSuggestions.push({
@@ -404,6 +417,7 @@ export const setupMonacoSql = () => {
               } else if (hasReferencedTables) {
                 // Show columns from contextual tables
                 schema.forEach((table) => {
+                  const isPrimary = firstTable === table.name.toLowerCase()
                   if (referencedTables.has(table.name.toLowerCase())) {
                     table.columns.forEach((col) => {
                       monacoSuggestions.push({
@@ -411,7 +425,8 @@ export const setupMonacoSql = () => {
                         kind: monaco.languages.CompletionItemKind.Field,
                         insertText: col.name,
                         detail: `${table.name}.${col.type}`,
-                        sortText: '0010_' + col.name,
+                        // If it's the first table found in the query (primary table), prioritize it!
+                        sortText: (isPrimary ? '0005_' : '0010_') + col.name,
                       })
                     })
                   }

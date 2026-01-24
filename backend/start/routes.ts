@@ -96,11 +96,11 @@ router
             router.delete('query-tasks/:id', [QueryTasksController, 'destroy'])
 
             // Scheduled Queries
-            router.get('/scheduled-queries', [ScheduledQueriesController, 'index'])
-            router.get('/scheduled-queries/check-cron', [ScheduledQueriesController, 'checkCron'])
-            router.post('/scheduled-queries', [ScheduledQueriesController, 'store'])
-            router.put('/scheduled-queries/:id', [ScheduledQueriesController, 'update'])
-            router.delete('/scheduled-queries/:id', [ScheduledQueriesController, 'destroy'])
+            router.get('scheduled-queries', [ScheduledQueriesController, 'index'])
+            router.get('scheduled-queries/check-cron', [ScheduledQueriesController, 'checkCron'])
+            router.post('scheduled-queries', [ScheduledQueriesController, 'store'])
+            router.put('scheduled-queries/:id', [ScheduledQueriesController, 'update'])
+            router.delete('scheduled-queries/:id', [ScheduledQueriesController, 'destroy'])
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_TASKS }))
 

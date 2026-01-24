@@ -19,7 +19,8 @@ try {
 }
 // -----------------------------------------------
 
-const baseURL = 'http://localhost:3333/api' // Replace with your production URL
+const serverRoot = 'http://localhost:3333'
+const baseURL = `${serverRoot}/api`
 
 // Initialize Encryption Service
 // In Uni-app, we use uni.getSystemInfoSync or hardcode config
@@ -122,9 +123,12 @@ const request = (options: RequestOptions): Promise<any> => {
     })
 }
 
-export default {
+const api = {
     get: (url: string, data?: any, header?: any) => request({ url, method: 'GET', data, header }),
     post: (url: string, data?: any, header?: any) => request({ url, method: 'POST', data, header }),
     put: (url: string, data?: any, header?: any) => request({ url, method: 'PUT', data, header }),
     delete: (url: string, header?: any) => request({ url, method: 'DELETE', header }),
 }
+
+export { cryptoService, baseURL, serverRoot }
+export default api

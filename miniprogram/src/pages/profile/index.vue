@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import api from '@/lib/api'
+import api, { baseURL, serverRoot } from '@/lib/api'
+import { onShow } from '@dcloudio/uni-app'
 
 const user = ref<any>(null)
 
@@ -26,6 +27,18 @@ const handleLogout = async () => {
     })
 }
 
+const fetchUser = async () => {
+    try {
+        const res = await api.get('/me')
+        if (res.user) {
+            user.value = res.user
+            uni.setStorageSync('user', JSON.stringify(res.user))
+        }
+    } catch (e) {
+        console.error('Failed to refresh user info', e)
+    }
+}
+
 const onChooseAvatar = async (e: any) => {
     const { avatarUrl } = e.detail
     if (!avatarUrl) return
@@ -35,7 +48,7 @@ const onChooseAvatar = async (e: any) => {
     try {
         const token = uni.getStorageSync('auth_token')
         const uploadRes = await uni.uploadFile({
-            url: 'http://localhost:3333/api/auth/avatar', // Should match api.ts baseURL
+            url: `${baseURL}/auth/avatar`,
             filePath: avatarUrl,
             name: 'avatar',
             header: {
@@ -63,7 +76,10 @@ const onChooseAvatar = async (e: any) => {
 const getAvatarUrl = (path: string) => {
     if (!path) return ''
     if (path.startsWith('http')) return path
-    return `http://localhost:3333${path}`
+    // The path from backend starts with /api/...
+    // serverRoot is http://localhost:3333
+    // so serverRoot + path works perfectly
+    return `${serverRoot}${path}`
 }
 
 onMounted(() => {
@@ -71,6 +87,11 @@ onMounted(() => {
     if (userData) {
         user.value = JSON.parse(userData)
     }
+    fetchUser()
+})
+
+onShow(() => {
+    fetchUser()
 })
 </script>
 
@@ -145,8 +166,6 @@ onMounted(() => {
     height: 120rpx;
     border-radius: 60rpx;
     background-color: #f0f0f0;
-    margin-right: 0;
-    /* Reset */
 }
 
 .avatar-placeholder {
@@ -154,8 +173,6 @@ onMounted(() => {
     height: 120rpx;
     border-radius: 60rpx;
     background-color: #e6f7ff;
-    margin-right: 0;
-    /* Reset */
     display: flex;
     justify-content: center;
     align-items: center;

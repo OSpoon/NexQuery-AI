@@ -7,7 +7,11 @@ export declare class CryptoService {
      */
     encrypt(data: any): string;
     /**
-     * Decrypts ciphertext string back to original data.
+     * Decrypts ciphertext string back to raw string.
+     */
+    decryptRaw(ciphertext: string): string | null;
+    /**
+     * Decrypts ciphertext string back to original data (object or string).
      */
     decrypt(ciphertext: string): any;
     /**

@@ -17,17 +17,10 @@ export default class QueryTask extends BaseModel {
   @column()
   declare sqlTemplate: string
 
-  @column({
-    columnName: 'form_schema',
-    prepare: (value: any) => (value ? JSON.stringify(value) : value),
-  })
+  @column({ columnName: 'form_schema' })
   declare formSchema: any | null
 
-  @column({
-    columnName: 'store_results',
-    prepare: (value: boolean) => (value ? 1 : 0),
-    consume: (value: number) => Boolean(value),
-  })
+  @column({ columnName: 'store_results' })
   declare storeResults: boolean
 
   @column({ columnName: 'data_source_id' })

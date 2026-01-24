@@ -3,6 +3,7 @@ import DataSource from '#models/data_source'
 import { createDataSourceValidator, updateDataSourceValidator } from '#validators/data_source'
 import encryption from '@adonisjs/core/services/encryption'
 import mysql from 'mysql2/promise'
+import pg from 'pg'
 import logger from '@adonisjs/core/services/logger'
 import DbHelper from '#services/db_helper'
 
@@ -253,6 +254,22 @@ export default class DataSourcesController {
           connectTimeout: 5000,
         })
         await connection.end()
+        return { success: true, message: 'Connection successful' }
+      } catch (error: any) {
+        return { success: false, message: 'Connection failed: ' + error.message }
+      }
+    } else if (config.type === 'postgresql') {
+      const client = new pg.Client({
+        host: config.host,
+        port: config.port,
+        user: config.username,
+        password: config.password,
+        database: config.database,
+        connectionTimeoutMillis: 5000,
+      })
+      try {
+        await client.connect()
+        await client.end()
         return { success: true, message: 'Connection successful' }
       } catch (error: any) {
         return { success: false, message: 'Connection failed: ' + error.message }

@@ -110,7 +110,7 @@ const updateSchemaFromSql = useDebounceFn((sql: string) => {
       .filter(Boolean)
     formSchemaJson.value = JSON.stringify(newSchema, null, 2)
   }
-}, 1000)
+}, 300)
 
 watch(sqlTemplate, (newVal) => {
   updateSchemaFromSql(newVal)
@@ -340,16 +340,13 @@ onMounted(fetchDataSources)
           <TabsTrigger value="definition">{{ t('query_tasks.definition') }}</TabsTrigger>
           <TabsTrigger value="schedules" :disabled="!isEditing">{{
             t('query_tasks.schedules')
-          }}</TabsTrigger>
+            }}</TabsTrigger>
         </TabsList>
       </div>
 
       <!-- Definition Tab -->
-      <TabsContent
-        value="definition"
-        :force-mount="true"
-        class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden"
-      >
+      <TabsContent value="definition" :force-mount="true"
+        class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden">
         <div class="grid grid-cols-2 gap-4">
           <div>
             <FormField v-slot="{ componentField }" name="name" :validate-on-blur="false">
@@ -367,12 +364,9 @@ onMounted(fetchDataSources)
             <FormField v-slot="{ value }" name="dataSourceId" :validate-on-blur="false">
               <FormItem>
                 <FormLabel>Data Source</FormLabel>
-                <Select
-                  :model-value="value?.toString()"
-                  @update:model-value="
-                    (v) => form.setFieldValue('dataSourceId', parseInt((v as string) || '0'))
-                  "
-                >
+                <Select :model-value="value?.toString()" @update:model-value="
+                  (v) => form.setFieldValue('dataSourceId', parseInt((v as string) || '0'))
+                ">
                   <FormControl>
                     <SelectTrigger class="w-full">
                       <SelectValue placeholder="Select data source" />
@@ -419,60 +413,41 @@ onMounted(fetchDataSources)
         <div class="space-y-2" v-if="currentDataSource">
           <Label>{{
             dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
-          }}</Label>
+            }}</Label>
           <div class="flex items-center justify-between">
             <p class="text-xs text-muted-foreground" v-if="dbType !== 'api'">
               {{ t('query_tasks.placeholders_hint') }}
             </p>
 
             <div class="flex items-center gap-2">
-              <div
-                v-if="!settingsStore.hasGlmKey"
-                class="flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/30 bg-destructive/5 text-[10px] text-destructive animate-in fade-in zoom-in"
-              >
+              <div v-if="!settingsStore.hasGlmKey"
+                class="flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/30 bg-destructive/5 text-[10px] text-destructive animate-in fade-in zoom-in">
                 {{ t('settings.keys.glm_key_missing') }}
                 <router-link to="/admin/settings" class="underline font-bold">
                   {{ t('settings.keys.configure_now') }}
                 </router-link>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                class="h-7 text-xs gap-1"
-                :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasGlmKey"
-                @click="optimizeSql"
-                v-if="dbType !== 'api'"
-              >
+              <Button type="button" variant="outline" size="sm" class="h-7 text-xs gap-1"
+                :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasGlmKey" @click="optimizeSql"
+                v-if="dbType !== 'api'">
                 <Sparkles class="w-3.5 h-3.5 text-yellow-500" />
                 {{ isOptimizing ? t('query_tasks.analyzing') : t('query_tasks.ai_optimize') }}
               </Button>
             </div>
           </div>
           <CurlEditor v-if="dbType === 'api'" v-model="sqlTemplate" :variables="variables" />
-          <SqlEditor
-            v-else-if="dbType"
-            ref="sqlEditorRef"
-            v-model="sqlTemplate"
-            :language="dbType === 'postgresql' ? 'pgsql' : 'sql'"
-            :db-type="dbType"
-            :variables="variables"
-            :data-source-id="form.values.dataSourceId"
-          />
+          <SqlEditor v-else-if="dbType" ref="sqlEditorRef" v-model="sqlTemplate"
+            :language="dbType === 'postgresql' ? 'pgsql' : 'sql'" :db-type="dbType" :variables="variables"
+            :data-source-id="form.values.dataSourceId" />
         </div>
-        <div
-          v-else
-          class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20"
-        >
+        <div v-else
+          class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20">
           <p class="text-sm text-muted-foreground">请先选择数据源以开始编辑</p>
         </div>
       </TabsContent>
 
       <!-- Schedules Tab -->
-      <TabsContent
-        value="schedules"
-        class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden"
-      >
+      <TabsContent value="schedules" class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden">
         <ScheduleManager v-if="isEditing && initialValues" :query-task-id="initialValues.id" />
         <div v-else class="text-center text-muted-foreground mt-10">
           Please save the task before creating schedules.
@@ -480,21 +455,15 @@ onMounted(fetchDataSources)
       </TabsContent>
     </Tabs>
 
-    <AiOptimizationResult
-      v-model:open="showAiResult"
-      :analysis="aiAnalysis"
-      :loading="isOptimizing"
-      @refresh="optimizeSql"
-    />
+    <AiOptimizationResult v-model:open="showAiResult" :analysis="aiAnalysis" :loading="isOptimizing"
+      @refresh="optimizeSql" />
 
     <!-- Fixed Footer -->
-    <div
-      class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
-      v-if="activeTab === 'definition'"
-    >
+    <div class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
+      v-if="activeTab === 'definition'">
       <Button type="button" variant="ghost" @click="emit('cancel')">{{
         t('common.cancel')
-      }}</Button>
+        }}</Button>
       <Button type="submit" :disabled="isSubmitting">
         {{
           isSubmitting

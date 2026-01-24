@@ -112,4 +112,5 @@ api.interceptors.response.use(
   },
 )
 
+export { cryptoService }
 export default api

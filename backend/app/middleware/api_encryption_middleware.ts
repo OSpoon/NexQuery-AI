@@ -40,22 +40,24 @@ export default class ApiEncryptionMiddleware {
       }
 
       // 2. Decrypt
-      const decrypted = crypto.decrypt(body.data)
-      if (decrypted === null) {
-        logger.error('Failed to decrypt request body')
+      const decryptedRaw = crypto.decryptRaw(body.data)
+      if (decryptedRaw === null) {
+        logger.error('Failed to decrypt request body: Result is null')
         return response.badRequest({ error: 'Decryption Failed' })
       }
 
-      // 3. Replace body with decrypted data
-      // request.updateBody(decrypted) // Use updateBody if available or just mutate
-      // AdonisJS request.body() returns a reference to the body object usually.
-      // But request.all() and others depend on it.
-      // Ideally we replace the whole body.
-      // request.setBody(decrypted) does not exist publicly easily,
-      // but checking AdonisJS 6 docs, we can use request.updateBody(decrypted) if it exists
-      // or hack it. Let's try to assume updateBody or re-assigning.
-      // In Adonis 5/6, request.updateBody(newBody) is the method.
-      request.updateBody(decrypted)
+      // 3. Parse JSON defensively
+      try {
+        const decryptedJson = JSON.parse(decryptedRaw)
+        // 4. Replace body with decrypted data
+        request.updateBody(decryptedJson)
+      } catch (e: any) {
+        logger.error({ decryptedRaw, error: e.message }, 'Failed to parse decrypted request body as JSON')
+        return response.badRequest({
+          error: 'Invalid JSON after decryption',
+          details: env.get('NODE_ENV') === 'development' ? e.message : undefined,
+        })
+      }
     }
 
     // Process the request
