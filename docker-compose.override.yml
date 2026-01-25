@@ -16,16 +16,17 @@ services:
     networks:
       - nexquery_network
 
-  ngrok:
-    image: ngrok/ngrok:latest
-    restart: unless-stopped
-    environment:
-      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
-    command: "http host.docker.internal:3000"
-    ports:
-      - "4040:4040"
-    networks:
-      - nexquery_network
+  # Ngrok (Uncomment to enable)
+  # ngrok:
+  #   image: ngrok/ngrok:latest
+  #   restart: unless-stopped
+  #   environment:
+  #     NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN}
+  #   command: "http host.docker.internal:3000"
+  #   ports:
+  #     - "4040:4040"
+  #   networks:
+  #     - nexquery_network
 
   backend:
     build:
