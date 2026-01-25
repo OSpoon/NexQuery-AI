@@ -73,7 +73,7 @@
 2.  **配置环境**:
     ```bash
     cp .env.example .env
-    # 编辑 .env 文件，设置数据库密码与 API Key
+    # 编辑 .env 文件，设置数据库密码、API Key 与 Qdrant Key
     ```
 
 3.  **启动服务**:

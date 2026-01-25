@@ -26,7 +26,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      allowedHosts: ['query-hub.ospoon.cn'],
+      allowedHosts: true, // Allow any host (for ngrok)
       port: 3000,
       proxy: {
         '/api': {

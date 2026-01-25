@@ -66,6 +66,7 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   QDRANT_HOST: Env.schema.string({ format: 'host' }),
   QDRANT_PORT: Env.schema.number(),
+  QDRANT_API_KEY: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------

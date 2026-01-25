@@ -13,6 +13,7 @@ export default class VectorStoreService {
     this.client = new QdrantClient({
       host: env.get('QDRANT_HOST'),
       port: env.get('QDRANT_PORT'),
+      apiKey: env.get('QDRANT_API_KEY'),
     })
   }
 

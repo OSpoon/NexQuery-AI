@@ -12,6 +12,17 @@ services:
       - db_data:/var/lib/postgresql/data
     networks:
       - nexquery_network
+  qdrant:
+    image: qdrant/qdrant:latest
+    restart: always
+    environment:
+      QDRANT__SERVICE__API_KEY: ${QDRANT_API_KEY}
+    ports:
+      - "6333:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    networks:
+      - nexquery_network
 
   backend:
     build:
@@ -43,27 +54,6 @@ services:
     env_file: .env
     depends_on:
       - backend
-    networks:
-      - nexquery_network
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    restart: always
-    environment:
-      - TUNNEL_TOKEN=${TUNNEL_TOKEN}
-      - TUNNEL_EDGE_IP_VERSION=4
-      - TUNNEL_HTTP_PROXY=${TUNNEL_HTTP_PROXY}
-    command: tunnel run --protocol http2
-    networks:
-      - nexquery_network
-
-  qdrant:
-    image: qdrant/qdrant:latest
-    restart: always
-    ports:
-      - "6333:6333"
-    volumes:
-      - qdrant_data:/qdrant/storage
     networks:
       - nexquery_network
 

@@ -29,6 +29,7 @@ cp .env.example .env
 | `APP_KEY` | AdonsJS 应用密钥 (32位字符) | 此 Key 用于加密 Session，后端唯一 |
 | `API_ENCRYPTION_KEY` | **数据加密密钥 (前后端必须一致)** | `my_secret_key_32_chars_exact_len` |
 | `DB_PASSWORD` | 系统数据库密码 | `StrongPassword123!` |
+| `QDRANT_API_KEY` | Qdrant 向量库认证密钥 | 生成: `openssl rand -hex 32` |
 | `GLM_API_KEY` | 智谱 AI Key (用于 AI 功能) | `your_glm_key` |
 | `TZ` | 时区 | `Asia/Shanghai` |
 
@@ -38,6 +39,8 @@ cp .env.example .env
 使用 [`docker-compose.yml`](../docker-compose.yml) 启动服务：
 ```bash
 docker compose up -d --build
+
+docker compose -f docker-compose.yml up -d
 ```
 
 ### 2.4 数据库初始化
@@ -50,14 +53,16 @@ docker compose exec backend node ace migration:run
 docker compose exec backend node ace db:seed
 ```
 
-## 3. 网络配置 (Cloudflare Tunnel)
+## 3. 网络配置 (Ngrok)
 
-推荐使用 Cloudflare Tunnel 将服务暴露到公网，无需开放服务器端口。
+推荐使用 Ngrok 将服务暴露到公网，通常能获得比 Cloudflare Tunnel 更低的延迟。
 
-1.  在 Cloudflare Zero Trust 面板创建 Tunnel。
-2.  配置 Public Watch：
-    *   `hub.your-domain.com` -> `http://frontend:3000`
-3.  在服务器安装 `cloudflared` 连接 Tunnel。
+1.  注册 [Ngrok](https://dashboard.ngrok.com/signup) 账号并获取 Authtoken。
+2.  在 `.env` 文件中配置 `NGROK_AUTHTOKEN`：
+    ```bash
+    NGROK_AUTHTOKEN=your_auth_token_here
+    ```
+3.  启动服务后，访问 `http://localhost:4040` 查看生成的公网地址。
 
 ## 4. 常见问题
 
