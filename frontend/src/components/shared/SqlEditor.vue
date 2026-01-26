@@ -129,7 +129,7 @@ function formatSql() {
       // We need to match case insensitive just in case, or simpler:
       // Since we used __TEMPLATE_VAR_...__ which is distinct, plain replace should work
       // unless formatter put spaces? identifiers usually stick together.
-      formatted = formatted.replace(new RegExp(key, 'g'), placeholders[key])
+      formatted = formatted.replace(new RegExp(key, 'g'), placeholders[key]!)
     })
 
     editor.setValue(formatted)
@@ -239,7 +239,7 @@ onMounted(() => {
       const model = editor.getModel()
       if (model) {
         monaco.editor.onDidChangeMarkers(([uri]) => {
-          if (uri.toString() === model.uri.toString()) {
+          if (uri && uri.toString() === model.uri.toString()) {
             const markers = monaco.editor.getModelMarkers({ resource: uri })
             const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
             if (error && !syntaxError.value) {

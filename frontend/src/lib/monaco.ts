@@ -6,8 +6,11 @@ import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker'
 import MysqlWorker from 'monaco-sql-languages/esm/languages/mysql/mysql.worker?worker'
 import PgsqlWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker'
 
+// self.MonacoEnvironment handling
+// eslint-disable-next-line ts/ban-ts-comment
+// @ts-ignore
 globalThis.MonacoEnvironment = {
-  getWorker(_, label) {
+  getWorker(_: any, label: string) {
     if (label === 'json') {
       return new JsonWorker()
     }

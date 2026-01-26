@@ -1,11 +1,12 @@
+import type { UserConfig } from 'vite'
 import process from 'node:process'
-import { fileURLToPath, URL } from 'node:url'
 
+import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
 import vue from '@vitejs/plugin-vue'
 import AutoImport from 'unplugin-auto-import/vite'
-import Components from 'unplugin-vue-components/vite'
 
+import Components from 'unplugin-vue-components/vite'
 import { defineConfig, loadEnv } from 'vite'
 import Inspect from 'vite-plugin-inspect'
 import vueDevTools from 'vite-plugin-vue-devtools'
@@ -58,5 +59,5 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-  }
+  } as UserConfig
 })

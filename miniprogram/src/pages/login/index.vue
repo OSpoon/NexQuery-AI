@@ -92,7 +92,7 @@ function handleWechatLogin() {
     </view>
 
     <view class="content">
-      <button class="login-btn" type="primary" :loading="loading" @click="handleWechatLogin">
+      <button class="login-btn" type="button" :loading="loading" @click="handleWechatLogin">
         微信一键登录
       </button>
       <view class="agreement-box">

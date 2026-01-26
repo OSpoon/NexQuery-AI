@@ -160,7 +160,7 @@ onMounted(() => {
       </view>
 
       <view class="footer">
-        <button class="execute-btn" type="primary" :loading="executing" @click="handleExecute">
+        <button class="execute-btn" type="button" :loading="executing" @click="handleExecute">
           执行查询
         </button>
       </view>

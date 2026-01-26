@@ -100,7 +100,7 @@ async function handleBind() {
         >
       </view>
 
-      <button class="bind-btn" type="primary" :loading="loading" @click="handleBind">
+      <button class="bind-btn" type="button" :loading="loading" @click="handleBind">
         立即绑定
       </button>
 

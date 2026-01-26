@@ -159,7 +159,7 @@ function viewResults() {
     </view>
 
     <view v-if="log.status === 'success' && log.results" class="footer-actions">
-      <button class="view-result-btn" type="primary" @click="viewResults">
+      <button class="view-result-btn" type="button" @click="viewResults">
         进入详细结果视图
       </button>
     </view>

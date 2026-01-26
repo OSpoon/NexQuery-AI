@@ -7,4 +7,10 @@ declare module '@vue/runtime-core' {
   interface ComponentCustomOptions extends Hooks {
 
   }
+
+  interface ComponentCustomProperties {
+    uni: any
+  }
 }
+
+declare const uni: any;

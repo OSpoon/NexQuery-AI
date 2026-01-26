@@ -28,7 +28,7 @@
     "dev": "node ace serve --hmr",
     "test": "node ace test",
     "lint": "eslint . --fix",
-    "typecheck": "tsc --noEmit"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {
     "@adonisjs/auth": "^9.4.0",

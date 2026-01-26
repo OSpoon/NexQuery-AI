@@ -94,7 +94,7 @@ async function syncSchema(id: number) {
   toast.promise(promise, {
     loading: 'Syncing schema to vector store...',
     success: 'Schema synced successfully',
-    error: err => `Failed to sync: ${err.message || 'Unknown error'}`,
+    error: (err: any) => `Failed to sync: ${err.message || 'Unknown error'}`,
   })
 }
 

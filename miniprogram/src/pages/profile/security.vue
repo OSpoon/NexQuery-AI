@@ -62,7 +62,7 @@ async function handleSave() {
       <input v-model="confirmPassword" class="input" type="password" placeholder="再次输入新密码">
     </view>
 
-    <button class="save-btn" type="primary" :loading="loading" @click="handleSave">
+    <button class="save-btn" type="button" :loading="loading" @click="handleSave">
       确认修改
     </button>
   </view>

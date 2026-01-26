@@ -54,7 +54,7 @@ function initChart() {
     },
     xAxis: {
       type: 'category',
-      data: props.data.map(item => item[props.config.x || Object.keys(item)[0]]),
+      data: props.data.map(item => item[(props.config.x || Object.keys(item)[0]) as string]),
       axisLabel: {
         fontSize: 10,
         color: isDark ? '#9ca3af' : '#4b5563',
@@ -80,7 +80,7 @@ function initChart() {
     option.series = yCols.map(col => ({
       name: col,
       type: props.type,
-      data: props.data.map(item => item[col]),
+      data: props.data.map(item => item[col as string]),
       smooth: props.type === 'line',
       itemStyle: {
         borderRadius: props.type === 'bar' ? [4, 4, 0, 0] : 0,
@@ -112,8 +112,8 @@ function initChart() {
           },
         },
         data: props.data.map(item => ({
-          name: item[props.config.x || Object.keys(item)[0]],
-          value: item[props.config.y || Object.keys(item)[1]],
+          name: item[(props.config.x || Object.keys(item)[0]) as string],
+          value: item[(props.config.y || Object.keys(item)[1]) as string],
         })),
       },
     ]
@@ -134,6 +134,8 @@ onUnmounted(() => {
 })
 useResizeObserver(chartRef, (entries) => {
   const entry = entries[0]
+  if (!entry)
+    return
   const { width, height } = entry.contentRect
   if (width > 0 && height > 0) {
     chartInstance?.resize()
@@ -168,7 +170,7 @@ watch(
         {{ config.title }}
       </div>
       <div class="text-4xl font-black text-primary drop-shadow-sm">
-        {{ data[0]?.[config.y || Object.keys(data[0])[0]] ?? '-' }}
+        {{ data[0]?.[(config.y || Object.keys(data[0])[0]) as string] ?? '-' }}
       </div>
     </div>
     <div v-else ref="chartRef" class="w-full h-full min-h-[250px]" />
