@@ -9,7 +9,8 @@ const props = defineProps<{
 }>()
 
 const content = computed(() => {
-  if (!props.errors || props.errors.length === 0) return null
+  if (!props.errors || props.errors.length === 0)
+    return null
 
   const uniqueErrors = [
     ...new Map(
@@ -24,7 +25,7 @@ const content = computed(() => {
     return typeof uniqueErrors[0] === 'string' ? uniqueErrors[0] : uniqueErrors[0].message
   }
 
-  return uniqueErrors.map((error) => (typeof error === 'string' ? error : error?.message))
+  return uniqueErrors.map(error => (typeof error === 'string' ? error : error?.message))
 })
 </script>
 

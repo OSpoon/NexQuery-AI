@@ -1,28 +1,31 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
 
 const email = ref('')
 const isLoading = ref(false)
 const isSubmitted = ref(false)
 
-const handleSubmit = async (e: Event) => {
+async function handleSubmit(e: Event) {
   e.preventDefault()
-  if (!email.value) return
+  if (!email.value)
+    return
 
   isLoading.value = true
   try {
     await api.post('/password/email', { email: email.value })
     toast.success('Reset link sent to your email')
     isSubmitted.value = true
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.error(error.response?.data?.message || 'Failed to send reset link')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -42,13 +45,17 @@ const handleSubmit = async (e: Event) => {
           If an account exists for {{ email }}, you will receive a password reset link shortly.
         </p>
         <Button variant="outline" as-child>
-          <RouterLink to="/login">Back to Login</RouterLink>
+          <RouterLink to="/login">
+            Back to Login
+          </RouterLink>
         </Button>
       </div>
       <form v-else @submit="handleSubmit">
         <FieldGroup>
           <Field>
-            <FieldLabel for="email">Email</FieldLabel>
+            <FieldLabel for="email">
+              Email
+            </FieldLabel>
             <Input
               id="email"
               v-model="email"
@@ -63,7 +70,9 @@ const handleSubmit = async (e: Event) => {
               {{ isLoading ? 'Sending...' : 'Send Reset Link' }}
             </Button>
             <div class="text-center text-sm">
-              <RouterLink to="/login" class="underline">Back to Login</RouterLink>
+              <RouterLink to="/login" class="underline">
+                Back to Login
+              </RouterLink>
             </div>
           </Field>
         </FieldGroup>

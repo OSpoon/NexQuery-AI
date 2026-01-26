@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { computed, ref } from 'vue'
 import api from '@/lib/api'
 
 export const useSettingsStore = defineStore('settings', () => {
@@ -43,20 +43,22 @@ export const useSettingsStore = defineStore('settings', () => {
         settingsMap[s.key] = s.value
       })
       settings.value = settingsMap
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to fetch settings', error)
-    } finally {
+    }
+    finally {
       loading.value = false
     }
   }
 
-  const platformName = computed(() => settings.value['platform_name'] || 'NexQuery AI')
-  const allowExport = computed(() => settings.value['allow_export'] === 'true')
-  const queryTimeoutMs = computed(() => parseInt(settings.value['query_timeout_ms'] || '30000'))
-  const systemTimezone = computed(() => settings.value['system_timezone'] || 'UTC')
-  const require2fa = computed(() => settings.value['require_2fa'] !== 'false') // Default to true if not present
-  const showWatermark = computed(() => settings.value['show_watermark'] !== 'false') // Default to true if not present
-  const hasGlmKey = computed(() => !!settings.value['glm_api_key'])
+  const platformName = computed(() => settings.value.platform_name || 'NexQuery AI')
+  const allowExport = computed(() => settings.value.allow_export === 'true')
+  const queryTimeoutMs = computed(() => Number.parseInt(settings.value.query_timeout_ms || '30000'))
+  const systemTimezone = computed(() => settings.value.system_timezone || 'UTC')
+  const require2fa = computed(() => settings.value.require_2fa !== 'false') // Default to true if not present
+  const showWatermark = computed(() => settings.value.show_watermark !== 'false') // Default to true if not present
+  const hasGlmKey = computed(() => !!settings.value.glm_api_key)
 
   return {
     settings,

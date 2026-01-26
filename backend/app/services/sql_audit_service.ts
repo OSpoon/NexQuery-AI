@@ -43,7 +43,7 @@ export default class SqlAuditService {
     }
 
     return {
-      passed: !warnings.some((w) => w.level === 'critical'),
+      passed: !warnings.some(w => w.level === 'critical'),
       warnings,
     }
   }
@@ -80,7 +80,8 @@ export default class SqlAuditService {
    */
   private async performanceCheck(sql: string, dataSourceId: number, warnings: AuditWarning[]) {
     // Only audit SELECT statements for performance for now
-    if (!sql.trim().toUpperCase().startsWith('SELECT')) return
+    if (!sql.trim().toUpperCase().startsWith('SELECT'))
+      return
 
     const ds = await DataSource.findOrFail(dataSourceId)
 

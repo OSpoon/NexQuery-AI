@@ -1,12 +1,10 @@
 <script setup lang="ts">
 import type { SidebarProps } from '@/components/ui/sidebar'
-import { computed } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
 import * as LucideIcons from 'lucide-vue-next'
-import { Command } from 'lucide-vue-next'
-
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import NavMain from '@/components/NavMain.vue'
+
 import NavUser from '@/components/NavUser.vue'
 import {
   Sidebar,
@@ -17,6 +15,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
+import { useAuthStore } from '@/stores/auth'
+
+import { useSettingsStore } from '@/stores/settings'
 
 const props = withDefaults(defineProps<SidebarProps>(), {
   variant: 'inset',
@@ -41,13 +42,12 @@ const userData = computed(() => {
 })
 
 // Helper to resolve icon component from string name
-const getIcon = (name: string | undefined) => {
-  if (!name) return LucideIcons.Circle // Default icon
+function getIcon(name: string | undefined) {
+  if (!name)
+    return LucideIcons.Circle // Default icon
   // @ts-expect-error - indexing LucideIcons with string
   return LucideIcons[name] || LucideIcons.Circle
 }
-
-import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
@@ -73,16 +73,16 @@ const navData = computed(() => {
   const translateTitle = (title: string) => {
     // Try to map known titles to keys
     const keyMap: Record<string, string> = {
-      Dashboard: 'sidebar.dashboard',
-      Profile: 'sidebar.profile',
-      Settings: 'sidebar.settings',
+      'Dashboard': 'sidebar.dashboard',
+      'Profile': 'sidebar.profile',
+      'Settings': 'sidebar.settings',
       'Data Sources': 'sidebar.data_sources',
       'Query Tasks': 'sidebar.query_tasks',
-      History: 'sidebar.history',
-      Administration: 'sidebar.admin.title',
-      Users: 'sidebar.admin.users',
-      Roles: 'sidebar.admin.roles',
-      Menus: 'sidebar.admin.menus',
+      'History': 'sidebar.history',
+      'Administration': 'sidebar.admin.title',
+      'Users': 'sidebar.admin.users',
+      'Roles': 'sidebar.admin.roles',
+      'Menus': 'sidebar.admin.menus',
       'API Access': 'sidebar.admin.api_keys',
       'Knowledge Base': 'sidebar.knowledge_base',
       'AI Intelligence': 'sidebar.ai_intelligence',
@@ -97,7 +97,7 @@ const navData = computed(() => {
       title: translateTitle(menu.title),
       url: menu.path,
       icon: getIcon(menu.icon),
-      items: menu.children?.map((child) => ({
+      items: menu.children?.map(child => ({
         title: translateTitle(child.title),
         url: child.path,
         icon: getIcon(child.icon),
@@ -107,7 +107,8 @@ const navData = computed(() => {
 
     if (menu.title === 'Administration') {
       adminMenus.push(item)
-    } else {
+    }
+    else {
       platformMenus.push(item)
     }
   }
@@ -124,7 +125,8 @@ const navData = computed(() => {
     // Assuming 'Administration' is a parent node and its children are the visible items
     if (mainAdminMenu?.items && mainAdminMenu.items.length > 0) {
       adminItems = mainAdminMenu.items
-    } else if (mainAdminMenu) {
+    }
+    else if (mainAdminMenu) {
       adminItems = [mainAdminMenu]
     }
   }
@@ -146,7 +148,7 @@ const navData = computed(() => {
               <div
                 class="flex aspect-square size-8 items-center justify-center rounded-lg text-sidebar-primary-foreground"
               >
-                <img src="/logo.png" alt="NexQuery AI" class="size-10 object-contain" />
+                <img src="/logo.png" alt="NexQuery AI" class="size-10 object-contain">
               </div>
               <div class="grid flex-1 text-left text-sm leading-tight">
                 <span class="truncate font-medium">{{ settingsStore.platformName }}</span>
@@ -160,9 +162,9 @@ const navData = computed(() => {
     <SidebarContent>
       <NavMain :items="navData.navMain" :title="t('sidebar.platform')" />
       <NavMain
+        v-if="navData.admin.length > 0"
         :items="navData.admin"
         :title="t('sidebar.admin.title')"
-        v-if="navData.admin.length > 0"
       />
     </SidebarContent>
     <SidebarFooter>

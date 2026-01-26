@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import type { DateTime } from 'luxon'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import QueryTask from '#models/query_task'
 import User from '#models/user'
@@ -17,7 +17,10 @@ export default class ScheduledQuery extends BaseModel {
   @column.dateTime({ columnName: 'run_at' })
   declare runAt: DateTime | null
 
-  @column()
+  @column({
+    prepare: (value: any) => JSON.stringify(value),
+    consume: (value: any) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
   declare recipients: string[]
 
   @column({ columnName: 'webhook_url' })

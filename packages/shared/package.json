@@ -1,18 +1,18 @@
 {
-    "name": "@nexquery/shared",
-    "version": "1.0.0",
-    "type": "module",
-    "license": "AGPL-3.0",
-    "main": "dist/index.js",
-    "types": "dist/index.d.ts",
-    "scripts": {
-        "build": "tsc"
-    },
-    "devDependencies": {
-        "@types/crypto-js": "^4.2.2",
-        "typescript": "^5.0.0"
-    },
-    "dependencies": {
-        "crypto-js": "^4.2.0"
-    }
+  "name": "@nexquery/shared",
+  "type": "module",
+  "version": "1.0.0",
+  "license": "AGPL-3.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "crypto-js": "^4.2.0"
+  },
+  "devDependencies": {
+    "@types/crypto-js": "^4.2.2",
+    "typescript": "^5.0.0"
+  }
 }

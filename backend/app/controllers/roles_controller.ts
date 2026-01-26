@@ -9,10 +9,10 @@ export default class RolesController {
   async index({ response }: HttpContext) {
     const roles = await Role.query().preload('permissions')
     return response.ok(
-      roles.map((role) => ({
+      roles.map(role => ({
         ...role.toJSON(),
-        permissions: role.permissions.map((p) => p.toJSON()),
-      }))
+        permissions: role.permissions.map(p => p.toJSON()),
+      })),
     )
   }
 
@@ -41,7 +41,7 @@ export default class RolesController {
     await role.load('permissions')
     return response.created({
       ...role.toJSON(),
-      permissions: role.permissions.map((p) => p.toJSON()),
+      permissions: role.permissions.map(p => p.toJSON()),
     })
   }
 
@@ -49,7 +49,7 @@ export default class RolesController {
     const role = await Role.query().where('id', params.id).preload('permissions').firstOrFail()
     return response.ok({
       ...role.toJSON(),
-      permissions: role.permissions.map((p) => p.toJSON()),
+      permissions: role.permissions.map(p => p.toJSON()),
     })
   }
 
@@ -85,7 +85,7 @@ export default class RolesController {
     await role.load('permissions')
     return response.ok({
       ...role.toJSON(),
-      permissions: role.permissions.map((p) => p.toJSON()),
+      permissions: role.permissions.map(p => p.toJSON()),
     })
   }
 

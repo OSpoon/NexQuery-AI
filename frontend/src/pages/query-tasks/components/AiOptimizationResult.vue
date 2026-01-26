@@ -1,4 +1,9 @@
 <script setup lang="ts">
+import { useClipboard, useDark } from '@vueuse/core'
+import { Check, Copy, RefreshCw } from 'lucide-vue-next'
+import { MarkdownRender } from 'markstream-vue'
+import { computed } from 'vue'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -6,11 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { computed } from 'vue'
-import { Copy, Check, RefreshCw } from 'lucide-vue-next'
-import { useClipboard, useDark } from '@vueuse/core'
-import { MarkdownRender } from 'markstream-vue'
 
 const props = defineProps<{
   open: boolean
@@ -23,7 +23,7 @@ const emit = defineEmits(['update:open', 'refresh'])
 
 const isOpen = computed({
   get: () => props.open,
-  set: (val) => emit('update:open', val),
+  set: val => emit('update:open', val),
 })
 
 const { copy, copied } = useClipboard()
@@ -37,7 +37,7 @@ const isDark = useDark()
       <DialogHeader class="p-6 pb-2">
         <div class="flex items-center justify-between">
           <DialogTitle>AI Optimization Analysis</DialogTitle>
-          <Button variant="ghost" size="icon" @click="emit('refresh')" :disabled="loading">
+          <Button variant="ghost" size="icon" :disabled="loading" @click="emit('refresh')">
             <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
           </Button>
         </div>
@@ -67,7 +67,9 @@ const isDark = useDark()
       </div>
 
       <div class="flex justify-end gap-2 p-6 pt-4">
-        <Button variant="outline" @click="isOpen = false">Close</Button>
+        <Button variant="outline" @click="isOpen = false">
+          Close
+        </Button>
       </div>
     </DialogContent>
   </Dialog>

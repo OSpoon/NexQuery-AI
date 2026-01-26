@@ -1,21 +1,21 @@
-import { DateTime } from 'luxon'
+import type { DateTime } from 'luxon'
 import hash from '@adonisjs/core/services/hash'
 import { compose } from '@adonisjs/core/helpers'
-import { BaseModel, column, manyToMany, hasMany, beforeSave } from '@adonisjs/lucid/orm'
-import type { ManyToMany, HasMany } from '@adonisjs/lucid/types/relations'
+import { BaseModel, beforeSave, column, hasMany, manyToMany } from '@adonisjs/lucid/orm'
+import type { HasMany, ManyToMany } from '@adonisjs/lucid/types/relations'
 import { withAuthFinder } from '@adonisjs/auth/mixins/lucid'
 import Role from '#models/role'
 import PasswordHistory from '#models/password_history'
-
-const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
-  uids: ['email'],
-  passwordColumnName: 'password',
-})
 
 import { AccessToken as AccessTokenModel } from '#models/auth/access_token'
 
 import { DbAccessTokensProvider } from '@adonisjs/auth/access_tokens'
 import type { AccessToken } from '@adonisjs/auth/access_tokens'
+
+const AuthFinder = withAuthFinder(() => hash.use('scrypt'), {
+  uids: ['email'],
+  passwordColumnName: 'password',
+})
 
 const UserBase = compose(BaseModel, AuthFinder)
 
@@ -73,7 +73,7 @@ export default class User extends UserBase {
 
     for (const role of this.roles) {
       await role.load('permissions' as any)
-      if (role.permissions.some((p) => p.slug === permissionSlug)) {
+      if (role.permissions.some(p => p.slug === permissionSlug)) {
         return true
       }
     }

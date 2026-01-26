@@ -1,22 +1,47 @@
 {
-    "name": "nexquery-ai-monorepo",
-    "version": "1.0.0",
-    "private": true,
-    "license": "AGPL-3.0",
-    "scripts": {
-        "dev": "pnpm -r run dev",
-        "build": "pnpm -r run build",
-        "install:all": "pnpm install -r",
-        "lint": "pnpm -r run lint",
-        "type-check": "pnpm -r run type-check",
-        "postinstall": "pnpm --filter @nexquery/shared build",
-        "test:e2e": "pnpm --filter @nexquery/e2e test",
-        "test:e2e:ui": "pnpm --filter @nexquery/e2e test:ui"
-    },
-    "workspaces": [
-        "backend",
-        "frontend",
-        "miniprogram",
-        "packages/*"
-    ]
+  "name": "nexquery-ai-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "license": "AGPL-3.0",
+  "scripts": {
+    "dev": "pnpm -r run dev",
+    "build": "pnpm -r run build",
+    "install:all": "pnpm install -r",
+    "lint": "eslint . --fix",
+    "type-check": "pnpm -r run type-check",
+    "postinstall": "pnpm --filter @nexquery/shared build",
+    "test:e2e": "pnpm --filter @nexquery/e2e test",
+    "test:e2e:ui": "pnpm --filter @nexquery/e2e test:ui",
+    "prepare": "simple-git-hooks",
+    "backend:dev": "pnpm --filter backend dev",
+    "backend:build": "pnpm --filter backend build",
+    "backend:test": "pnpm --filter backend test",
+    "backend:migrate": "pnpm --filter backend exec node ace migration:run",
+    "backend:seed": "pnpm --filter backend exec node ace db:seed",
+    "backend:fresh": "pnpm --filter backend exec node ace migration:fresh --seed",
+    "frontend:dev": "pnpm --filter frontend dev",
+    "frontend:build": "pnpm --filter frontend build",
+    "shared:build": "pnpm --filter @nexquery/shared build",
+    "mp:dev": "pnpm --filter miniprogram dev:mp-weixin",
+    "mp:build": "pnpm --filter miniprogram build:mp-weixin"
+  },
+  "devDependencies": {
+    "@antfu/eslint-config": "^7.2.0",
+    "eslint": "^9.39.2",
+    "lint-staged": "^16.2.7",
+    "simple-git-hooks": "^2.13.1",
+    "typescript": "^5.9.3"
+  },
+  "simple-git-hooks": {
+    "pre-commit": "npx lint-staged"
+  },
+  "lint-staged": {
+    "*.{js,ts,d.ts,vue,json}": "eslint --fix"
+  },
+  "workspaces": [
+    "backend",
+    "frontend",
+    "miniprogram",
+    "packages/*"
+  ]
 }

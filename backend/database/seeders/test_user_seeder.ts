@@ -19,7 +19,7 @@ export default class extends BaseSeeder {
         // but typically Lucid handles database columns if they exist.
         // Based on Login logic, the User model has `twoFactorEnabled` getter or column?
         // Let's check User model if this fails, but for now assuming we can set state.
-      }
+      },
     )
 
     // Ensure 2FA is off (if column exists)

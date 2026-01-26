@@ -31,20 +31,20 @@ pnpm install
 1.  进入 `/backend`。
 2.  `cp .env.example .env`。
 3.  配置本地数据库连接 (`DB_HOST=localhost`, `DB_PORT=5432`, etc.)。
-4.  运行迁移：`node ace migration:run`。
-5.  启动开发服务器 (自动读取 [`adonisrc.ts`](../backend/adonisrc.ts))：
+4.  运行迁移：`pnpm backend:migrate`。
+5.  启动开发服务器：
     ```bash
-    npm run dev
+    pnpm backend:dev
     ```
-    后端运行在 `http://localhost:3333`。
+    后端运行在 `http://localhost:3008`。
 
 ### 2.3 前端配置
 1.  进入 `/frontend`。
 2.  `cp .env.example .env`。
-3.  确保 `VITE_API_URL=http://localhost:3333/api`。
-4.  启动开发服务器 (自动读取 [`vite.config.ts`](../frontend/vite.config.ts))：
+3.  确保 `VITE_API_URL=http://localhost:3008/api`。
+4.  启动开发服务器：
     ```bash
-    npm run dev
+    pnpm frontend:dev
     ```
     前端运行在 `http://localhost:5173`。
 

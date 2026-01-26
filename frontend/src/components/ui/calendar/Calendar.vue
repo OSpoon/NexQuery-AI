@@ -8,8 +8,8 @@ import { createReusableTemplate, reactiveOmit, useVModel } from '@vueuse/core'
 import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from 'reka-ui'
 import { createYear, createYearRange, toDate } from 'reka-ui/date'
 import { computed, toRaw } from 'vue'
-import { cn } from '@/lib/utils'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
+import { cn } from '@/lib/utils'
 import {
   CalendarCell,
   CalendarCellTrigger,
@@ -50,18 +50,18 @@ const formatter = useDateFormatter(props.locale ?? 'en')
 
 const yearRange = computed(() => {
   return (
-    props.yearRange ??
-    createYearRange({
+    props.yearRange
+    ?? createYearRange({
       start:
-        props?.minValue ??
-        (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
+        props?.minValue
+        ?? (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
           'year',
           -100,
         ),
 
       end:
-        props?.maxValue ??
-        (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
+        props?.maxValue
+        ?? (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
           'year',
           10,
         ),

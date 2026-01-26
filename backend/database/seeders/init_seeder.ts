@@ -8,7 +8,7 @@ import KnowledgeBase from '#models/knowledge_base'
 import hash from '@adonisjs/core/services/hash'
 import logger from '@adonisjs/core/services/logger'
 
-import { PERMISSIONS, PERMISSION_DETAILS } from '@nexquery/shared'
+import { PERMISSION_DETAILS, PERMISSIONS } from '@nexquery/shared'
 
 export default class extends BaseSeeder {
   async run() {
@@ -25,7 +25,7 @@ export default class extends BaseSeeder {
         name: 'Administrator',
         slug: 'admin',
         description: 'Full system access',
-      }
+      },
     )
 
     const developerRole = await Role.firstOrCreate(
@@ -34,7 +34,7 @@ export default class extends BaseSeeder {
         name: 'Developer',
         slug: 'developer',
         description: 'Full access to Data Sources, Tasks, and AI features',
-      }
+      },
     )
 
     const operatorRole = await Role.firstOrCreate(
@@ -43,22 +43,22 @@ export default class extends BaseSeeder {
         name: 'Operator',
         slug: 'operator',
         description: 'Can execute allowed query tasks but cannot modify them',
-      }
+      },
     )
 
     // 3. Attach permissions to roles
     // Admin gets everything
-    await adminRole.related('permissions').sync(Object.values(permissions).map((p) => p.id))
+    await adminRole.related('permissions').sync(Object.values(permissions).map(p => p.id))
 
     // Helper to extract IDs safely
     const getIds = (perms: (Permission | undefined)[]) => {
       const valid = perms.filter((p): p is Permission => !!p)
       if (valid.length < perms.length) {
         logger.warn(
-          'Some permissions were not found during seeding. Check permissions.ts matches init_seeder.ts'
+          'Some permissions were not found during seeding. Check permissions.ts matches init_seeder.ts',
         )
       }
-      return valid.map((p) => p.id)
+      return valid.map(p => p.id)
     }
 
     // Developer gets almost everything except User Management and Settings
@@ -175,7 +175,7 @@ export default class extends BaseSeeder {
         icon: 'ShieldCheck',
         permission: PERMISSIONS.MANAGE_USERS,
         sortOrder: 90,
-      }
+      },
     )
 
     const adminMenuItems = [
@@ -242,18 +242,18 @@ export default class extends BaseSeeder {
         {
           keyword: 'Active User',
           description: 'Users who are currently enabled in the system.',
-          exampleSql: "status = 'active' AND is_active = true",
+          exampleSql: 'status = \'active\' AND is_active = true',
         },
         {
           keyword: 'Admin User',
           description: 'Users with the administrator role.',
           exampleSql:
-            "EXISTS (SELECT 1 FROM role_users JOIN roles ON roles.id = role_users.role_id WHERE role_users.user_id = users.id AND roles.slug = 'admin')",
+            'EXISTS (SELECT 1 FROM role_users JOIN roles ON roles.id = role_users.role_id WHERE role_users.user_id = users.id AND roles.slug = \'admin\')',
         },
         {
           keyword: 'Failed Query',
           description: 'Queries that did not execute successfully.',
-          exampleSql: "status = 'failed'",
+          exampleSql: 'status = \'failed\'',
         },
         {
           keyword: 'Recent Activity',
@@ -268,7 +268,7 @@ export default class extends BaseSeeder {
         {
           keyword: 'MySQL Source',
           description: 'Data sources connecting to a MySQL database.',
-          exampleSql: "type = 'mysql'",
+          exampleSql: 'type = \'mysql\'',
         },
         {
           keyword: 'Production Source',
@@ -288,7 +288,7 @@ export default class extends BaseSeeder {
     // 8. FINAL PERMISSION SNYC (Ensure Admin has ALL permissions)
     // Fetch ALL permissions from DB (including any that might have been created dynamically if logic changed)
     const allPermissions = await Permission.all()
-    await adminRole.related('permissions').sync(allPermissions.map((p) => p.id))
+    await adminRole.related('permissions').sync(allPermissions.map(p => p.id))
     logger.info(`Assigned ${allPermissions.length} permissions to Admin role`)
   }
 }

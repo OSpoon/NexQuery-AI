@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
+import PasswordStrength from '@/components/PasswordStrength.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import PasswordStrength from '@/components/PasswordStrength.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -28,7 +28,7 @@ onMounted(() => {
   }
 })
 
-const handleSubmit = async (e: Event) => {
+async function handleSubmit(e: Event) {
   e.preventDefault()
 
   if (password.value !== confirmPassword.value) {
@@ -54,9 +54,11 @@ const handleSubmit = async (e: Event) => {
     })
     toast.success('Password reset successfully')
     router.push('/login')
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.error(error.response?.data?.message || 'Failed to reset password')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -72,7 +74,9 @@ const handleSubmit = async (e: Event) => {
       <form @submit="handleSubmit">
         <FieldGroup>
           <Field>
-            <FieldLabel for="password">New Password</FieldLabel>
+            <FieldLabel for="password">
+              New Password
+            </FieldLabel>
             <Input
               id="password"
               v-model="password"
@@ -83,7 +87,9 @@ const handleSubmit = async (e: Event) => {
             <PasswordStrength :password="password" />
           </Field>
           <Field>
-            <FieldLabel for="confirmPassword">Confirm New Password</FieldLabel>
+            <FieldLabel for="confirmPassword">
+              Confirm New Password
+            </FieldLabel>
             <Input
               id="confirmPassword"
               v-model="confirmPassword"

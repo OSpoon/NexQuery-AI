@@ -1,7 +1,7 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import api from '@/lib/api'
 import type { DataSource } from '@nexquery/shared'
+import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+import api from '@/lib/api'
 
 export const useDataSourceStore = defineStore('dataSource', () => {
   const dataSources = ref<DataSource[]>([])
@@ -12,15 +12,17 @@ export const useDataSourceStore = defineStore('dataSource', () => {
     try {
       const response = await api.get('/data-sources')
       dataSources.value = response.data
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Failed to fetch data sources', error)
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
 
   const databaseSources = computed(() => {
-    return dataSources.value.filter((ds) => ds.type === 'mysql' || ds.type === 'postgresql')
+    return dataSources.value.filter(ds => ds.type === 'mysql' || ds.type === 'postgresql')
   })
 
   return {

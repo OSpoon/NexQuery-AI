@@ -1,9 +1,10 @@
-import { ref, computed } from 'vue'
+import type { LoginResponse, Menu, Permission, Role, User } from '@nexquery/shared'
 import { defineStore } from 'pinia'
+import { computed, ref } from 'vue'
+
 import api from '@/lib/api'
 
-import type { User, Role, Permission, LoginResponse, Menu } from '@nexquery/shared'
-export type { User, Role, Permission, Menu }
+export type { Menu, Permission, Role, User }
 
 /*
 export interface Permission {
@@ -40,7 +41,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function register(fullName: string, email: string, password: string): Promise<void> {
     try {
       await api.post('/register', { fullName, email, password })
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw new Error(error.response?.data?.message || 'Registration failed')
     }
   }
@@ -48,7 +50,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function changePassword(currentPassword: string, newPassword: string): Promise<void> {
     try {
       await api.post('/auth/password/change', { currentPassword, newPassword })
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to change password')
     }
   }
@@ -81,7 +84,8 @@ export const useAuthStore = defineStore('auth', () => {
       }
 
       return data
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw new Error(error.response?.data?.message || 'Login failed')
     }
   }
@@ -100,13 +104,15 @@ export const useAuthStore = defineStore('auth', () => {
       await fetchPermissions()
       await fetchMenus()
       await fetchRoutePermissions()
-    } catch (error: any) {
+    }
+    catch (error: any) {
       throw new Error(error.response?.data?.message || 'Verification failed')
     }
   }
 
   async function fetchPermissions() {
-    if (!token.value) return
+    if (!token.value)
+      return
 
     try {
       const response = await api.get('/me')
@@ -116,7 +122,8 @@ export const useAuthStore = defineStore('auth', () => {
         user.value = response.data.user
         localStorage.setItem('user', JSON.stringify(user.value))
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to fetch permissions', e)
     }
   }
@@ -150,11 +157,13 @@ export const useAuthStore = defineStore('auth', () => {
   const menus = ref<Menu[]>([])
 
   async function fetchMenus() {
-    if (!token.value) return
+    if (!token.value)
+      return
     try {
       const response = await api.get('/menus/public')
       menus.value = response.data
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to fetch menus', e)
     }
   }
@@ -162,11 +171,13 @@ export const useAuthStore = defineStore('auth', () => {
   const routePermissions = ref<Record<string, string>>({})
 
   async function fetchRoutePermissions() {
-    if (!token.value) return
+    if (!token.value)
+      return
     try {
       const response = await api.get('/menus/route-permissions')
       routePermissions.value = response.data
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to fetch route permissions', e)
     }
   }
@@ -178,7 +189,7 @@ export const useAuthStore = defineStore('auth', () => {
     keys.sort((a, b) => b.length - a.length)
 
     for (const key of keys) {
-      if (path === key || path.startsWith(key + '/')) {
+      if (path === key || path.startsWith(`${key}/`)) {
         return routePermissions.value[key]
       }
     }

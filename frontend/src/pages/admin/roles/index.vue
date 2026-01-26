@@ -1,8 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
-import { Shield, Plus, Edit, Trash2 } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
+import type { Role } from '@nexquery/shared'
+import type { ColumnDef } from '@tanstack/vue-table'
+import { Edit, Plus, Shield, Trash2 } from 'lucide-vue-next'
+import { h, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import DataTable from '@/components/common/DataTable.vue'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -10,46 +15,45 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import RoleForm from './components/RoleForm.vue'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import DataTable from '@/components/common/DataTable.vue'
-import type { ColumnDef } from '@tanstack/vue-table'
-import { useI18n } from 'vue-i18n'
 
-import type { Role } from '@nexquery/shared'
+import RoleForm from './components/RoleForm.vue'
 
 const { t } = useI18n()
 const roles = ref<Role[]>([])
 const isDialogOpen = ref(false)
 const editingRole = ref<Role | undefined>(undefined)
 
-const fetchRoles = async () => {
+async function fetchRoles() {
   try {
     const response = await api.get('/roles')
     roles.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch roles')
   }
 }
 
-const openCreateDialog = () => {
+function openCreateDialog() {
   editingRole.value = undefined
   isDialogOpen.value = true
 }
 
-const openEditDialog = (role: any) => {
+function openEditDialog(role: any) {
   editingRole.value = role
   isDialogOpen.value = true
 }
 
-const deleteRole = async (id: number) => {
-  if (!confirm(t('roles.delete_confirm'))) return
+async function deleteRole(id: number) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(t('roles.delete_confirm')))
+    return
   try {
     await api.delete(`/roles/${id}`)
     toast.success(t('roles.delete_success'))
     fetchRoles()
-  } catch (error) {
+  }
+  catch {
     toast.error('Cannot delete role')
   }
 }
@@ -121,8 +125,12 @@ onMounted(fetchRoles)
   <div class="p-6 space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('roles.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('roles.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('roles.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('roles.desc') }}
+        </p>
       </div>
       <Button @click="openCreateDialog">
         <Plus class="mr-2 h-4 w-4" /> {{ t('roles.create_role') }}
@@ -136,9 +144,11 @@ onMounted(fetchRoles)
     <Dialog v-model:open="isDialogOpen">
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
-          <DialogTitle>{{
-            editingRole ? t('roles.edit_role') : t('roles.create_role')
-          }}</DialogTitle>
+          <DialogTitle>
+            {{
+              editingRole ? t('roles.edit_role') : t('roles.create_role')
+            }}
+          </DialogTitle>
           <DialogDescription>{{ t('roles.config_desc') }}</DialogDescription>
         </DialogHeader>
         <RoleForm

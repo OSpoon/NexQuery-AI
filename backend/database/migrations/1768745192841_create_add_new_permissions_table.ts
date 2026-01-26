@@ -31,7 +31,7 @@ export default class extends BaseSchema {
     const adminRole = await Role.findBy('slug', 'admin')
     if (adminRole) {
       // Use attach to avoid removing existing permissions
-      await adminRole.related('permissions').attach(createdPerms.map((p) => p.id))
+      await adminRole.related('permissions').attach(createdPerms.map(p => p.id))
     }
 
     // 3. Update "API Access" Menu to require manage_api_keys

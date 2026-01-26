@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
+import AiChatAssistant from '@/components/AiChatAssistant.vue'
 import AppSidebar from '@/components/AppSidebar.vue'
 import {
   Breadcrumb,
@@ -10,10 +14,6 @@ import {
 } from '@/components/ui/breadcrumb'
 import { Separator } from '@/components/ui/separator'
 import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
-import { useRoute } from 'vue-router'
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import AiChatAssistant from '@/components/AiChatAssistant.vue'
 
 defineOptions({
   name: 'DashboardLayout',

@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import api from '@/lib/api'
 import type { QueryTask } from '@nexquery/shared'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
+import api from '@/lib/api'
 
 const tasks = ref<QueryTask[]>([])
 const fullTasks = ref<QueryTask[]>([]) // Cache to store all tags
@@ -17,7 +17,7 @@ const availableTags = computed(() => {
   const source = fullTasks.value.length > 0 ? fullTasks.value : tasks.value
 
   if (Array.isArray(source)) {
-    source.forEach(task => {
+    source.forEach((task) => {
       if (task.tags) {
         task.tags.forEach(t => tags.add(t))
       }
@@ -26,12 +26,12 @@ const availableTags = computed(() => {
   return ['All', ...Array.from(tags)]
 })
 
-const fetchTasks = async () => {
+async function fetchTasks() {
   loading.value = true
   try {
     const res = await api.get('/query-tasks', {
       search: searchQuery.value,
-      tag: selectedTag.value === 'All' ? undefined : selectedTag.value
+      tag: selectedTag.value === 'All' ? undefined : selectedTag.value,
     })
     tasks.value = res
 
@@ -39,28 +39,31 @@ const fetchTasks = async () => {
     if (selectedTag.value === 'All' && !searchQuery.value) {
       fullTasks.value = res
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     console.error('[FetchTasks] Failed', error)
     if (error.statusCode === 401) {
       uni.reLaunch({ url: '/pages/login/index' })
     }
-  } finally {
+  }
+  finally {
     loading.value = false
     uni.stopPullDownRefresh()
   }
 }
 
-const onSearchInput = (e: any) => {
+function onSearchInput(e: any) {
   searchQuery.value = e.detail.value
-  if (searchTimeout) clearTimeout(searchTimeout)
+  if (searchTimeout)
+    clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     fetchTasks()
   }, 500)
 }
 
-const goToExecute = (task: QueryTask) => {
+function goToExecute(task: QueryTask) {
   uni.navigateTo({
-    url: `/pages/task/execute?id=${task.id}`
+    url: `/pages/task/execute?id=${task.id}`,
   })
 }
 
@@ -68,12 +71,13 @@ onMounted(() => {
   const token = uni.getStorageSync('auth_token')
   if (!token) {
     uni.reLaunch({ url: '/pages/login/index' })
-  } else {
+  }
+  else {
     fetchTasks()
   }
 })
 
-const selectTag = (tag: string) => {
+function selectTag(tag: string) {
   selectedTag.value = tag
   fetchTasks()
 }
@@ -86,15 +90,19 @@ onPullDownRefresh(() => {
 <template>
   <view class="container">
     <view class="search-bar">
-      <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit"></image>
-      <input class="search-input" placeholder="搜索任务..." v-model="searchQuery" @input="onSearchInput"
-        confirm-type="search" />
+      <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit" />
+      <input
+        v-model="searchQuery" class="search-input" placeholder="搜索任务..." confirm-type="search"
+        @input="onSearchInput"
+      >
     </view>
 
     <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
       <view class="tag-list">
-        <view v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
-          @click="selectTag(tag)">
+        <view
+          v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+          @click="selectTag(tag)"
+        >
           {{ tag }}
         </view>
       </view>
@@ -111,17 +119,25 @@ onPullDownRefresh(() => {
     <view v-else class="task-list">
       <view v-for="task in tasks" :key="task.id" class="task-item" @click="goToExecute(task)">
         <view class="task-header">
-          <text class="task-name">{{ task.name }}</text>
-          <text class="ds-name">{{ task.dataSource?.name }}</text>
+          <text class="task-name">
+            {{ task.name }}
+          </text>
+          <text class="ds-name">
+            {{ task.dataSource?.name }}
+          </text>
         </view>
 
         <view v-if="task.tags && task.tags.length > 0" class="task-tags">
-          <text v-for="tag in task.tags" :key="tag" class="task-tag">{{ tag }}</text>
+          <text v-for="tag in task.tags" :key="tag" class="task-tag">
+            {{ tag }}
+          </text>
         </view>
 
         <view class="task-footer">
-          <text class="task-desc">{{ task.description || '无描述' }}</text>
-          <view class="arrow-icon"></view>
+          <text class="task-desc">
+            {{ task.description || '无描述' }}
+          </text>
+          <view class="arrow-icon" />
         </view>
       </view>
     </view>

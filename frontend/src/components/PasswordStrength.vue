@@ -1,24 +1,30 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Progress } from '@/components/ui/progress'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<{
   password: string
 }>()
 
-const strength = computed(() => {
+const _strength = computed(() => {
   let score = 0
   const p = props.password
 
-  if (!p) return 0
+  if (!p)
+    return 0
 
-  if (p.length >= 8) score += 1
-  if (p.length >= 12) score += 1
-  if (/[A-Z]/.test(p)) score += 1
-  if (/[a-z]/.test(p)) score += 1
-  if (/[0-9]/.test(p)) score += 1
-  if (/[^A-Za-z0-9]/.test(p)) score += 1
+  if (p.length >= 8)
+    score += 1
+  if (p.length >= 12)
+    score += 1
+  if (/[A-Z]/.test(p))
+    score += 1
+  if (/[a-z]/.test(p))
+    score += 1
+  if (/\d/.test(p))
+    score += 1
+  if (/[^A-Z0-9]/i.test(p))
+    score += 1
 
   return Math.min(score, 6) // Max score 6? Or separate checks.
 })
@@ -43,30 +49,37 @@ const criteria = computed(() => {
     { label: 'Length >= 12', met: p.length >= 12 },
     { label: 'Uppercase', met: /[A-Z]/.test(p) },
     { label: 'Lowercase', met: /[a-z]/.test(p) },
-    { label: 'Number', met: /[0-9]/.test(p) },
-    { label: 'Special Char', met: /[^A-Za-z0-9]/.test(p) },
+    { label: 'Number', met: /\d/.test(p) },
+    { label: 'Special Char', met: /[^A-Z0-9]/i.test(p) },
   ]
 })
 
 const progress = computed(() => {
-  const metCount = criteria.value.filter((c) => c.met).length
+  const metCount = criteria.value.filter(c => c.met).length
   return (metCount / 5) * 100
 })
 
 const strengthLabel = computed(() => {
   const p = progress.value
-  if (p === 0) return ''
-  if (p < 40) return 'Weak'
-  if (p < 80) return 'Medium'
-  if (p < 100) return 'Strong'
+  if (p === 0)
+    return ''
+  if (p < 40)
+    return 'Weak'
+  if (p < 80)
+    return 'Medium'
+  if (p < 100)
+    return 'Strong'
   return 'Very Strong'
 })
 
 const colorClass = computed(() => {
   const p = progress.value
-  if (p < 40) return 'bg-destructive'
-  if (p < 80) return 'bg-yellow-500'
-  if (p < 100) return 'bg-blue-500'
+  if (p < 40)
+    return 'bg-destructive'
+  if (p < 80)
+    return 'bg-yellow-500'
+  if (p < 100)
+    return 'bg-blue-500'
   return 'bg-green-500' // Using green for complete success
 })
 </script>
@@ -88,8 +101,7 @@ const colorClass = computed(() => {
                   : 'text-green-500',
           )
         "
-        >{{ strengthLabel }}</span
-      >
+      >{{ strengthLabel }}</span>
     </div>
 
     <!-- Custom Progress Bar allowing color change -->
@@ -98,7 +110,7 @@ const colorClass = computed(() => {
         class="h-full transition-all duration-300 ease-in-out"
         :class="colorClass"
         :style="{ width: `${progress}%` }"
-      ></div>
+      />
     </div>
 
     <ul class="text-xs space-y-1 mt-2">

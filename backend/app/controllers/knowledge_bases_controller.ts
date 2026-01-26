@@ -44,8 +44,8 @@ export default class KnowledgeBasesController {
       keyword: data.keyword,
       description: data.description,
       exampleSql: data.exampleSql,
-      embedding: embedding,
-      status: 'approved', // Manually created items are auto-approved
+      embedding,
+      status: request.input('status', 'pending'),
     })
 
     // Sync to Qdrant immediately if approved
@@ -56,7 +56,7 @@ export default class KnowledgeBasesController {
           item.keyword,
           item.description,
           item.exampleSql,
-          item.embedding
+          item.embedding,
         )
       } catch (e) {
         console.error('Failed to sync manual knowledge to Qdrant', e)
@@ -89,13 +89,13 @@ export default class KnowledgeBasesController {
     // Regen embedding if content changed
     let embedding = item.embedding
     if (
-      (data.keyword && data.keyword !== item.keyword) ||
-      (data.description && data.description !== item.description)
+      (data.keyword && data.keyword !== item.keyword)
+      || (data.description && data.description !== item.description)
     ) {
       try {
         const embeddingService = new EmbeddingService()
         embedding = await embeddingService.generate(
-          `${data.keyword || item.keyword}: ${data.description || item.description}`
+          `${data.keyword || item.keyword}: ${data.description || item.description}`,
         )
       } catch (e) {
         console.warn('[KnowledgeBasesController] Embedding generation failed on update', e)
@@ -109,7 +109,7 @@ export default class KnowledgeBasesController {
       description: data.description,
       exampleSql: data.exampleSql,
       status: data.status,
-      embedding: embedding,
+      embedding,
     })
     await item.save()
 
@@ -129,7 +129,7 @@ export default class KnowledgeBasesController {
           item.keyword,
           item.description,
           item.exampleSql,
-          item.embedding
+          item.embedding,
         )
       } catch (e) {
         console.error('Failed to sync updated knowledge to Qdrant', e)

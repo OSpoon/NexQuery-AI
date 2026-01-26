@@ -1,40 +1,56 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-
 const version = '1.0.0'
 </script>
 
 <template>
-    <view class="container">
-        <view class="logo-section">
-            <image class="logo" src="/static/logo.png" mode="aspectFit"></image>
-            <text class="app-name">NexQuery AI</text>
-            <text class="version">Version {{ version }}</text>
-        </view>
-
-        <view class="content-card">
-            <view class="info-item">
-                <text class="label">官方网站</text>
-                <text class="value">nexquery.ai</text>
-            </view>
-            <view class="info-item">
-                <text class="label">联系我们</text>
-                <text class="value">support@nexquery.ai</text>
-            </view>
-            <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })">
-                <text class="label">用户协议</text>
-                <view class="arrow-icon"></view>
-            </view>
-            <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })">
-                <text class="label">隐私政策</text>
-                <view class="arrow-icon"></view>
-            </view>
-        </view>
-
-        <view class="footer">
-            <text class="copyright">© 2026 NexQuery AI. All rights reserved.</text>
-        </view>
+  <view class="container">
+    <view class="logo-section">
+      <image class="logo" src="/static/logo.png" mode="aspectFit" />
+      <text class="app-name">
+        NexQuery AI
+      </text>
+      <text class="version">
+        Version {{ version }}
+      </text>
     </view>
+
+    <view class="content-card">
+      <view class="info-item">
+        <text class="label">
+          官方网站
+        </text>
+        <text class="value">
+          nexquery.ai
+        </text>
+      </view>
+      <view class="info-item">
+        <text class="label">
+          联系我们
+        </text>
+        <text class="value">
+          support@nexquery.ai
+        </text>
+      </view>
+      <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })">
+        <text class="label">
+          用户协议
+        </text>
+        <view class="arrow-icon" />
+      </view>
+      <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })">
+        <text class="label">
+          隐私政策
+        </text>
+        <view class="arrow-icon" />
+      </view>
+    </view>
+
+    <view class="footer">
+      <text class="copyright">
+        © 2026 NexQuery AI. All rights reserved.
+      </text>
+    </view>
+  </view>
 </template>
 
 <style scoped>

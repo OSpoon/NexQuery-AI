@@ -13,9 +13,10 @@ export default class MenusController {
     // Correctly handle async filtering
     const accessibilityResults = await Promise.all(
       menus.map(async (menu) => {
-        if (!menu.permission) return true
+        if (!menu.permission)
+          return true
         return await user.hasPermission(menu.permission)
-      })
+      }),
     )
 
     const accessibleMenus = menus.filter((_, index) => accessibilityResults[index])
@@ -23,8 +24,8 @@ export default class MenusController {
     // Basic tree builder
     const buildTree = (parentId: number | null): any[] => {
       return accessibleMenus
-        .filter((m) => m.parentId === parentId)
-        .map((m) => ({
+        .filter(m => m.parentId === parentId)
+        .map(m => ({
           ...m.toJSON(),
           children: buildTree(m.id),
         }))
@@ -53,19 +54,20 @@ export default class MenusController {
         }
         return acc
       },
-      {} as Record<string, string>
+      {} as Record<string, string>,
     )
 
     return response.ok(routePermissions)
   }
 
   private async ensurePermissionExists(slug: string | null) {
-    if (!slug) return
+    if (!slug)
+      return
     const existing = await Permission.findBy('slug', slug)
     if (!existing) {
       await Permission.create({
-        name: slug.replace(/_/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-        slug: slug,
+        name: slug.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+        slug,
         description: `Automatically created for menu permission: ${slug}`,
       })
     }

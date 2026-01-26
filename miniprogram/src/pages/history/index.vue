@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import api from '@/lib/api'
 import { onPullDownRefresh } from '@dcloudio/uni-app'
+import { computed, onMounted, ref } from 'vue'
+import api from '@/lib/api'
 
 const logs = ref<any[]>([])
 const fullLogs = ref<any[]>([]) // Cache to store all tags
@@ -16,7 +16,7 @@ const availableTags = computed(() => {
   return ['All', ...allTaskTags.value]
 })
 
-const fetchGlobalTags = async () => {
+async function fetchGlobalTags() {
   try {
     const res = await api.get('/query-tasks')
     const tasks = Array.isArray(res) ? res : (res.data || [])
@@ -27,18 +27,19 @@ const fetchGlobalTags = async () => {
       }
     })
     allTaskTags.value = Array.from(tags)
-  } catch (error) {
-    console.error('Failed to fetch global tags', error)
+  }
+  catch (_error) {
+    console.error('Failed to fetch global tags', _error)
   }
 }
 
-const fetchLogs = async () => {
+async function fetchLogs() {
   loading.value = true
   try {
     const res = await api.get('/query-logs', {
       search: searchQuery.value,
       status: statusFilter.value,
-      tag: selectedTag.value === 'All' ? undefined : selectedTag.value
+      tag: selectedTag.value === 'All' ? undefined : selectedTag.value,
     })
     const data = res.data || []
     logs.value = data
@@ -47,48 +48,55 @@ const fetchLogs = async () => {
     if (selectedTag.value === 'All' && !searchQuery.value && !statusFilter.value) {
       fullLogs.value = data
     }
-  } catch (error) {
-    console.error('Failed to fetch logs', error)
-  } finally {
+  }
+  catch (_error) {
+    console.error('Failed to fetch logs', _error)
+  }
+  finally {
     loading.value = false
     uni.stopPullDownRefresh()
   }
 }
 
-const onSearchInput = (e: any) => {
+function onSearchInput(e: any) {
   searchQuery.value = e.detail.value
-  if (searchTimeout) clearTimeout(searchTimeout)
+  if (searchTimeout)
+    clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     fetchLogs()
   }, 500)
 }
 
-const setStatus = (status: string) => {
-  if (statusFilter.value === status) return
+function setStatus(status: string) {
+  if (statusFilter.value === status)
+    return
   statusFilter.value = status
   fetchLogs()
 }
 
-const selectTag = (tag: string) => {
-  if (selectedTag.value === tag) return
+function selectTag(tag: string) {
+  if (selectedTag.value === tag)
+    return
   selectedTag.value = tag
   fetchLogs()
 }
 
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return '-'
+function formatDate(dateStr: string) {
+  if (!dateStr)
+    return '-'
   const date = new Date(dateStr)
   // Check if valid
-  if (isNaN(date.getTime())) return dateStr
+  if (Number.isNaN(date.getTime()))
+    return dateStr
 
   return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`
 }
 
-const viewResult = (log: any) => {
+function viewResult(log: any) {
   // Navigate to detail page
   uni.setStorageSync('current_log_detail', JSON.stringify(log))
   uni.navigateTo({
-    url: '/pages/history/detail'
+    url: '/pages/history/detail',
   })
 }
 
@@ -106,26 +114,40 @@ onPullDownRefresh(() => {
   <view class="container">
     <view class="filter-header">
       <view class="search-bar">
-        <image class="search-icon" src="/static/tabs/history_active.png" mode="aspectFit"></image>
-        <input class="search-input" placeholder="搜索运行记录..." v-model="searchQuery" @input="onSearchInput"
-          confirm-type="search" />
+        <image class="search-icon" src="/static/tabs/history_active.png" mode="aspectFit" />
+        <input
+          v-model="searchQuery" class="search-input" placeholder="搜索运行记录..." confirm-type="search"
+          @input="onSearchInput"
+        >
       </view>
 
       <view class="filter-row">
-        <text class="filter-label">状态:</text>
+        <text class="filter-label">
+          状态:
+        </text>
         <view class="status-tabs">
-          <view class="tab-item" :class="{ active: statusFilter === '' }" @click="setStatus('')">全部</view>
-          <view class="tab-item" :class="{ active: statusFilter === 'success' }" @click="setStatus('success')">成功</view>
-          <view class="tab-item" :class="{ active: statusFilter === 'failed' }" @click="setStatus('failed')">失败</view>
+          <view class="tab-item" :class="{ active: statusFilter === '' }" @click="setStatus('')">
+            全部
+          </view>
+          <view class="tab-item" :class="{ active: statusFilter === 'success' }" @click="setStatus('success')">
+            成功
+          </view>
+          <view class="tab-item" :class="{ active: statusFilter === 'failed' }" @click="setStatus('failed')">
+            失败
+          </view>
         </view>
       </view>
 
       <view class="filter-row">
-        <text class="filter-label">标签:</text>
+        <text class="filter-label">
+          标签:
+        </text>
         <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
           <view class="tag-list">
-            <view v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
-              @click="selectTag(tag)">
+            <view
+              v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+              @click="selectTag(tag)"
+            >
               {{ tag }}
             </view>
           </view>
@@ -145,9 +167,13 @@ onPullDownRefresh(() => {
       <view v-for="log in logs" :key="log.id" class="log-item" @click="viewResult(log)">
         <view class="log-info">
           <view class="log-header">
-            <text class="task-title">{{ log.task?.name || '未知任务' }}</text>
+            <text class="task-title">
+              {{ log.task?.name || '未知任务' }}
+            </text>
             <view class="exec-info">
-              <text class="exec-user">{{ log.user?.fullName || '未知用户' }}</text>
+              <text class="exec-user">
+                {{ log.user?.fullName || '未知用户' }}
+              </text>
               <text class="status-badge" :class="log.status === 'success' ? 'success' : 'failed'">
                 {{ log.status === 'success' ? '成功' : '失败' }}
               </text>
@@ -155,12 +181,16 @@ onPullDownRefresh(() => {
           </view>
 
           <view v-if="log.task?.tags && log.task.tags.length > 0" class="task-tags">
-            <text v-for="tag in log.task.tags" :key="tag" class="task-tag">{{ tag }}</text>
+            <text v-for="tag in log.task.tags" :key="tag" class="task-tag">
+              {{ tag }}
+            </text>
           </view>
 
           <view class="log-footer">
-            <text class="log-time">{{ formatDate(log.createdAt) }}</text>
-            <view class="arrow-icon"></view>
+            <text class="log-time">
+              {{ formatDate(log.createdAt) }}
+            </text>
+            <view class="arrow-icon" />
           </view>
         </view>
       </view>

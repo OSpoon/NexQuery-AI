@@ -25,15 +25,15 @@ export default class SettingsController {
         'system_timezone',
         'show_watermark',
       ]
-      const publicSettings = settings.filter((s) => whitelist.includes(s.key))
-      if (!publicSettings.find((s) => s.key === 'system_timezone')) {
+      const publicSettings = settings.filter(s => whitelist.includes(s.key))
+      if (!publicSettings.find(s => s.key === 'system_timezone')) {
         publicSettings.push({ key: 'system_timezone', value: systemTimezone } as any)
       }
       return response.ok(publicSettings)
     }
 
-    const serializedSettings = settings.map((s) => s.serialize())
-    if (!serializedSettings.find((s) => s.key === 'system_timezone')) {
+    const serializedSettings = settings.map(s => s.serialize())
+    if (!serializedSettings.find(s => s.key === 'system_timezone')) {
       serializedSettings.push({ key: 'system_timezone', value: systemTimezone })
     }
 

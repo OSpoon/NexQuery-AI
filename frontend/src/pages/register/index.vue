@@ -1,7 +1,3 @@
-<script lang="ts">
-export const description = 'Registration form.'
-</script>
-
 <script setup lang="ts">
 import RegisterForm from '@/components/RegisterForm.vue'
 </script>

@@ -7,7 +7,7 @@ import { MenubarSubTrigger, useForwardProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<
-  MenubarSubTriggerProps & { class?: HTMLAttributes['class']; inset?: boolean }
+  MenubarSubTriggerProps & { class?: HTMLAttributes['class'], inset?: boolean }
 >()
 
 const delegatedProps = reactiveOmit(props, 'class', 'inset')

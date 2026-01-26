@@ -1,16 +1,15 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { RouterLink, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { cn } from '@/lib/utils'
+import PasswordStrength from '@/components/PasswordStrength.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import PasswordStrength from '@/components/PasswordStrength.vue'
-import { RouterLink } from 'vue-router'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -24,7 +23,7 @@ const email = ref('')
 const password = ref('')
 const isLoading = ref(false)
 
-const handleSubmit = async (e: Event) => {
+async function handleSubmit(e: Event) {
   e.preventDefault()
 
   if (!fullName.value || !email.value || !password.value) {
@@ -46,9 +45,11 @@ const handleSubmit = async (e: Event) => {
     await authStore.register(fullName.value, email.value, password.value)
     toast.success('Registration successful. Please wait for admin approval.')
     router.push('/login')
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.error(error.response?.data?.message || 'Registration failed')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -65,7 +66,9 @@ const handleSubmit = async (e: Event) => {
         <form @submit="handleSubmit">
           <FieldGroup>
             <Field>
-              <FieldLabel for="fullname">Full Name</FieldLabel>
+              <FieldLabel for="fullname">
+                Full Name
+              </FieldLabel>
               <Input
                 id="fullname"
                 v-model="fullName"
@@ -76,7 +79,9 @@ const handleSubmit = async (e: Event) => {
               />
             </Field>
             <Field>
-              <FieldLabel for="email">Email</FieldLabel>
+              <FieldLabel for="email">
+                Email
+              </FieldLabel>
               <Input
                 id="email"
                 v-model="email"
@@ -87,7 +92,9 @@ const handleSubmit = async (e: Event) => {
               />
             </Field>
             <Field>
-              <FieldLabel for="password">Password</FieldLabel>
+              <FieldLabel for="password">
+                Password
+              </FieldLabel>
               <Input
                 id="password"
                 v-model="password"
@@ -106,7 +113,9 @@ const handleSubmit = async (e: Event) => {
               </Button>
               <FieldDescription class="text-center">
                 Already have an account?
-                <RouterLink to="/login" class="underline">Login</RouterLink>
+                <RouterLink to="/login" class="underline">
+                  Login
+                </RouterLink>
               </FieldDescription>
             </Field>
           </FieldGroup>

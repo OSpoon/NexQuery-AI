@@ -21,7 +21,7 @@ export default class LoggerMiddleware {
         duration: `${duration}ms`,
         ip: request.ip(),
       },
-      `HTTP Request: ${method} ${url} - ${status} (${duration}ms)`
+      `HTTP Request: ${method} ${url} - ${status} (${duration}ms)`,
     )
   }
 }

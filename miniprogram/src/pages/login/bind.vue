@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import api from '@/lib/api'
 
 const email = ref('')
@@ -10,90 +10,107 @@ const loading = ref(false)
 
 // Get openid from navigation params
 onLoad((options: any) => {
-    if (options.openid) {
-        openid.value = options.openid
-    } else {
-        uni.showToast({
-            title: '缺少 OpenID，请重新从登录页进入',
-            icon: 'none',
-            duration: 2000
-        })
-        setTimeout(() => uni.navigateBack(), 2000)
-    }
+  if (options.openid) {
+    openid.value = options.openid
+  }
+  else {
+    uni.showToast({
+      title: '缺少 OpenID，请重新从登录页进入',
+      icon: 'none',
+      duration: 2000,
+    })
+    setTimeout(() => uni.navigateBack(), 2000)
+  }
 })
 
-const handleBind = async () => {
-    if (!email.value || !password.value) {
-        uni.showToast({
-            title: '请输入邮箱和密码',
-            icon: 'none'
-        })
-        return
-    }
+async function handleBind() {
+  if (!email.value || !password.value) {
+    uni.showToast({
+      title: '请输入邮箱和密码',
+      icon: 'none',
+    })
+    return
+  }
 
-    loading.value = true
-    try {
-        const res = await api.post('/auth/miniprogram/bind', {
-            email: email.value,
-            password: password.value,
-            openid: openid.value
-        })
+  loading.value = true
+  try {
+    const res = await api.post('/auth/miniprogram/bind', {
+      email: email.value,
+      password: password.value,
+      openid: openid.value,
+    })
 
-        uni.setStorageSync('auth_token', res.token)
-        uni.setStorageSync('user', JSON.stringify(res.user))
+    uni.setStorageSync('auth_token', res.token)
+    uni.setStorageSync('user', JSON.stringify(res.user))
 
-        uni.showToast({
-            title: '绑定并登录成功',
-            icon: 'success'
-        })
+    uni.showToast({
+      title: '绑定并登录成功',
+      icon: 'success',
+    })
 
-        setTimeout(() => {
-            uni.reLaunch({
-                url: '/pages/index/index'
-            })
-        }, 1500)
-    } catch (error: any) {
-        console.error('Binding failed', error)
-        uni.showModal({
-            title: '绑定失败',
-            content: error.message || '账号密码错误或服务器错误',
-            showCancel: false
-        })
-    } finally {
-        loading.value = false
-    }
+    setTimeout(() => {
+      uni.reLaunch({
+        url: '/pages/index/index',
+      })
+    }, 1500)
+  }
+  catch (error: any) {
+    console.error('Binding failed', error)
+    uni.showModal({
+      title: '绑定失败',
+      content: error.message || '账号密码错误或服务器错误',
+      showCancel: false,
+    })
+  }
+  finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
-    <view class="container">
-        <view class="header">
-            <text class="title">身份绑定</text>
-            <text class="subtitle">请使用您的 NexQuery AI 账号进行绑定</text>
-        </view>
-
-        <view class="form">
-            <view class="input-group">
-                <text class="label">邮箱</text>
-                <input class="input" type="text" v-model="email" placeholder="请输入注册邮箱"
-                    placeholder-style="color: #ccc" />
-            </view>
-
-            <view class="input-group">
-                <text class="label">密码</text>
-                <input class="input" type="password" v-model="password" placeholder="请输入登录密码"
-                    placeholder-style="color: #ccc" />
-            </view>
-
-            <button class="bind-btn" type="primary" :loading="loading" @click="handleBind">
-                立即绑定
-            </button>
-
-            <view class="footer">
-                <text class="back-link" @click="uni.navigateBack()">返回登录</text>
-            </view>
-        </view>
+  <view class="container">
+    <view class="header">
+      <text class="title">
+        身份绑定
+      </text>
+      <text class="subtitle">
+        请使用您的 NexQuery AI 账号进行绑定
+      </text>
     </view>
+
+    <view class="form">
+      <view class="input-group">
+        <text class="label">
+          邮箱
+        </text>
+        <input
+          v-model="email" class="input" type="text" placeholder="请输入注册邮箱"
+          placeholder-style="color: #ccc"
+        >
+      </view>
+
+      <view class="input-group">
+        <text class="label">
+          密码
+        </text>
+        <input
+          v-model="password" class="input" type="password" placeholder="请输入登录密码"
+          placeholder-style="color: #ccc"
+        >
+      </view>
+
+      <button class="bind-btn" type="primary" :loading="loading" @click="handleBind">
+        立即绑定
+      </button>
+
+      <view class="footer">
+        <text class="back-link" @click="uni.navigateBack()">
+          返回登录
+        </text>
+      </view>
+    </view>
+  </view>
 </template>
 
 <style scoped>

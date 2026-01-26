@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 
 const type = ref('')
 const title = ref('')
 const content = ref('')
 
 onLoad((options: any) => {
-    type.value = options.type || 'service'
-    if (type.value === 'service') {
-        title.value = '用户服务协议'
-        content.value = `
+  type.value = options.type || 'service'
+  if (type.value === 'service') {
+    title.value = '用户服务协议'
+    content.value = `
 【重要提示】
 欢迎您使用 NexQuery AI（以下简称“本软件”）。请您（以下亦称“用户”）在注册登录或使用本软件服务之前，仔细阅读并充分理解本《用户服务协议》（以下简称“本协议”）的所有内容。当您点击“登录”、“注册”或实际使用本服务，即视为您已阅读并同意接受本协议的约束。
 
@@ -52,9 +52,10 @@ onLoad((options: any) => {
    8.1 本协议的解释权归 NexQuery AI 团队所有。
    8.2 若本协议中的任何条款无效，不影响其他条款的效力。
         `
-    } else {
-        title.value = '隐私政策'
-        content.value = `
+  }
+  else {
+    title.value = '隐私政策'
+    content.value = `
 【生效日期：2026年1月24日】
 NexQuery AI（以下简称“我们”）非常重视用户的隐私和个人信息保护。您在使用我们的服务时，我们可能会收集和使用您的相关信息。本《隐私政策》将向您说明我们如何收集、使用、保存和分享这些信息。
 
@@ -86,19 +87,23 @@ NexQuery AI（以下简称“我们”）非常重视用户的隐私和个人信
 六、联系我们
 如您对本隐私政策有任何疑问或投诉，请发送邮件至：privacy@nexquery.ai
         `
-    }
+  }
 
-    uni.setNavigationBarTitle({
-        title: title.value
-    })
+  uni.setNavigationBarTitle({
+    title: title.value,
+  })
 })
 </script>
 
 <template>
-    <view class="container">
-        <view class="title">{{ title }}</view>
-        <text class="content">{{ content }}</text>
+  <view class="container">
+    <view class="title">
+      {{ title }}
     </view>
+    <text class="content">
+      {{ content }}
+    </text>
+  </view>
 </template>
 
 <style scoped>

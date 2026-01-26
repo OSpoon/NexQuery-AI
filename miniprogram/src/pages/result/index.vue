@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { onMounted, ref } from 'vue'
 import { cryptoService } from '@/lib/api'
 
 const result = ref<any[]>([])
@@ -19,8 +19,9 @@ onMounted(() => {
           if (decrypted) {
             parsed = decrypted
           }
-        } catch (e) {
-          // console.error('Decryption in result view failed', e) // Removed log
+        }
+        catch {
+          // console.error('Decryption in result view failed', _e) // Removed log
         }
       }
 
@@ -28,17 +29,18 @@ onMounted(() => {
       if (Array.isArray(parsed) && parsed.length > 0) {
         headers.value = Object.keys(parsed[0])
       }
-    } catch (e) {
-      console.error('Failed to parse result', e)
+    }
+    catch {
+      console.error('Failed to parse result')
     }
   }
 })
 
-const toggleView = () => {
+function toggleView() {
   viewMode.value = viewMode.value === 'card' ? 'table' : 'card'
 }
 
-const handleBack = () => {
+function handleBack() {
   uni.navigateBack()
 }
 </script>
@@ -46,7 +48,9 @@ const handleBack = () => {
 <template>
   <view class="container">
     <view class="header-toolbar">
-      <text class="result-count">共 {{ result.length }} 条结果</text>
+      <text class="result-count">
+        共 {{ result.length }} 条结果
+      </text>
       <button class="toggle-btn" size="mini" @click="toggleView">
         {{ viewMode === 'card' ? '文字视图' : '表格视图' }}
       </button>
@@ -61,16 +65,24 @@ const handleBack = () => {
       <scroll-view v-if="viewMode === 'card'" scroll-y class="card-list">
         <view v-for="(row, idx) in result" :key="idx" class="result-card">
           <view class="card-header">
-            <text class="card-index">#{{ idx + 1 }}</text>
+            <text class="card-index">
+              #{{ idx + 1 }}
+            </text>
           </view>
           <view class="card-body">
             <view v-for="header in headers" :key="header" class="data-item">
-              <text class="data-label">{{ header }}</text>
-              <text class="data-value">{{ row[header] ?? '-' }}</text>
+              <text class="data-label">
+                {{ header }}
+              </text>
+              <text class="data-value">
+                {{ row[header] ?? '-' }}
+              </text>
             </view>
           </view>
         </view>
-        <view class="list-bottom-tip">到底了</view>
+        <view class="list-bottom-tip">
+          到底了
+        </view>
       </scroll-view>
 
       <!-- Table View (Legacy Scroll) -->
@@ -94,7 +106,9 @@ const handleBack = () => {
     </view>
 
     <view class="footer">
-      <button class="back-btn" @click="handleBack">返回</button>
+      <button class="back-btn" @click="handleBack">
+        返回
+      </button>
     </view>
   </view>
 </template>

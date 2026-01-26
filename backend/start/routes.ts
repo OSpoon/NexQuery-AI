@@ -1,6 +1,8 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
 import { PERMISSIONS } from '@nexquery/shared'
+import AutoSwagger from 'adonis-autoswagger'
+import swagger from '#config/swagger'
 
 const DataSourcesController = () => import('#controllers/data_sources_controller')
 const QueryTasksController = () => import('#controllers/query_tasks_controller')
@@ -21,8 +23,18 @@ const KnowledgeBasesController = () => import('#controllers/knowledge_bases_cont
 const HealthChecksController = () => import('#controllers/health_checks_controller')
 const PasswordResetsController = () => import('#controllers/password_resets_controller')
 
-router.get('/', async () => {
-  return { hello: 'world' }
+// Redirect root to docs
+router.get('/', async ({ response }) => {
+  response.redirect('/docs')
+})
+
+// Swagger Docs
+router.get('/swagger', async () => {
+  return AutoSwagger.default.docs(router.toJSON(), swagger)
+})
+
+router.get('/docs', async () => {
+  return AutoSwagger.default.ui('/swagger', swagger)
 })
 
 router
@@ -121,6 +133,7 @@ router
         router.post('ai/optimize-sql', [AiController, 'optimizeSql'])
         router.post('ai/chat', [AiController, 'chat'])
         router.post('ai/chat/stream', [AiController, 'chatStream'])
+        router.post('ai/preview', [AiController, 'preview'])
         router.post('ai/learn', [AiController, 'learn'])
         router.get('ai/conversations', [AiController, 'getConversations'])
         router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])

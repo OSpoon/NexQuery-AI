@@ -4,15 +4,15 @@ import { DateTime } from 'luxon'
 
 export class GetCurrentTimeTool extends StructuredTool {
   name = 'get_current_time'
-  description =
-    'Get the current server time. Use this when the user mentions "today", "yesterday", "last month", "current year", etc.'
+  description
+    = 'Get the current server time. Use this when the user mentions "today", "yesterday", "last month", "current year", etc.'
 
   schema = z.object({
     timezone: z
       .string()
       .optional()
       .describe(
-        'The timezone to format the time in, e.g. "Asia/Shanghai". Defaults to system time.'
+        'The timezone to format the time in, e.g. "Asia/Shanghai". Defaults to system time.',
       ),
   })
 

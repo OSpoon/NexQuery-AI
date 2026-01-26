@@ -1,14 +1,10 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { DateTime } from 'luxon'
-import { Calendar as CalendarIcon, Clock } from 'lucide-vue-next'
 import {
   CalendarDate,
-  parseAbsoluteToLocal,
-  toCalendarDateTime,
-  CalendarDateTime,
 } from '@internationalized/date'
-import { cn } from '@/lib/utils'
+import { Calendar as CalendarIcon, Clock } from 'lucide-vue-next'
+import { DateTime } from 'luxon'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Calendar } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
@@ -19,6 +15,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { cn } from '@/lib/utils'
 
 interface Props {
   modelValue?: string | null
@@ -65,7 +62,8 @@ const selectedDate = computed({
     return new CalendarDate(year, month, day) as any
   },
   set: (val: any) => {
-    if (!val) return
+    if (!val)
+      return
 
     // Calendar gives back a DateValue object
     internalDate.value = internalDate.value.set({
@@ -84,7 +82,7 @@ const selectedDate = computed({
 const hour = computed({
   get: () => internalDate.value.hour.toString().padStart(2, '0'),
   set: (val: string) => {
-    internalDate.value = internalDate.value.set({ hour: parseInt(val) })
+    internalDate.value = internalDate.value.set({ hour: Number.parseInt(val) })
     emitUpdate()
   },
 })
@@ -92,17 +90,18 @@ const hour = computed({
 const minute = computed({
   get: () => internalDate.value.minute.toString().padStart(2, '0'),
   set: (val: string) => {
-    internalDate.value = internalDate.value.set({ minute: parseInt(val) })
+    internalDate.value = internalDate.value.set({ minute: Number.parseInt(val) })
     emitUpdate()
   },
 })
 
-const emitUpdate = () => {
+function emitUpdate() {
   emit('update:modelValue', internalDate.value.toUTC().toISO())
 }
 
 const displayText = computed(() => {
-  if (!props.modelValue) return props.placeholder
+  if (!props.modelValue)
+    return props.placeholder
   return internalDate.value.toFormat('yyyy/MM/dd HH:mm')
 })
 

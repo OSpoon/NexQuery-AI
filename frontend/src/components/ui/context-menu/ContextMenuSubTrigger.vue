@@ -7,7 +7,7 @@ import { ContextMenuSubTrigger, useForwardProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<
-  ContextMenuSubTriggerProps & { class?: HTMLAttributes['class']; inset?: boolean }
+  ContextMenuSubTriggerProps & { class?: HTMLAttributes['class'], inset?: boolean }
 >()
 
 const delegatedProps = reactiveOmit(props, 'class')

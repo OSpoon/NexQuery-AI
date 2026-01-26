@@ -14,7 +14,10 @@
     "confirm_promote": "确定要将此修正同步到知识库吗？",
     "keyword": "关键词",
     "description": "描述",
-    "sql_example": "示例 SQL"
+    "sql_example": "示例 SQL",
+    "close": "关闭",
+    "no_data": "暂无可视化数据",
+    "saving": "保存中..."
   },
   "auth": {
     "login": "登录",
@@ -95,7 +98,28 @@
     "active_tasks": "活跃任务",
     "success_rate": "执行成功率",
     "recent_activity": "最近活动",
-    "no_activity": "暂无最近活动"
+    "no_activity": "暂无最近活动",
+    "system_overview": "系统总览",
+    "system_overview_desc": "实时性能与使用指标",
+    "sql_tasks": "SQL 任务",
+    "executions": "执行次数",
+    "active_connections": "活跃连接",
+    "configured_reports": "已配置报表",
+    "total_queries_run": "查询执行总数",
+    "overall_health": "整体健康度",
+    "success_rate_7d": "成功率 (7天)",
+    "activity_trend": "查询活跃趋势",
+    "last_7_days": "最近 7 天",
+    "execution_health": "执行健康状况",
+    "top_sources": "热门数据源",
+    "top_users": "活跃用户排行",
+    "env_health": "运行环境健康度",
+    "recent_live": "实时执行记录",
+    "adhoc_query": "即时查询",
+    "timestamp": "时间戳",
+    "action": "动作",
+    "status": "状态",
+    "execution_log_empty": "暂无执行记录"
   },
   "data_sources": {
     "title": "数据源管理",

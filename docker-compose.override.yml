@@ -35,6 +35,7 @@ services:
       target: build # Use the build stage which has all devDependencies
     environment:
       NODE_ENV: development
+      SMTP_HOST: mailcatcher
     volumes:
       - ./backend:/app/backend
       - ./packages/shared:/app/packages/shared
@@ -49,9 +50,9 @@ services:
       dockerfile: frontend/Dockerfile
       target: build # Use the build stage which has node and pnpm
     environment:
-      VITE_API_URL: http://backend:3333
+      VITE_API_URL: http://backend:3008
     ports:
-      - "${VITE_PORT:-3000}:3000"
+      - '${VITE_PORT:-3000}:3000'
     volumes:
       - ./frontend:/app/frontend
       - ./packages/shared:/app/packages/shared

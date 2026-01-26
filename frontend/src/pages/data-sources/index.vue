@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
-import AdvancedConfigDialog from './components/AdvancedConfigDialog.vue'
+import type { DataSource } from '@nexquery/shared'
+import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  Plus,
-  Database,
-  Trash2,
-  Edit,
-  CheckCircle2,
-  XCircle,
-  RefreshCcw,
   ArrowUpDown,
-  Settings,
+  CheckCircle2,
+  Database,
+  Edit,
+  Plus,
+  RefreshCcw,
   RefreshCw,
+  Settings,
+  Trash2,
+  XCircle,
 } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
+import { h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import DataTable from '@/components/common/DataTable.vue'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -24,14 +27,11 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import api from '@/lib/api'
-import DataSourceForm from './components/DataSourceForm.vue'
-import { toast } from 'vue-sonner'
-import DataTable from '@/components/common/DataTable.vue'
-import type { ColumnDef } from '@tanstack/vue-table'
-
-import type { DataSource } from '@nexquery/shared'
-
 import { useDataSourceStore } from '@/stores/dataSource'
+
+import AdvancedConfigDialog from './components/AdvancedConfigDialog.vue'
+
+import DataSourceForm from './components/DataSourceForm.vue'
 
 const { t } = useI18n()
 const dataSourceStore = useDataSourceStore()
@@ -44,52 +44,57 @@ const advancedConfigDataSource = ref<DataSource | null>(null)
 const fetchDataSources = () => dataSourceStore.fetchDataSources()
 
 const isRefreshing = ref(false)
-const refreshStatuses = async () => {
+async function refreshStatuses() {
   isRefreshing.value = true
   try {
     await api.post('/data-sources/refresh')
     await fetchDataSources()
     toast.success('Status refresh complete')
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to refresh statuses')
-  } finally {
+  }
+  finally {
     isRefreshing.value = false
   }
 }
 
-const openCreateDialog = () => {
+function openCreateDialog() {
   editingDataSource.value = null
   isDialogOpen.value = true
 }
 
-const openEditDialog = (ds: any) => {
+function openEditDialog(ds: any) {
   editingDataSource.value = ds
   isDialogOpen.value = true
 }
 
-const openAdvancedDialog = (ds: any) => {
+function openAdvancedDialog(ds: any) {
   advancedConfigDataSource.value = ds
   isAdvancedDialogOpen.value = true
 }
 
-const deleteDataSource = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this data source?')) return
+async function deleteDataSource(id: number) {
+  // eslint-disable-next-line no-alert
+  if (!confirm('Are you sure you want to delete this data source?'))
+    return
 
   try {
     await api.delete(`/data-sources/${id}`)
     toast.success('Deleted successfully')
     fetchDataSources()
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to delete')
   }
 }
 
-const syncSchema = async (id: number) => {
+async function syncSchema(id: number) {
   const promise = api.post(`/data-sources/${id}/sync-schema`)
   toast.promise(promise, {
     loading: 'Syncing schema to vector store...',
     success: 'Schema synced successfully',
-    error: (err) => `Failed to sync: ${err.message || 'Unknown error'}`,
+    error: err => `Failed to sync: ${err.message || 'Unknown error'}`,
   })
 }
 
@@ -215,11 +220,15 @@ onMounted(fetchDataSources)
   <div class="h-full flex flex-col p-4 gap-4 relative">
     <div class="flex justify-between items-center shrink-0">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('data_sources.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('data_sources.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('data_sources.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('data_sources.desc') }}
+        </p>
       </div>
       <div class="flex gap-2">
-        <Button variant="outline" @click="refreshStatuses" :disabled="isRefreshing">
+        <Button variant="outline" :disabled="isRefreshing" @click="refreshStatuses">
           <RefreshCcw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
           Refresh Status
         </Button>
@@ -241,9 +250,11 @@ onMounted(fetchDataSources)
     <Dialog v-model:open="isDialogOpen">
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
-          <DialogTitle>{{
-            editingDataSource ? t('data_sources.edit_title') : t('data_sources.add_title')
-          }}</DialogTitle>
+          <DialogTitle>
+            {{
+              editingDataSource ? t('data_sources.edit_title') : t('data_sources.add_title')
+            }}
+          </DialogTitle>
           <DialogDescription> Configure your database connection details below. </DialogDescription>
         </DialogHeader>
         <DataSourceForm

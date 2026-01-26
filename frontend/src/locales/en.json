@@ -14,7 +14,10 @@
     "confirm_promote": "Are you sure you want to promote this correction to the Knowledge Base?",
     "keyword": "Keyword",
     "description": "Description",
-    "sql_example": "SQL Example"
+    "sql_example": "SQL Example",
+    "close": "Close",
+    "no_data": "No data available to visualize",
+    "saving": "Saving..."
   },
   "auth": {
     "login": "Login",
@@ -95,7 +98,28 @@
     "active_tasks": "Active Tasks",
     "success_rate": "Success Rate",
     "recent_activity": "Recent Activity",
-    "no_activity": "No recent activity"
+    "no_activity": "No recent activity",
+    "system_overview": "System Overview",
+    "system_overview_desc": "Real-time performance & usage metrics",
+    "sql_tasks": "SQL Tasks",
+    "executions": "Executions",
+    "active_connections": "Active connections",
+    "configured_reports": "Configured reports",
+    "total_queries_run": "Total queries run",
+    "overall_health": "Overall Health",
+    "success_rate_7d": "Success rate (7d)",
+    "activity_trend": "Query Activity Trend",
+    "last_7_days": "Last 7 Days",
+    "execution_health": "Execution Health",
+    "top_sources": "Top Data Sources",
+    "top_users": "Top Active Users",
+    "env_health": "Environment Health",
+    "recent_live": "Recent Live Executions",
+    "adhoc_query": "Ad-hoc Query",
+    "timestamp": "Timestamp",
+    "action": "Action",
+    "status": "Status",
+    "execution_log_empty": "No activity recorded yet"
   },
   "data_sources": {
     "title": "Data Sources",

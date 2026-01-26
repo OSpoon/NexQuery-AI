@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import PasswordStrength from '@/components/PasswordStrength.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
-import PasswordStrength from '@/components/PasswordStrength.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,7 +21,7 @@ const isLoading = ref(false)
 const reason = route.query.reason as string
 const isExpired = reason === 'expired'
 
-const handleSubmit = async (e: Event) => {
+async function handleSubmit(e: Event) {
   e.preventDefault()
 
   if (!currentPassword.value || !newPassword.value || !confirmPassword.value) {
@@ -51,12 +51,15 @@ const handleSubmit = async (e: Event) => {
     // Redirect to dashboard or login depending on flow
     if (authStore.isAuthenticated) {
       router.push('/')
-    } else {
+    }
+    else {
       router.push('/login')
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.error(error.response?.data?.message || 'Failed to change password')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -81,7 +84,9 @@ const handleSubmit = async (e: Event) => {
           <form @submit="handleSubmit">
             <FieldGroup>
               <Field>
-                <FieldLabel for="currentPassword">Current Password</FieldLabel>
+                <FieldLabel for="currentPassword">
+                  Current Password
+                </FieldLabel>
                 <Input
                   id="currentPassword"
                   v-model="currentPassword"
@@ -91,7 +96,9 @@ const handleSubmit = async (e: Event) => {
                 />
               </Field>
               <Field>
-                <FieldLabel for="newPassword">New Password</FieldLabel>
+                <FieldLabel for="newPassword">
+                  New Password
+                </FieldLabel>
                 <Input
                   id="newPassword"
                   v-model="newPassword"
@@ -102,7 +109,9 @@ const handleSubmit = async (e: Event) => {
                 <PasswordStrength :password="newPassword" />
               </Field>
               <Field>
-                <FieldLabel for="confirmPassword">Confirm New Password</FieldLabel>
+                <FieldLabel for="confirmPassword">
+                  Confirm New Password
+                </FieldLabel>
                 <Input
                   id="confirmPassword"
                   v-model="confirmPassword"

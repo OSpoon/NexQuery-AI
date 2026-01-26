@@ -1,15 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import {
+  AlertCircle,
+  Brain,
+  CheckCircle2,
   ChevronDown,
   ChevronRight,
   Terminal,
-  Brain,
-  HardDrive,
-  CheckCircle2,
-  AlertCircle,
 } from 'lucide-vue-next'
-import { Badge } from '@/components/ui/badge'
+import { ref } from 'vue'
+import Badge from '@/components/ui/badge/Badge.vue'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 interface AgentStep {
@@ -27,10 +26,11 @@ defineProps<{
 
 const isOpen = ref(true)
 
-const formatToolInput = (input: any) => {
+function formatToolInput(input: any) {
   try {
     return typeof input === 'string' ? input : JSON.stringify(input, null, 2)
-  } catch (e) {
+  }
+  catch {
     return String(input)
   }
 }
@@ -81,9 +81,7 @@ const formatToolInput = (input: any) => {
                   <Terminal class="h-3 w-3 mr-1" />
                   {{ step.toolName }}
                 </Badge>
-                <span v-if="step.status === 'running'" class="animate-pulse text-blue-500"
-                  >Running...</span
-                >
+                <span v-if="step.status === 'running'" class="animate-pulse text-blue-500">Running...</span>
                 <span
                   v-else-if="step.status === 'done'"
                   class="text-green-600 dark:text-green-400 flex items-center"
@@ -97,7 +95,9 @@ const formatToolInput = (input: any) => {
 
               <!-- Input -->
               <div class="bg-background/50 p-2 rounded border border-border/50">
-                <div class="text-[10px] text-muted-foreground uppercase opacity-70 mb-1">Input</div>
+                <div class="text-[10px] text-muted-foreground uppercase opacity-70 mb-1">
+                  Input
+                </div>
                 <pre class="overflow-x-auto">{{ formatToolInput(step.toolInput) }}</pre>
               </div>
 

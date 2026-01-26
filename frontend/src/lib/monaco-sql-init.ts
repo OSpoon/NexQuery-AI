@@ -1,21 +1,25 @@
-import { setupLanguageFeatures, LanguageIdEnum } from 'monaco-sql-languages'
 import * as monaco from 'monaco-editor'
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
 
+import { LanguageIdEnum, setupLanguageFeatures } from 'monaco-sql-languages'
+// Use standard workers since we downgraded to monaco-editor 0.37.1
+import MysqlWorker from 'monaco-sql-languages/esm/languages/mysql/mysql.worker?worker'
+
+import PgsqlWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker'
 // Import Language Contributions
 import 'monaco-sql-languages/esm/languages/mysql/mysql.contribution'
 import 'monaco-sql-languages/esm/languages/pgsql/pgsql.contribution'
 
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker'
-// Use standard workers since we downgraded to monaco-editor 0.37.1
-import mysqlWorker from 'monaco-sql-languages/esm/languages/mysql/mysql.worker?worker'
-import pgsqlWorker from 'monaco-sql-languages/esm/languages/pgsql/pgsql.worker?worker'
-
 // Configure Monaco Workers
-self.MonacoEnvironment = {
+;
+
+(globalThis as any).MonacoEnvironment = {
   getWorker(_: any, label: string) {
-    if (label === 'mysql') return new mysqlWorker()
-    if (label === 'pgsql') return new pgsqlWorker()
-    return new editorWorker()
+    if (label === 'mysql')
+      return new MysqlWorker()
+    if (label === 'pgsql')
+      return new PgsqlWorker()
+    return new EditorWorker()
   },
 }
 
@@ -36,23 +40,23 @@ export type Schema = Table[]
 // Registry to map Model URI to specific Schema
 const schemaRegistry = new Map<string, Schema>()
 
-export const registerSchema = (uri: string, schema: Schema) => {
+export function registerSchema(uri: string, schema: Schema) {
   schemaRegistry.set(uri, schema)
 }
 
-export const unregisterSchema = (uri: string) => {
+export function unregisterSchema(uri: string) {
   schemaRegistry.delete(uri)
 }
 
 // Variable syntax preprocessor
-const preprocessCode = (code: string) => {
+function preprocessCode(code: string) {
   return code.replace(/\{\{\s*(\w+)\s*\}\}/g, 'var_$1')
 }
 
 let isSetup = false
 
 // --- Intelligent SQL Context Analyzer ---
-const getContextState = (textBefore: string) => {
+function getContextState(textBefore: string) {
   const upper = textBefore.toUpperCase()
 
   // Tokenize: Split by non-word chars but keep significant symbols like *
@@ -79,7 +83,8 @@ const getContextState = (textBefore: string) => {
     keywords: new Map<string, string>(), // Keyword -> SortText
   }
 
-  if (!lastToken) return state
+  if (!lastToken)
+    return state
 
   // --- State Rules ---
 
@@ -90,7 +95,8 @@ const getContextState = (textBefore: string) => {
     state.keywords.set('DISTINCT', '0001_DISTINCT')
     state.keywords.set('*', '0002_*')
     state.keywords.set('AS', '0005_AS')
-  } else if (lastToken === 'SELECT_ALL' || lastToken === 'SELECT_COL') {
+  }
+  else if (lastToken === 'SELECT_ALL' || lastToken === 'SELECT_COL') {
     // "SELECT *" or "SELECT col, *"
     state.expectColumns = false // Usually done selecting columns
     state.keywords.set('FROM', '0000_FROM') // Top Priority!
@@ -99,10 +105,10 @@ const getContextState = (textBefore: string) => {
 
   // 2. FROM / JOIN Context -> Expect TABLES
   else if (
-    lastToken === 'FROM' ||
-    lastToken === 'JOIN' ||
-    lastToken === 'UPDATE' ||
-    lastToken === 'INTO'
+    lastToken === 'FROM'
+    || lastToken === 'JOIN'
+    || lastToken === 'UPDATE'
+    || lastToken === 'INTO'
   ) {
     state.expectTables = true
     state.expectColumns = false
@@ -148,8 +154,9 @@ const getContextState = (textBefore: string) => {
     ]
     let prevKw = ''
     for (let i = tokens.length - 2; i >= 0; i--) {
-      if (structKeywords.includes(tokens[i])) {
-        prevKw = tokens[i]
+      const token = tokens[i]
+      if (token && structKeywords.includes(token)) {
+        prevKw = token
         break
       }
     }
@@ -165,7 +172,8 @@ const getContextState = (textBefore: string) => {
       state.keywords.set('ORDER BY', '0003_ORDER_BY')
       state.keywords.set('LIMIT', '0004_LIMIT')
       // Also ON if it was JOIN
-      if (prevKw === 'JOIN') state.keywords.set('ON', '0000_ON')
+      if (prevKw === 'JOIN')
+        state.keywords.set('ON', '0000_ON')
     }
   }
 
@@ -174,7 +182,8 @@ const getContextState = (textBefore: string) => {
     state.expectColumns = true
     state.keywords.set('AND', '0005_AND') // logic
     state.keywords.set('OR', '0005_OR')
-  } else if (lastToken === 'AND' || lastToken === 'OR') {
+  }
+  else if (lastToken === 'AND' || lastToken === 'OR') {
     state.expectColumns = true
   }
 
@@ -189,34 +198,41 @@ const getContextState = (textBefore: string) => {
     const prev = tokens[tokens.length - 2]
     if (prev === 'GROUP') {
       state.expectColumns = true // Group by col
-    } else if (prev === 'ORDER') {
+    }
+    else if (prev === 'ORDER') {
       state.expectColumns = true // Order by col
     }
   }
 
   // 6. Multi-word completions (GROUP -> BY, INSERT -> INTO)
-  if (upper.endsWith('GROUP')) state.keywords.set('BY', '0000_BY')
-  if (upper.endsWith('ORDER')) state.keywords.set('BY', '0000_BY')
-  if (upper.endsWith('INSERT')) state.keywords.set('INTO', '0000_INTO')
+  if (upper.endsWith('GROUP'))
+    state.keywords.set('BY', '0000_BY')
+  if (upper.endsWith('ORDER'))
+    state.keywords.set('BY', '0000_BY')
+  if (upper.endsWith('INSERT'))
+    state.keywords.set('INTO', '0000_INTO')
 
   return state
 }
 
-export const setupMonacoSql = () => {
-  if (isSetup) return
+export function setupMonacoSql() {
+  if (isSetup)
+    return
   isSetup = true
 
   // Table Schema Hover Provider
   const hoverProvider: monaco.languages.HoverProvider = {
     provideHover: (model, position) => {
       const word = model.getWordAtPosition(position)
-      if (!word) return null
+      if (!word)
+        return null
 
       const schema = schemaRegistry.get(model.uri.toString())
-      if (!schema) return null
+      if (!schema)
+        return null
 
       const tableName = word.word
-      const table = schema.find((t) => t.name.toLowerCase() === tableName.toLowerCase())
+      const table = schema.find(t => t.name.toLowerCase() === tableName.toLowerCase())
 
       if (table) {
         const markdownLines = [
@@ -261,7 +277,7 @@ export const setupMonacoSql = () => {
           // 1. Keyword Predictions
           if (suggestions && suggestions.keywords) {
             suggestions.keywords.forEach((kw) => {
-              let sortText = '5000_' + kw // Default Low
+              let sortText = `5000_${kw}` // Default Low
 
               if (state.keywords.has(kw)) {
                 sortText = state.keywords.get(kw)! // Boosted
@@ -272,7 +288,7 @@ export const setupMonacoSql = () => {
                 kind: monaco.languages.CompletionItemKind.Keyword,
                 insertText: kw,
                 detail: state.keywords.has(kw) ? 'Recommended' : 'Keyword',
-                sortText: sortText,
+                sortText,
               })
             })
 
@@ -280,7 +296,7 @@ export const setupMonacoSql = () => {
             state.keywords.forEach((sortKey, label) => {
               if (label.includes(' ')) {
                 monacoSuggestions.push({
-                  label: label,
+                  label,
                   kind: monaco.languages.CompletionItemKind.Snippet,
                   insertText: label,
                   detail: 'Clause',
@@ -339,7 +355,7 @@ export const setupMonacoSql = () => {
                 insertText: fn.label, // Simple insert, user can type (
                 detail: fn.detail,
                 documentation: fn.doc,
-                sortText: '6000_' + fn.label, // Default priority (after keywords usually)
+                sortText: `6000_${fn.label}`, // Default priority (after keywords usually)
               })
             })
           }
@@ -356,7 +372,7 @@ export const setupMonacoSql = () => {
                   insertText: table.name,
                   detail: 'Table',
                   documentation: `Table: ${table.name}`,
-                  sortText: '0000_' + table.name, // Top Priority in FROM/JOIN
+                  sortText: `0000_${table.name}`, // Top Priority in FROM/JOIN
                 })
               })
             }
@@ -370,28 +386,30 @@ export const setupMonacoSql = () => {
               if (entities) {
                 entities.forEach((entity: any) => {
                   if (entity.entityContextType === 'table') {
-                    if (entity.text) referencedTables.add(entity.text.toLowerCase())
-                    if (entity._alias?.text) aliasMap.set(entity._alias.text, entity.text)
+                    if (entity.text)
+                      referencedTables.add(entity.text.toLowerCase())
+                    if (entity._alias?.text)
+                      aliasMap.set(entity._alias.text, entity.text)
                   }
                 })
               }
               // Regex Fallback (Improved to handle multi-line and schema-qualified names)
               const fullText = model.getValue()
               // Regex matches FROM/JOIN/UPDATE/INTO followed by table name, supporting backticks, double quotes, and schema prefix
-              const tableRegex =
-                /(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([`"]?[a-zA-Z0-9_]+[`"]?(?:\.[`"]?[a-zA-Z0-9_]+[`"]?)?)/gi
+              const tableRegex
+                = /(?:FROM|JOIN|UPDATE|INTO|TABLE)\s+([`"]?\w+[`"]?(?:\.[`"]?\w+[`"]?)?)/gi
               const matches = fullText.matchAll(tableRegex)
               for (const match of matches) {
                 // Strip quotes/backticks
-                const rawTableName = match[1].replace(/[`"]/g, '')
+                const rawTableName = match[1]?.replace(/[`"]/g, '')
+                if (!rawTableName)
+                  continue
                 // Handle schema prefix by taking the last part (e.g. public.users -> users)
                 // Actually we should probably keep it, but schemaRegistry usually stores flat names.
                 const parts = rawTableName.split('.')
-                const tableName = parts[parts.length - 1].toLowerCase()
-                referencedTables.add(tableName)
-              }
-
-              if (referencedTables.size > 0) {
+                const tableName = parts[parts.length - 1]?.toLowerCase()
+                if (tableName)
+                  referencedTables.add(tableName)
               }
 
               const hasReferencedTables = referencedTables.size > 0
@@ -401,22 +419,25 @@ export const setupMonacoSql = () => {
               if (dotMatch) {
                 // Explicit alias.col
                 const prefix = dotMatch[1]
-                const resolvedTable = aliasMap.get(prefix) || prefix
-                const table = schema.find(
-                  (t) => t.name.toLowerCase() === resolvedTable.toLowerCase(),
-                )
-                if (table) {
-                  table.columns.forEach((col) => {
-                    monacoSuggestions.push({
-                      label: col.name,
-                      kind: monaco.languages.CompletionItemKind.Field,
-                      insertText: col.name,
-                      detail: col.type,
-                      sortText: '0000_' + col.name,
+                if (prefix) {
+                  const resolvedTable = aliasMap.get(prefix) || prefix
+                  const table = schema.find(
+                    t => t.name.toLowerCase() === resolvedTable.toLowerCase(),
+                  )
+                  if (table) {
+                    table.columns.forEach((col) => {
+                      monacoSuggestions.push({
+                        label: col.name,
+                        kind: monaco.languages.CompletionItemKind.Field,
+                        insertText: col.name,
+                        detail: col.type,
+                        sortText: `0000_${col.name}`,
+                      })
                     })
-                  })
+                  }
                 }
-              } else if (hasReferencedTables) {
+              }
+              else if (hasReferencedTables) {
                 // Show columns from contextual tables
                 schema.forEach((table) => {
                   const isPrimary = firstTable === table.name.toLowerCase()

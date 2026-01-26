@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
 import type { Menu } from '@nexquery/shared'
+import type { ColumnDef } from '@tanstack/vue-table'
 import {
+  ChevronDown,
+  ChevronRight,
+  Edit,
   Menu as MenuIcon,
   Plus,
-  Edit,
   Trash2,
-  ChevronRight,
-  ChevronDown,
-  ArrowUpDown,
 } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
+import { computed, h, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import DataTable from '@/components/common/DataTable.vue'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -19,23 +22,20 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import MenuForm from './components/MenuForm.vue'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import DataTable from '@/components/common/DataTable.vue'
-import type { ColumnDef } from '@tanstack/vue-table'
-import { useI18n } from 'vue-i18n'
+import MenuForm from './components/MenuForm.vue'
 
 const { t } = useI18n()
 const menus = ref<Menu[]>([])
 const isDialogOpen = ref(false)
 const editingMenu = ref(null)
 
-const fetchMenus = async () => {
+async function fetchMenus() {
   try {
     const response = await api.get('/menus')
     menus.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch menus')
   }
 }
@@ -45,9 +45,9 @@ const fetchMenus = async () => {
 const treeMenus = computed(() => {
   const buildTree = (parentId: number | null): any[] => {
     return menus.value
-      .filter((m) => m.parentId === parentId)
+      .filter(m => m.parentId === parentId)
       .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((m) => ({
+      .map(m => ({
         ...m,
         children: buildTree(m.id),
       }))
@@ -55,24 +55,27 @@ const treeMenus = computed(() => {
   return buildTree(null)
 })
 
-const openCreateDialog = () => {
+function openCreateDialog() {
   editingMenu.value = null
   isDialogOpen.value = true
 }
 
-const openEditDialog = (menu: any) => {
+function openEditDialog(menu: any) {
   // Extract simple object if it's a proxy
   editingMenu.value = menu
   isDialogOpen.value = true
 }
 
-const deleteMenu = async (id: number) => {
-  if (!confirm(t('menus.delete_confirm'))) return
+async function deleteMenu(id: number) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(t('menus.delete_confirm')))
+    return
   try {
     await api.delete(`/menus/${id}`)
     toast.success(t('menus.delete_success'))
     fetchMenus()
-  } catch (error) {
+  }
+  catch {
     toast.error('Cannot delete menu')
   }
 }
@@ -125,7 +128,7 @@ const columns: ColumnDef<any>[] = [
     header: () => t('menus.icon'),
     cell: ({ row }) => {
       const icon = row.getValue('icon')
-      return icon ? icon : '-'
+      return icon || '-'
     },
   },
   {
@@ -152,8 +155,7 @@ const columns: ColumnDef<any>[] = [
     cell: ({ row }) => {
       const isActive = row.getValue('isActive')
       return h(Badge, { variant: isActive ? 'default' : 'secondary' }, () =>
-        isActive ? t('menus.active') : t('menus.hidden'),
-      )
+        isActive ? t('menus.active') : t('menus.hidden'))
     },
   },
   {
@@ -194,8 +196,12 @@ onMounted(fetchMenus)
   <div class="p-6 space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('menus.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('menus.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('menus.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('menus.desc') }}
+        </p>
       </div>
       <Button @click="openCreateDialog">
         <Plus class="mr-2 h-4 w-4" /> {{ t('menus.create_menu') }}
@@ -209,9 +215,11 @@ onMounted(fetchMenus)
     <Dialog v-model:open="isDialogOpen">
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
-          <DialogTitle>{{
-            editingMenu ? t('menus.edit_menu') : t('menus.create_item')
-          }}</DialogTitle>
+          <DialogTitle>
+            {{
+              editingMenu ? t('menus.edit_menu') : t('menus.create_item')
+            }}
+          </DialogTitle>
           <DialogDescription>{{ t('menus.details') }}</DialogDescription>
         </DialogHeader>
         <MenuForm

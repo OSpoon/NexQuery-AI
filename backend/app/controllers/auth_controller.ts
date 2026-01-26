@@ -202,7 +202,7 @@ export default class AuthController {
       if (recoveryCodes.includes(code)) {
         isRecovery = true
         // Remove used code
-        user.twoFactorRecoveryCodes = JSON.stringify(recoveryCodes.filter((c) => c !== code))
+        user.twoFactorRecoveryCodes = JSON.stringify(recoveryCodes.filter(c => c !== code))
         await user.save()
       }
     }
@@ -275,7 +275,7 @@ export default class AuthController {
         isWechatBound: !!user.wechatOpenid,
       },
       permissions: Array.from(permissions),
-      roles: user.roles.map((r) => r.slug),
+      roles: user.roles.map(r => r.slug),
     })
   }
 
@@ -347,7 +347,7 @@ export default class AuthController {
     }
 
     // We also need to check the history table
-    await user.load('passwordHistories', (q) => q.orderBy('created_at', 'desc').limit(5))
+    await user.load('passwordHistories', q => q.orderBy('created_at', 'desc').limit(5))
 
     for (const history of user.passwordHistories) {
       // Assuming history.passwordHash is scrypt hash
@@ -437,7 +437,7 @@ export default class AuthController {
 
     try {
       const wechatResponse = await fetch(
-        `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`
+        `https://api.weixin.qq.com/sns/jscode2session?appid=${appId}&secret=${appSecret}&js_code=${code}&grant_type=authorization_code`,
       )
       const data = (await wechatResponse.json()) as any
 
@@ -447,7 +447,7 @@ export default class AuthController {
       }
 
       const openid = data.openid
-      let user = await User.findBy('wechat_openid', openid)
+      const user = await User.findBy('wechat_openid', openid)
 
       if (!user) {
         // Option 1: Create a new user (inactive by default as per register logic)

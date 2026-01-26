@@ -26,7 +26,7 @@ export default class ScheduledQueriesController {
     try {
       const job = new Cron(expression)
       const nextRuns = job.nextRuns(5)
-      const dates = nextRuns.map((date) => date.toLocaleString())
+      const dates = nextRuns.map(date => date.toLocaleString())
       return response.ok({ valid: true, nextExecutions: dates })
     } catch (error: any) {
       return response.ok({ valid: false, error: error.message })

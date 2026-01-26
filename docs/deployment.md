@@ -76,3 +76,7 @@ docker compose exec backend node ace db:seed
 
 *   **时间显示不正确？**
     *   确保 `.env` 中的 `TZ` 设置正确，且重启了容器。
+
+*   **服务是否健康？**
+    *   访问 `http://localhost:3008/api/health` 查看系统健康状态。
+    *   系统会自动检测数据库连接与外部数据源连通性。

@@ -12,7 +12,7 @@ export const createDataSourceValidator = vine.compile(
     description: vine.string().optional(),
     isActive: vine.boolean().optional(),
     config: vine.object({}).allowUnknownProperties().optional(),
-  })
+  }),
 )
 
 export const updateDataSourceValidator = vine.compile(
@@ -27,5 +27,5 @@ export const updateDataSourceValidator = vine.compile(
     description: vine.string().optional(),
     isActive: vine.boolean().optional(),
     config: vine.object({}).allowUnknownProperties().optional(),
-  })
+  }),
 )

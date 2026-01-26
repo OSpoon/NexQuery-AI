@@ -1,20 +1,22 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
+import { CalendarClock, Edit, Globe, Mail, Plus, Trash2 } from 'lucide-vue-next'
 import { DateTime } from 'luxon'
-import { useSettingsStore } from '@/stores/settings'
+import { computed, onMounted, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import DateTimePicker from '@/components/common/DateTimePicker.vue'
-import { Plus, Trash2, Edit, CalendarClock, Mail, Globe } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
   Table,
   TableBody,
@@ -23,15 +25,15 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import { useDebounceFn } from '@vueuse/core'
+import { useSettingsStore } from '@/stores/settings'
 
 const props = defineProps<{
   queryTaskId: number
-}>()
+  hasParameters?: boolean
+}
+>()
 
 interface ScheduledQuery {
   id: number
@@ -81,11 +83,13 @@ const validateCron = useDebounceFn(async (expression: string) => {
     if (res.data.valid) {
       nextExecutions.value = res.data.nextExecutions
       cronError.value = ''
-    } else {
+    }
+    else {
       nextExecutions.value = []
       cronError.value = res.data.error
     }
-  } catch (err) {
+  }
+  catch {
     nextExecutions.value = []
     cronError.value = 'Validation failed'
   }
@@ -98,24 +102,25 @@ watch(
   },
 )
 
-const fetchSchedules = async () => {
+async function fetchSchedules() {
   try {
     const response = await api.get('/scheduled-queries', {
       params: { query_task_id: props.queryTaskId },
     })
     schedules.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch schedules')
   }
 }
 
-const formatDate = (dateStr: string) => {
+function formatDate(dateStr: string) {
   return DateTime.fromISO(dateStr, { zone: 'utc' })
     .setZone(systemTimezone.value)
     .toFormat('yyyy/MM/dd HH:mm')
 }
 
-const openCreateDialog = () => {
+function openCreateDialog() {
   editingId.value = null
   form.value = {
     executionType: 'recurring',
@@ -129,7 +134,7 @@ const openCreateDialog = () => {
   isDialogOpen.value = true
 }
 
-const openEditDialog = (schedule: ScheduledQuery) => {
+function openEditDialog(schedule: ScheduledQuery) {
   editingId.value = schedule.id
   form.value = {
     executionType: schedule.runAt ? 'one-off' : 'recurring',
@@ -145,7 +150,7 @@ const openEditDialog = (schedule: ScheduledQuery) => {
   isDialogOpen.value = true
 }
 
-const saveSchedule = async () => {
+async function saveSchedule() {
   // Validate based on type
   if (form.value.executionType === 'recurring') {
     if (!form.value.cronExpression) {
@@ -156,7 +161,8 @@ const saveSchedule = async () => {
       toast.error(`Invalid Cron expression: ${cronError.value}`)
       return
     }
-  } else {
+  }
+  else {
     if (!form.value.runAt) {
       toast.error('Execution time is required')
       return
@@ -183,44 +189,48 @@ const saveSchedule = async () => {
       cronExpression: form.value.executionType === 'recurring' ? form.value.cronExpression : null,
       runAt: form.value.executionType === 'one-off' ? form.value.runAt : null,
       // If Webhook is provided, it takes priority and recipients are cleared
-      recipients: hasWebhook
-        ? []
-        : form.value.recipients
-            .split(',')
-            .map((e) => e.trim())
-            .filter(Boolean),
-      webhookUrl: hasWebhook ? form.value.webhookUrl : null,
+      recipients: form.value.recipients
+        .split(',')
+        .map(e => e.trim())
+        .filter(Boolean),
+      webhookUrl: form.value.webhookUrl || null,
       isActive: form.value.isActive,
     }
 
     if (editingId.value) {
       await api.put(`/scheduled-queries/${editingId.value}`, payload)
       toast.success('Schedule updated')
-    } else {
+    }
+    else {
       await api.post('/scheduled-queries', payload)
       toast.success('Schedule created')
     }
     isDialogOpen.value = false
     fetchSchedules()
-  } catch (error: any) {
+  }
+  catch (error: any) {
     toast.error(error.response?.data?.message || 'Failed to save schedule')
-  } finally {
+  }
+  finally {
     isSubmitting.value = false
   }
 }
 
-const deleteSchedule = async (id: number) => {
-  if (!confirm('Are you sure?')) return
+async function deleteSchedule(id: number) {
+  // eslint-disable-next-line no-alert
+  if (!confirm('Are you sure?'))
+    return
   try {
     await api.delete(`/scheduled-queries/${id}`)
     toast.success('Schedule deleted')
     fetchSchedules()
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to delete schedule')
   }
 }
 
-const toggleActive = async (schedule: ScheduledQuery) => {
+async function toggleActive(schedule: ScheduledQuery) {
   try {
     await api.put(`/scheduled-queries/${schedule.id}`, {
       ...schedule,
@@ -228,7 +238,8 @@ const toggleActive = async (schedule: ScheduledQuery) => {
     })
     schedule.isActive = !schedule.isActive
     toast.success(`Schedule ${schedule.isActive ? 'enabled' : 'disabled'}`)
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to update status')
   }
 }
@@ -240,16 +251,32 @@ onMounted(fetchSchedules)
   <div class="space-y-4">
     <div class="flex justify-between items-center">
       <div>
-        <h3 class="text-lg font-medium">Scheduled Executions</h3>
+        <h3 class="text-lg font-medium">
+          Scheduled Executions
+        </h3>
         <p class="text-sm text-muted-foreground">
           Automatically run this query and email the results.
         </p>
       </div>
-      <Button type="button" @click="openCreateDialog" size="sm">
+      <Button v-if="!hasParameters" type="button" size="sm" @click="openCreateDialog">
         <Plus class="mr-2 h-4 w-4" /> Add Schedule
       </Button>
     </div>
 
+    <div v-if="hasParameters" class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 p-4 rounded-lg text-sm flex items-start gap-3">
+      <div class="mt-0.5 font-bold text-lg">
+        ⚠️
+      </div>
+      <div>
+        <p class="font-bold">
+          Scheduling Unavailable
+        </p>
+        <p>This query contains parameters ({{ '{' + '{' }} variable {{ '}' + '}' }}). Scheduled execution is only supported for static queries without parameters.</p>
+        <p class="text-xs mt-1 font-normal opacity-90">
+          Existing active schedules will fail to execute unless parameters are removed.
+        </p>
+      </div>
+    </div>
     <div class="border rounded-md">
       <Table>
         <TableHeader>
@@ -258,7 +285,9 @@ onMounted(fetchSchedules)
             <TableHead>Recipients</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created By</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
+            <TableHead class="text-right">
+              Actions
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -274,9 +303,7 @@ onMounted(fetchSchedules)
                 <code v-if="s.cronExpression" class="bg-muted px-1 py-0.5 rounded text-xs">{{
                   s.cronExpression
                 }}</code>
-                <span v-else class="text-xs font-medium text-orange-500"
-                  >Run at: {{ formatDate(s.runAt!) }}</span
-                >
+                <span v-else class="text-xs font-medium text-orange-500">Run at: {{ formatDate(s.runAt!) }}</span>
               </div>
             </TableCell>
             <TableCell>
@@ -294,7 +321,11 @@ onMounted(fetchSchedules)
               </div>
             </TableCell>
             <TableCell>
-              <Switch :model-value="s.isActive" @update:model-value="() => toggleActive(s)" />
+              <Switch
+                :model-value="s.isActive"
+                :disabled="hasParameters"
+                @update:model-value="() => toggleActive(s)"
+              />
             </TableCell>
             <TableCell class="text-xs text-muted-foreground">
               {{ s.creator?.fullName || 'System' }}
@@ -328,8 +359,12 @@ onMounted(fetchSchedules)
         <div class="space-y-4 py-4">
           <Tabs v-model="form.executionType" class="w-full">
             <TabsList class="grid w-full grid-cols-2">
-              <TabsTrigger value="recurring">Recurring</TabsTrigger>
-              <TabsTrigger value="one-off">One-off</TabsTrigger>
+              <TabsTrigger value="recurring">
+                Recurring
+              </TabsTrigger>
+              <TabsTrigger value="one-off">
+                One-off
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="recurring" class="space-y-4 pt-4">
@@ -340,18 +375,23 @@ onMounted(fetchSchedules)
                     href="https://crontab.guru/"
                     target="_blank"
                     class="text-xs text-blue-500 hover:underline"
-                    >Help?</a
-                  >
+                  >Help?</a>
                 </div>
                 <Input v-model="form.cronExpression" placeholder="0 9 * * *" />
-                <p class="text-xs text-muted-foreground">Format: Minute Hour Day Month DayOfWeek</p>
+                <p class="text-xs text-muted-foreground">
+                  Format: Minute Hour Day Month DayOfWeek
+                </p>
                 <div
                   v-if="nextExecutions.length > 0"
                   class="mt-2 text-xs bg-muted p-2 rounded text-muted-foreground"
                 >
-                  <p class="font-semibold mb-1">Next executions:</p>
+                  <p class="font-semibold mb-1">
+                    Next executions:
+                  </p>
                   <ul class="list-disc pl-4 space-y-0.5">
-                    <li v-for="d in nextExecutions" :key="d">{{ d }}</li>
+                    <li v-for="d in nextExecutions" :key="d">
+                      {{ d }}
+                    </li>
                   </ul>
                 </div>
               </div>
@@ -416,14 +456,14 @@ onMounted(fetchSchedules)
             <Label>Recipients (comma separated)</Label>
             <Input v-model="form.recipients" placeholder="user@example.com, manager@example.com" />
             <p class="text-[10px] text-muted-foreground italic">
-              Required if Webhook URL is empty.
+              Optional. Separate multiple emails with commas.
             </p>
           </div>
           <div class="space-y-2">
             <Label>Webhook URL (Optional)</Label>
             <Input v-model="form.webhookUrl" placeholder="https://api.example.com/webhook" />
             <p class="text-[10px] text-muted-foreground italic">
-              Required if Recipients is empty. If filled, email will NOT be sent.
+              Optional. JSON payload will be POSTed to this URL.
             </p>
           </div>
           <div class="flex flex-row items-center justify-between rounded-lg border p-4">
@@ -441,8 +481,10 @@ onMounted(fetchSchedules)
           </div>
         </div>
         <DialogFooter>
-          <Button variant="ghost" @click="isDialogOpen = false">Cancel</Button>
-          <Button @click="saveSchedule" :disabled="isSubmitting">
+          <Button variant="ghost" @click="isDialogOpen = false">
+            Cancel
+          </Button>
+          <Button :disabled="isSubmitting" @click="saveSchedule">
             {{ isSubmitting ? 'Saving...' : 'Save' }}
           </Button>
         </DialogFooter>

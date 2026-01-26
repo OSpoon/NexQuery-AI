@@ -1,13 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import api from '@/lib/api'
+import { DateTime } from 'luxon'
+import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Dialog,
   DialogContent,
@@ -15,28 +14,20 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from '@/components/ui/dialog'
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog'
+import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+
+import api from '@/lib/api'
+import { cn } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 const user = authStore.user
-
-import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 // State
@@ -54,11 +45,16 @@ const enableCode = ref('')
 const recoveryCodes = ref<string[]>([])
 const showRecoveryCodes = ref(false)
 
+const lastPasswordChangeAt = ref<string | null>(null)
+const createdAt = ref<string | null>(null)
+const isWechatBound = ref(false)
+const showUnbindDialog = ref(false)
+
 onMounted(async () => {
   await fetchData()
 })
 
-const fetchData = async () => {
+async function fetchData() {
   // Assuming /me returns 2fa status in user object or separate field
   // We might need to update authStore.fetchPermissions or /me endpoint to include 'twoFactorEnabled' boolean in user object
   // Or we can just try to fetch 2fa status.
@@ -78,23 +74,19 @@ const fetchData = async () => {
         startEnable2FA()
       }
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error(e)
   }
 }
 
-const lastPasswordChangeAt = ref<string | null>(null)
-import { DateTime } from 'luxon'
-import { computed } from 'vue'
-import { cn } from '@/lib/utils'
-
-const createdAt = ref<string | null>(null)
+// Recovery Codes Dialog
 
 const lastPasswordChangeAtFormatted = computed(() => {
   if (!lastPasswordChangeAt.value) {
     return createdAt.value
-      ? DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED) +
-          ' (Account Created)'
+      ? `${DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED)
+      } (Account Created)`
       : 'Never'
   }
   return DateTime.fromISO(lastPasswordChangeAt.value).toLocaleString(DateTime.DATETIME_MED)
@@ -102,19 +94,21 @@ const lastPasswordChangeAtFormatted = computed(() => {
 
 const expirationDateFormatted = computed(() => {
   const baseDate = lastPasswordChangeAt.value || createdAt.value
-  if (!baseDate) return 'Unknown'
+  if (!baseDate)
+    return 'Unknown'
   return DateTime.fromISO(baseDate).plus({ days: 90 }).toLocaleString(DateTime.DATETIME_MED)
 })
 
 const daysRemaining = computed(() => {
   const baseDate = lastPasswordChangeAt.value || createdAt.value
-  if (!baseDate) return 0 // Force change if no dates
+  if (!baseDate)
+    return 0 // Force change if no dates
   const expiresAt = DateTime.fromISO(baseDate).plus({ days: 90 })
   const diff = expiresAt.diff(DateTime.now(), 'days').days
   return Math.max(0, Math.floor(diff))
 })
 
-const startEnable2FA = async () => {
+async function startEnable2FA() {
   isLoading.value = true
   try {
     const res = await api.post('/auth/2fa/generate')
@@ -122,14 +116,16 @@ const startEnable2FA = async () => {
     secret.value = res.data.secret
     enableCode.value = ''
     showEnableDialog.value = true
-  } catch (e: any) {
+  }
+  catch (e: any) {
     toast.error(e.response?.data?.message || 'Failed to generate 2FA secret')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
 
-const confirmEnable2FA = async () => {
+async function confirmEnable2FA() {
   if (!enableCode.value) {
     toast.error('Please enter the code')
     return
@@ -151,14 +147,16 @@ const confirmEnable2FA = async () => {
     // Refresh user state immediately to unblock navigation
     await authStore.fetchPermissions()
     await authStore.fetchMenus()
-  } catch (e: any) {
+  }
+  catch (e: any) {
     toast.error(e.response?.data?.message || 'Invalid code')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
 
-const handleDisableClick = () => {
+function handleDisableClick() {
   if (settingsStore.require2fa) {
     toast.error('Two-factor authentication is mandatory and cannot be disabled.')
     return
@@ -166,7 +164,7 @@ const handleDisableClick = () => {
   showDisableDialog.value = true
 }
 
-const confirmDisable2FA = async () => {
+async function confirmDisable2FA() {
   if (!disablePassword.value) {
     toast.error('Please enter your password')
     return
@@ -182,31 +180,33 @@ const confirmDisable2FA = async () => {
     disablePassword.value = ''
     toast.success('Two-factor authentication disabled')
     await authStore.fetchPermissions() // Refresh state
-  } catch (e: any) {
+  }
+  catch (e: any) {
     toast.error(e.response?.data?.message || 'Incorrect password')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
 
-// WeChat Unbind
-const isWechatBound = ref(false)
-const showUnbindDialog = ref(false)
+// Recovery Codes Dialog
 
-const handleUnbindClick = () => {
+function handleUnbindClick() {
   showUnbindDialog.value = true
 }
 
-const confirmUnbind = async () => {
+async function confirmUnbind() {
   isLoading.value = true
   try {
     await api.post('/auth/miniprogram/unbind')
     isWechatBound.value = false
     showUnbindDialog.value = false
     toast.success('WeChat account unbound successfully')
-  } catch (e: any) {
+  }
+  catch (e: any) {
     toast.error(e.response?.data?.message || 'Unbind failed')
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -215,8 +215,12 @@ const confirmUnbind = async () => {
 <template>
   <div class="container p-6 mx-auto max-w-4xl space-y-6">
     <div>
-      <h2 class="text-3xl font-bold tracking-tight">{{ t('profile.title') }}</h2>
-      <p class="text-muted-foreground">{{ t('profile.desc') }}</p>
+      <h2 class="text-3xl font-bold tracking-tight">
+        {{ t('profile.title') }}
+      </h2>
+      <p class="text-muted-foreground">
+        {{ t('profile.desc') }}
+      </p>
     </div>
 
     <Card>
@@ -227,7 +231,7 @@ const confirmUnbind = async () => {
       <CardContent class="space-y-4">
         <div class="flex items-center gap-6 mb-6">
           <Avatar class="h-24 w-24 border-2 border-muted">
-            <AvatarImage :src="user?.avatar" v-if="user?.avatar" />
+            <AvatarImage v-if="user?.avatar" :src="user?.avatar" />
             <AvatarFallback class="text-xl">
               {{ user?.fullName?.slice(0, 2).toUpperCase() || '?' }}
             </AvatarFallback>
@@ -253,7 +257,9 @@ const confirmUnbind = async () => {
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
-            <div class="font-medium">{{ t('profile.password') }}</div>
+            <div class="font-medium">
+              {{ t('profile.password') }}
+            </div>
             <div class="text-sm text-muted-foreground">
               {{ t('profile.change_password_desc') }}
             </div>
@@ -267,7 +273,9 @@ const confirmUnbind = async () => {
         <div class="rounded-lg border p-4 bg-muted/50">
           <div class="flex flex-row items-center justify-between space-y-0 pb-2">
             <div class="space-y-1">
-              <p class="text-sm font-medium leading-none">{{ t('profile.password_exp') }}</p>
+              <p class="text-sm font-medium leading-none">
+                {{ t('profile.password_exp') }}
+              </p>
               <p class="text-xs text-muted-foreground">
                 {{ t('profile.exp_desc') }}
               </p>
@@ -278,7 +286,7 @@ const confirmUnbind = async () => {
           </div>
           <div class="mt-4 text-xs text-muted-foreground">
             {{ t('profile.last_changed', { date: lastPasswordChangeAtFormatted }) }}
-            <br />
+            <br>
             {{ t('profile.expires_on', { date: expirationDateFormatted }) }}
           </div>
         </div>
@@ -286,29 +294,31 @@ const confirmUnbind = async () => {
         <Separator />
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
-            <div class="font-medium">{{ t('profile.2fa') }}</div>
+            <div class="font-medium">
+              {{ t('profile.2fa') }}
+            </div>
             <div class="text-sm text-muted-foreground">
               {{ t('profile.2fa_desc') }}
             </div>
           </div>
           <div>
-            <Button v-if="!twoFactorEnabled" @click="startEnable2FA" :disabled="isLoading">
+            <Button v-if="!twoFactorEnabled" :disabled="isLoading" @click="startEnable2FA">
               {{ t('profile.enable_2fa') }}
             </Button>
             <div v-else>
               <Button
                 v-if="settingsStore.require2fa"
                 variant="secondary"
-                @click="handleDisableClick"
                 :disabled="isLoading"
+                @click="handleDisableClick"
               >
                 {{ t('profile.enabled_mandatory') }}
               </Button>
               <Button
                 v-else
                 variant="destructive"
-                @click="handleDisableClick"
                 :disabled="isLoading"
+                @click="handleDisableClick"
               >
                 {{ t('profile.disable_2fa') }}
               </Button>
@@ -326,7 +336,9 @@ const confirmUnbind = async () => {
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
-            <div class="font-medium">WeChat (Mini Program)</div>
+            <div class="font-medium">
+              WeChat (Mini Program)
+            </div>
             <div class="text-sm text-muted-foreground">
               {{
                 isWechatBound ? 'Bound to a WeChat account.' : 'Not bound to any WeChat account.'
@@ -337,12 +349,14 @@ const confirmUnbind = async () => {
             <Button
               v-if="isWechatBound"
               variant="destructive"
-              @click="handleUnbindClick"
               :disabled="isLoading"
+              @click="handleUnbindClick"
             >
               Unbind
             </Button>
-            <Button v-else variant="outline" disabled> Unbound </Button>
+            <Button v-else variant="outline" disabled>
+              Unbound
+            </Button>
           </div>
         </div>
       </CardContent>
@@ -360,14 +374,16 @@ const confirmUnbind = async () => {
         <div class="space-y-4 py-4">
           <div class="space-y-2">
             <Label for="password">{{ t('auth.password') }}</Label>
-            <Input id="password" type="password" v-model="disablePassword" />
+            <Input id="password" v-model="disablePassword" type="password" />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showDisableDialog = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button variant="destructive" @click="confirmDisable2FA" :disabled="isLoading">
+          <Button variant="outline" @click="showDisableDialog = false">
+            {{
+              t('common.cancel')
+            }}
+          </Button>
+          <Button variant="destructive" :disabled="isLoading" @click="confirmDisable2FA">
             {{ t('profile.disable_2fa') }}
           </Button>
         </DialogFooter>
@@ -385,7 +401,7 @@ const confirmUnbind = async () => {
         </DialogHeader>
         <div class="flex flex-col items-center justify-center py-4 space-y-4">
           <div v-if="qrCodeUrl" class="bg-white p-2 rounded">
-            <img :src="qrCodeUrl" alt="2FA QR Code" class="w-48 h-48" />
+            <img :src="qrCodeUrl" alt="2FA QR Code" class="w-48 h-48">
           </div>
           <div class="w-full max-w-xs space-y-2 flex flex-col items-center">
             <Label for="code">{{ t('auth.2fa_code') }}</Label>
@@ -402,12 +418,16 @@ const confirmUnbind = async () => {
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="showEnableDialog = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button @click="confirmEnable2FA" :disabled="isLoading">{{
-            t('profile.verify_enable')
-          }}</Button>
+          <Button variant="outline" @click="showEnableDialog = false">
+            {{
+              t('common.cancel')
+            }}
+          </Button>
+          <Button :disabled="isLoading" @click="confirmEnable2FA">
+            {{
+              t('profile.verify_enable')
+            }}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -431,7 +451,9 @@ const confirmUnbind = async () => {
           </div>
         </div>
         <DialogFooter>
-          <Button @click="showRecoveryCodes = false">{{ t('profile.saved_codes') }}</Button>
+          <Button @click="showRecoveryCodes = false">
+            {{ t('profile.saved_codes') }}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -447,10 +469,12 @@ const confirmUnbind = async () => {
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" @click="showUnbindDialog = false">{{
-            t('common.cancel')
-          }}</Button>
-          <Button variant="destructive" @click="confirmUnbind" :disabled="isLoading">
+          <Button variant="outline" @click="showUnbindDialog = false">
+            {{
+              t('common.cancel')
+            }}
+          </Button>
+          <Button variant="destructive" :disabled="isLoading" @click="confirmUnbind">
             Confirm Unbind
           </Button>
         </DialogFooter>

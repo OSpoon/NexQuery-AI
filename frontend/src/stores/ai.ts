@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import api from '@/lib/api'
 import { toast } from 'vue-sonner'
+import api from '@/lib/api'
 
 export interface AgentStep {
   type: 'thought' | 'tool'
@@ -19,6 +19,14 @@ export interface ChatMessage {
   prompt?: string // For assistant messages, stores the question that triggered it
   feedback?: 'up' | 'down' | null
   agentSteps?: AgentStep[]
+  visualization?: {
+    recommendation: 'table' | 'bar' | 'line' | 'pie' | 'number'
+    config: any | null
+  }
+  clarification?: {
+    question: string
+    options: string[]
+  }
 }
 
 export const useAiStore = defineStore('ai', () => {
@@ -50,7 +58,8 @@ export const useAiStore = defineStore('ai', () => {
     try {
       const res = await api.get('/ai/conversations')
       conversations.value = res.data
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to fetch conversations', e)
     }
   }
@@ -63,16 +72,19 @@ export const useAiStore = defineStore('ai', () => {
       messages.value = res.data.messages.map((m: any) => ({
         role: m.role,
         content: m.content,
+        prompt: m.prompt,
         agentSteps: m.agentSteps,
       }))
       // Restore data source context if saved
       if (res.data.dataSourceId) {
         dataSourceId.value = res.data.dataSourceId
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to load conversation', e)
       toast.error('Failed to load history')
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
@@ -87,18 +99,20 @@ export const useAiStore = defineStore('ai', () => {
   async function deleteConversation(id: number) {
     try {
       await api.delete(`/ai/conversations/${id}`)
-      conversations.value = conversations.value.filter((c) => c.id !== id)
+      conversations.value = conversations.value.filter(c => c.id !== id)
       if (currentConversationId.value === id) {
         startNewChat()
       }
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to delete conversation', e)
       toast.error('Failed to delete conversation')
     }
   }
 
   async function sendMessage(content: string) {
-    if (!content.trim()) return
+    if (!content.trim())
+      return
 
     // Add user message
     messages.value.push({ role: 'user', content })
@@ -106,14 +120,16 @@ export const useAiStore = defineStore('ai', () => {
 
     try {
       await sendMessageStream(content)
-    } catch (error: any) {
+    }
+    catch (error: any) {
       console.error(error)
       messages.value.push({
         role: 'assistant',
         content: 'Sorry, I encountered an error creating that query.',
       })
       toast.error('AI Request Failed')
-    } finally {
+    }
+    finally {
       isLoading.value = false
     }
   }
@@ -125,7 +141,7 @@ export const useAiStore = defineStore('ai', () => {
       dbType: currentDbType.value,
       dataSourceId: dataSourceId.value,
       conversationId: currentConversationId.value,
-      history: messages.value.slice(1, -1).map((m) => ({
+      history: messages.value.slice(1, -1).map(m => ({
         role: m.role,
         content: m.content,
         agentSteps: m.agentSteps,
@@ -141,14 +157,15 @@ export const useAiStore = defineStore('ai', () => {
     })
     const activeMessage = messages.value[messages.value.length - 1]
 
-    if (!activeMessage) return
+    if (!activeMessage)
+      return
 
     try {
       const response = await fetch('/api/ai/chat/stream', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
+          'Authorization': `Bearer ${localStorage.getItem('auth_token')}`,
         },
         body: JSON.stringify(payload),
       })
@@ -161,13 +178,15 @@ export const useAiStore = defineStore('ai', () => {
       const reader = response.body?.getReader()
       const decoder = new TextDecoder()
 
-      if (!reader) return
+      if (!reader)
+        return
 
       let buffer = '' // Buffer to hold incomplete chunks
 
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+        if (done)
+          break
 
         buffer += decoder.decode(value, { stream: true })
         const lines = buffer.split('\n')
@@ -177,7 +196,8 @@ export const useAiStore = defineStore('ai', () => {
           if (line.trim().startsWith('data: ')) {
             try {
               const params = line.trim().slice(6)
-              if (params === '[DONE]') continue
+              if (params === '[DONE]')
+                continue
 
               const data = JSON.parse(params)
 
@@ -188,23 +208,32 @@ export const useAiStore = defineStore('ai', () => {
               }
 
               // Initialize agentSteps if undefined
-              if (!activeMessage.agentSteps) activeMessage.agentSteps = []
+              if (!activeMessage.agentSteps)
+                activeMessage.agentSteps = []
 
               if (data.type === 'thought') {
-                // Append content to main message
-                activeMessage.content += data.content
-
-                // Also update the last thought step or create one
+                // Update the last thought step or create one
+                // Visualization: Thoughts ONLY go to agentSteps, NOT to the main content bubble anymore.
                 const lastStep = activeMessage.agentSteps[activeMessage.agentSteps.length - 1]
                 if (lastStep && lastStep.type === 'thought') {
                   lastStep.content = (lastStep.content || '') + data.content
-                } else {
+                }
+                else {
                   activeMessage.agentSteps.push({
                     type: 'thought',
                     content: data.content,
                   })
                 }
-              } else if (data.type === 'tool_start') {
+              }
+              else if (data.type === 'response') {
+                // New Event: This is the Final Answer.
+                // Append this to the main chat bubble.
+                activeMessage.content += data.content
+                if (data.visualization) {
+                  activeMessage.visualization = data.visualization
+                }
+              }
+              else if (data.type === 'tool_start') {
                 activeMessage.agentSteps.push({
                   type: 'tool',
                   toolName: data.tool,
@@ -212,32 +241,43 @@ export const useAiStore = defineStore('ai', () => {
                   toolId: data.id,
                   status: 'running',
                 })
-              } else if (data.type === 'tool_end') {
+              }
+              else if (data.type === 'tool_end') {
                 // Find the running tool step with matching ID
                 // Use slice() to create a copy before reversing, as reverse() is in-place
                 const toolStep = activeMessage.agentSteps
                   .slice()
                   .reverse()
-                  .find((s) => s.type === 'tool' && s.toolId === data.id)
+                  .find(s => s.type === 'tool' && s.toolId === data.id)
                 if (toolStep) {
                   toolStep.toolOutput = data.output
                   toolStep.status = 'done'
                 }
-              } else if (data.type === 'error') {
+              }
+              else if (data.type === 'clarify') {
+                activeMessage.clarification = {
+                  question: data.question,
+                  options: data.options,
+                }
+              }
+              else if (data.type === 'error') {
                 throw new Error(data.content)
-              } else if (data.chunk) {
+              }
+              else if (data.chunk) {
                 // Legacy fallback
                 activeMessage.content += data.chunk
               }
-            } catch (e) {
+            }
+            catch {
               // Ignore parsing errors for partial chunks
             }
           }
         }
       }
-    } catch (error: any) {
+    }
+    catch (error: any) {
       console.error('Stream Error:', error)
-      activeMessage.content += '\n\n**Error:** ' + error.message
+      activeMessage.content += `\n\n**Error:** ${error.message}`
     }
   }
 

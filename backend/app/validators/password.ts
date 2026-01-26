@@ -20,10 +20,10 @@ const passwordStrength = vine.createRule((value: unknown, _options, field) => {
   if (!/[a-z]/.test(value)) {
     field.report('Password must contain at least one lowercase letter', 'password.lowercase', field)
   }
-  if (!/[0-9]/.test(value)) {
+  if (!/\d/.test(value)) {
     field.report('Password must contain at least one number', 'password.number', field)
   }
-  if (!/[^A-Za-z0-9]/.test(value)) {
+  if (!/[^A-Z0-9]/i.test(value)) {
     field.report('Password must contain at least one special character', 'password.special', field)
   }
 })
@@ -33,5 +33,5 @@ export const passwordRule = vine.string().minLength(12).use(passwordStrength())
 export const passwordValidator = vine.compile(
   vine.object({
     password: passwordRule,
-  })
+  }),
 )

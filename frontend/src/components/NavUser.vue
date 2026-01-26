@@ -1,24 +1,23 @@
 <script setup lang="ts">
-import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
-import { toast } from 'vue-sonner'
-import { useSettingsStore } from '@/stores/settings'
 import {
-  BadgeCheck,
-  ChevronsUpDown,
-  LogOut,
-  Palette,
-  Check,
-  Github,
-  Languages,
-  Webhook,
-  Mail,
-  Database,
-  HardDrive,
   Activity,
+  BadgeCheck,
+  Check,
+  ChevronsUpDown,
+  Database,
+  Github,
+  HardDrive,
+  Languages,
+  LogOut,
+  Mail,
+  Palette,
+  Webhook,
 } from 'lucide-vue-next'
-
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,10 +25,10 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
   DropdownMenuSub,
-  DropdownMenuSubTrigger,
   DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
+  DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import {
   SidebarMenu,
@@ -37,6 +36,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { useAuthStore } from '@/stores/auth'
+
+import { useSettingsStore } from '@/stores/settings'
 
 defineProps<{
   user: {
@@ -51,7 +53,7 @@ const router = useRouter()
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
 
-const handleLogout = () => {
+function handleLogout() {
   authStore.logout()
   toast.success('Logged out successfully')
   router.push('/login')
@@ -66,17 +68,15 @@ const themes = [
   { name: 'Violet', value: 'theme-violet', color: 'bg-violet-600' },
 ]
 
-import { useI18n } from 'vue-i18n'
-
 const { locale } = useI18n()
 
-const setLocale = (newLocale: string) => {
+function setLocale(newLocale: string) {
   locale.value = newLocale
   localStorage.setItem('locale', newLocale)
   toast.success('Language switched')
 }
 
-const setTheme = (themeValue: string) => {
+function setTheme(themeValue: string) {
   settingsStore.setThemeColor(themeValue)
 }
 </script>
@@ -91,7 +91,7 @@ const setTheme = (themeValue: string) => {
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 rounded-lg">
-              <AvatarImage :src="user.avatar" v-if="user.avatar" />
+              <AvatarImage v-if="user.avatar" :src="user.avatar" />
               <AvatarFallback class="rounded-lg">
                 {{ user.name.slice(0, 2).toUpperCase() }}
               </AvatarFallback>
@@ -112,7 +112,7 @@ const setTheme = (themeValue: string) => {
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarImage :src="user.avatar" v-if="user.avatar" />
+                <AvatarImage v-if="user.avatar" :src="user.avatar" />
                 <AvatarFallback class="rounded-lg">
                   {{ user.name.slice(0, 2).toUpperCase() }}
                 </AvatarFallback>
@@ -138,10 +138,10 @@ const setTheme = (themeValue: string) => {
                 <DropdownMenuItem
                   v-for="theme in themes"
                   :key="theme.value"
-                  @click="setTheme(theme.value)"
                   class="gap-2 cursor-pointer"
+                  @click="setTheme(theme.value)"
                 >
-                  <div class="h-4 w-4 rounded-full border border-muted" :class="theme.color"></div>
+                  <div class="h-4 w-4 rounded-full border border-muted" :class="theme.color" />
                   <span class="flex-1">{{ theme.name }}</span>
                   <Check v-if="settingsStore.themeColor === theme.value" class="h-4 w-4 ml-auto" />
                 </DropdownMenuItem>
@@ -154,11 +154,11 @@ const setTheme = (themeValue: string) => {
                 <span>Language</span>
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
-                <DropdownMenuItem @click="setLocale('en')" class="gap-2 cursor-pointer">
+                <DropdownMenuItem class="gap-2 cursor-pointer" @click="setLocale('en')">
                   <span>English</span>
                   <Check v-if="locale === 'en'" class="h-4 w-4 ml-auto" />
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="setLocale('zh-CN')" class="gap-2 cursor-pointer">
+                <DropdownMenuItem class="gap-2 cursor-pointer" @click="setLocale('zh-CN')">
                   <span>中文 (简体)</span>
                   <Check v-if="locale === 'zh-CN'" class="h-4 w-4 ml-auto" />
                 </DropdownMenuItem>

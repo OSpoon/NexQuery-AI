@@ -10,7 +10,6 @@ export default class QueryTasksController {
     const search = request.input('search')
     const tag = request.input('tag')
 
-
     const query = QueryTask.query()
       .preload('dataSource')
       .preload('creator')
@@ -71,13 +70,20 @@ export default class QueryTasksController {
     const task = await QueryTask.findOrFail(params.id)
     const payload = await request.validateUsing(updateQueryTaskValidator)
 
-    if (payload.name !== undefined) task.name = payload.name
-    if (payload.description !== undefined) task.description = payload.description
-    if (payload.sqlTemplate !== undefined) task.sqlTemplate = payload.sqlTemplate
-    if (payload.formSchema !== undefined) task.formSchema = payload.formSchema
-    if (payload.dataSourceId !== undefined) task.dataSourceId = payload.dataSourceId
-    if (payload.storeResults !== undefined) task.storeResults = payload.storeResults
-    if (payload.tags !== undefined) task.tags = payload.tags
+    if (payload.name !== undefined)
+      task.name = payload.name
+    if (payload.description !== undefined)
+      task.description = payload.description
+    if (payload.sqlTemplate !== undefined)
+      task.sqlTemplate = payload.sqlTemplate
+    if (payload.formSchema !== undefined)
+      task.formSchema = payload.formSchema
+    if (payload.dataSourceId !== undefined)
+      task.dataSourceId = payload.dataSourceId
+    if (payload.storeResults !== undefined)
+      task.storeResults = payload.storeResults
+    if (payload.tags !== undefined)
+      task.tags = payload.tags
 
     await task.save()
 

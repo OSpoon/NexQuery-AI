@@ -1,5 +1,5 @@
-import axios from 'axios'
 import { CryptoService } from '@nexquery/shared'
+import axios from 'axios'
 
 const api = axios.create({
   baseURL: '/api',
@@ -11,15 +11,17 @@ const api = axios.create({
 // Initialize Encryption Service
 const enableEncryption = import.meta.env.API_ENCRYPTION_ENABLED === 'true'
 const encryptionKey = import.meta.env.API_ENCRYPTION_KEY
-let cryptoService: CryptoService | null = null
-
-if (enableEncryption && encryptionKey) {
-  try {
-    cryptoService = new CryptoService(encryptionKey)
-  } catch (e) {
-    console.error('Failed to initialize CryptoService', e)
+export const cryptoService: CryptoService | null = (() => {
+  if (enableEncryption && encryptionKey) {
+    try {
+      return new CryptoService(encryptionKey)
+    }
+    catch (e) {
+      console.error('Failed to initialize CryptoService', e)
+    }
   }
-}
+  return null
+})()
 
 // Add request interceptor
 api.interceptors.request.use((config) => {
@@ -40,7 +42,8 @@ api.interceptors.request.use((config) => {
       // Set headers
       config.headers['X-Signature'] = signature
       config.headers['X-Encryption-Enabled'] = 'true'
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Request encryption failed', e)
       // Fallback? Or fail? If encryption is enforced, we should probably throw.
       // But for now let's hope it works.
@@ -56,10 +59,10 @@ api.interceptors.response.use(
   (response) => {
     // Decryption Logic
     if (
-      cryptoService &&
-      response.data &&
-      response.data.data &&
-      typeof response.data.data === 'string'
+      cryptoService
+      && response.data
+      && response.data.data
+      && typeof response.data.data === 'string'
     ) {
       try {
         // We assume usage of { data: "ciphertext" } wrapper for encrypted responses
@@ -75,11 +78,13 @@ api.interceptors.response.use(
           const decrypted = cryptoService.decrypt(response.data.data)
           if (decrypted !== null) {
             response.data = decrypted
-          } else {
+          }
+          else {
             console.error('Response decryption returned null')
           }
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.error('Response decryption failed', e)
       }
     }
@@ -112,5 +117,4 @@ api.interceptors.response.use(
   },
 )
 
-export { cryptoService }
 export default api

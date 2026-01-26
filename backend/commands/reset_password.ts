@@ -1,10 +1,10 @@
-import { BaseCommand, args, flags } from '@adonisjs/core/ace'
-import { CommandOptions } from '@adonisjs/core/types/ace'
+import { args, BaseCommand, flags } from '@adonisjs/core/ace'
+import type { CommandOptions } from '@adonisjs/core/types/ace'
 import User from '#models/user'
 
 export default class ResetPassword extends BaseCommand {
   static commandName = 'reset:password'
-  static description = "Reset a user's password"
+  static description = 'Reset a user\'s password'
 
   static options: CommandOptions = {
     startApp: true,

@@ -4,8 +4,8 @@ import DbHelper from '#services/db_helper'
 
 export class GetTableSchemaTool extends StructuredTool {
   name = 'get_table_schema'
-  description =
-    'Get the schema (columns, types, keys) for a specific table. Use this to understand table structure before writing SQL.'
+  description
+    = 'Get the schema (columns, types, keys) for a specific table. Use this to understand table structure before writing SQL.'
 
   schema = z.object({
     dataSourceId: z.number(),
@@ -32,7 +32,7 @@ export class GetTableSchemaTool extends StructuredTool {
         'refresh_token',
       ]
       const isSensitive = (name: string) =>
-        sensitiveFields.some((f) => name.toLowerCase().includes(f))
+        sensitiveFields.some(f => name.toLowerCase().includes(f))
 
       if (dbType === 'postgresql') {
         const columns = await client.rawQuery(
@@ -60,10 +60,11 @@ export class GetTableSchemaTool extends StructuredTool {
                 AND a.attnum > 0
                 AND NOT a.attisdropped;
         `,
-          [tableName]
+          [tableName],
         )
 
-        if (columns.rows.length === 0) return `Table '${tableName}' not found.`
+        if (columns.rows.length === 0)
+          return `Table '${tableName}' not found.`
 
         schemaDescription = `Table: ${tableName}\nColumns:\n${columns.rows
           .map((c: any) => {

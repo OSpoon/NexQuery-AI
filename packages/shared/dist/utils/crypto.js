@@ -1,20 +1,25 @@
 import CryptoJS from 'crypto-js';
 // IMPORTANT: Deep fix for "Native crypto module could not be used" in environments without window.crypto (like WeChat)
+// Only patch if we are strictly in an environment without native crypto to avoid downgrading security in Browsers/Node.
 try {
-    const lib = CryptoJS.lib;
-    if (lib && lib.WordArray) {
-        lib.WordArray.random = function (nBytes) {
-            const words = [];
-            for (let i = 0; i < nBytes; i += 4) {
-                words.push(Math.floor(Math.random() * 0x100000000));
-            }
-            return lib.WordArray.create(words, nBytes);
-        };
-        console.log('NexQuery: CryptoJS.lib.WordArray.random has been patched');
+    const hasNativeCrypto = (typeof window !== 'undefined' && (window.crypto || window.msCrypto))
+        || (typeof globalThis !== 'undefined' && globalThis.crypto);
+    if (!hasNativeCrypto) {
+        const lib = CryptoJS.lib;
+        if (lib && lib.WordArray) {
+            lib.WordArray.random = function (nBytes) {
+                const words = [];
+                for (let i = 0; i < nBytes; i += 4) {
+                    words.push(Math.floor(Math.random() * 0x100000000));
+                }
+                return lib.WordArray.create(words, nBytes);
+            };
+            console.warn('NexQuery: CryptoJS.lib.WordArray.random has been patched (Insecure Fallback for Non-Standard Env)');
+        }
     }
 }
-catch (e) {
-    console.error('NexQuery: Failed to patch CryptoJS', e);
+catch {
+    console.error('NexQuery: Failed to patch CryptoJS');
 }
 export class CryptoService {
     constructor(key) {
@@ -40,8 +45,8 @@ export class CryptoService {
             const originalText = bytes.toString(CryptoJS.enc.Utf8);
             return originalText || null;
         }
-        catch (e) {
-            console.error('Decryption failed', e);
+        catch {
+            console.error('Decryption failed');
             return null;
         }
     }
@@ -55,7 +60,7 @@ export class CryptoService {
         try {
             return JSON.parse(raw);
         }
-        catch (e) {
+        catch {
             // If it's not JSON, return as is (raw string)
             return raw;
         }

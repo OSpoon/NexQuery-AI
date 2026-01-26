@@ -1,12 +1,34 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, nextTick } from 'vue'
 import { useDark } from '@vueuse/core'
-import { useAiStore } from '@/stores/ai'
-import { useDataSourceStore } from '@/stores/dataSource'
+import {
+  BarChart2,
+  Bot,
+  Hash,
+  HelpCircle,
+  History,
+  LineChart,
+  Loader2,
+  MessageCircle,
+  PieChart,
+  PlayCircle,
+  Plus,
+  Send,
+  Sparkles,
+  Table,
+  ThumbsDown,
+  ThumbsUp,
+  Trash2,
+  User,
+  X,
+} from 'lucide-vue-next'
+import { MarkdownRender } from 'markstream-vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import AiChart from '@/components/shared/AiChart.vue'
+import SqlEditor from '@/components/shared/SqlEditor.vue'
+import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Dialog,
   DialogContent,
@@ -16,38 +38,24 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  MessageCircle,
-  X,
-  Send,
-  Bot,
-  User,
-  Sparkles,
-  ThumbsUp,
-  ThumbsDown,
-  Check,
-  History,
-  Plus,
-  Trash2,
-} from 'lucide-vue-next'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
+import { useAiStore } from '@/stores/ai'
+import { useDataSourceStore } from '@/stores/dataSource'
 import { useSettingsStore } from '@/stores/settings'
-import { MarkdownRender } from 'markstream-vue'
-import { toast } from 'vue-sonner'
-import { useI18n } from 'vue-i18n'
 import AgentSteps from './AgentSteps.vue'
 // CSS is now imported in style.css inside @layer components
 
@@ -94,9 +102,10 @@ watch(
   },
 )
 
-const scrollToBottom = () => {
+function scrollToBottom() {
   nextTick(() => {
-    if (!scrollAreaRef.value) return
+    if (!scrollAreaRef.value)
+      return
 
     // Handle both Element and Component ref
     const el = (scrollAreaRef.value as any).$el || scrollAreaRef.value
@@ -120,17 +129,20 @@ watch(
 watch(
   () => store.isOpen,
   (val) => {
-    if (val) scrollToBottom()
+    if (val)
+      scrollToBottom()
   },
 )
 
-const handleSend = () => {
-  if (!input.value.trim() || store.isLoading) return
+function handleSend() {
+  if (!input.value.trim() || store.isLoading)
+    return
 
   // Set context if selected
   if (selectedDataSource.value && selectedDataSource.value !== 'none') {
     store.dataSourceId = Number(selectedDataSource.value)
-  } else {
+  }
+  else {
     store.dataSourceId = undefined
   }
 
@@ -141,8 +153,38 @@ const handleSend = () => {
 const isCorrectionOpen = ref(false)
 const correctionText = ref('')
 const activeFeedbackMsg = ref<any>(null)
+const previewData = ref<Record<number, any[]>>({})
+const loadingPreview = ref<Record<number, boolean>>({})
 
-const handleFeedback = async (msg: any, helpful: boolean) => {
+async function handlePreview(msg: any, index: number) {
+  if (loadingPreview.value[index])
+    return
+
+  const sqlMatch = msg.content.match(/```sql\n?([\s\S]*?)```/)
+  const sql = sqlMatch ? sqlMatch[1] : msg.content
+
+  if (!sql || !store.dataSourceId) {
+    toast.error('Unable to execute: SQL or Data Source missing')
+    return
+  }
+
+  loadingPreview.value[index] = true
+  try {
+    const res = await api.post('/ai/preview', {
+      dataSourceId: store.dataSourceId,
+      sql,
+    })
+    previewData.value[index] = res.data.data
+  }
+  catch (error: any) {
+    toast.error(error.response?.data?.message || 'Failed to fetch preview data')
+  }
+  finally {
+    loadingPreview.value[index] = false
+  }
+}
+
+async function handleFeedback(msg: any, helpful: boolean) {
   // Toggle logic: If clicking the same feedback, "cancel" it
   const isCancel = (helpful && msg.feedback === 'up') || (!helpful && msg.feedback === 'down')
 
@@ -166,20 +208,24 @@ const handleFeedback = async (msg: any, helpful: boolean) => {
         generatedSql: msg.content,
         isHelpful: helpful,
         userCorrection: null,
+        conversationId: store.currentConversationId,
       })
       msg.feedback = helpful ? 'up' : 'down'
       toast.success(t('common.success'))
-    } else {
+    }
+    else {
       msg.feedback = null
     }
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Failed to send feedback', e)
     toast.error(t('common.error'))
   }
 }
 
-const submitCorrection = async () => {
-  if (!activeFeedbackMsg.value) return
+async function submitCorrection() {
+  if (!activeFeedbackMsg.value)
+    return
 
   const question = activeFeedbackMsg.value.prompt || 'Unknown'
 
@@ -189,14 +235,21 @@ const submitCorrection = async () => {
       generatedSql: activeFeedbackMsg.value.content,
       isHelpful: false,
       userCorrection: correctionText.value,
+      conversationId: store.currentConversationId,
     })
     activeFeedbackMsg.value.feedback = 'down'
     isCorrectionOpen.value = false
     toast.success(t('common.success'))
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Failed to send correction', e)
     toast.error(t('common.error'))
   }
+}
+
+function selectOption(option: string) {
+  input.value = option
+  handleSend()
 }
 </script>
 
@@ -262,8 +315,8 @@ const submitCorrection = async () => {
             variant="ghost"
             size="icon"
             class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
-            @click="store.startNewChat"
             title="New Chat"
+            @click="store.startNewChat"
           >
             <Plus class="h-4 w-4" />
           </Button>
@@ -299,7 +352,9 @@ const submitCorrection = async () => {
             <SelectValue placeholder="Select Data Source (Context)" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">No Context (General Chat)</SelectItem>
+            <SelectItem value="none">
+              No Context (General Chat)
+            </SelectItem>
             <SelectItem
               v-for="ds in dataSourceStore.databaseSources"
               :key="ds.id"
@@ -342,7 +397,79 @@ const submitCorrection = async () => {
                     v-if="msg.agentSteps && msg.agentSteps.length > 0"
                     :steps="msg.agentSteps"
                   />
+
+                  <!-- Visualization Badge -->
+                  <div v-if="msg.visualization" class="mb-2 flex items-center gap-1.5">
+                    <Badge
+                      variant="outline"
+                      class="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+                    >
+                      <BarChart2
+                        v-if="msg.visualization.recommendation === 'bar'"
+                        class="h-3 w-3"
+                      />
+                      <LineChart
+                        v-else-if="msg.visualization.recommendation === 'line'"
+                        class="h-3 w-3"
+                      />
+                      <PieChart
+                        v-else-if="msg.visualization.recommendation === 'pie'"
+                        class="h-3 w-3"
+                      />
+                      <Hash
+                        v-else-if="msg.visualization.recommendation === 'number'"
+                        class="h-3 w-3"
+                      />
+                      <Table v-else class="h-3 w-3" />
+                      Recommended: {{ msg.visualization.recommendation }}
+                    </Badge>
+                    <Button
+                      v-if="!previewData[index]"
+                      variant="outline"
+                      size="sm"
+                      class="h-6 px-2 text-[10px] gap-1 hover:bg-primary/10 border-primary/20 text-primary"
+                      :disabled="loadingPreview[index]"
+                      @click="handlePreview(msg, index)"
+                    >
+                      <Loader2 v-if="loadingPreview[index]" class="h-3 w-3 animate-spin" />
+                      <PlayCircle v-else class="h-3 w-3" />
+                      {{ loadingPreview[index] ? 'Running...' : 'Execute & Visualize' }}
+                    </Button>
+                  </div>
+
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
+
+                  <!-- Chart Preview -->
+                  <div v-if="previewData[index]" class="mt-4">
+                    <AiChart
+                      :data="previewData[index]"
+                      :type="msg.visualization?.recommendation || 'table'"
+                      :config="msg.visualization?.config || {}"
+                    />
+                  </div>
+
+                  <!-- Clarification Request -->
+                  <div
+                    v-if="msg.clarification"
+                    class="mt-3 p-3 bg-background/50 border border-primary/20 rounded-xl space-y-3 animate-in fade-in zoom-in-95 duration-300"
+                  >
+                    <div class="flex items-center gap-2 text-primary">
+                      <HelpCircle class="h-4 w-4" />
+                      <span class="text-xs font-semibold">{{ msg.clarification.question }}</span>
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Button
+                        v-for="opt in msg.clarification.options"
+                        :key="opt"
+                        variant="secondary"
+                        size="sm"
+                        class="text-[11px] h-7 px-3 bg-secondary/50 hover:bg-primary hover:text-primary-foreground transition-all rounded-full shadow-sm"
+                        @click="selectOption(opt)"
+                      >
+                        {{ opt }}
+                      </Button>
+                    </div>
+                  </div>
 
                   <!-- Feedback Actions -->
                   <div
@@ -354,8 +481,8 @@ const submitCorrection = async () => {
                       variant="ghost"
                       size="icon"
                       class="h-6 w-6 rounded-md hover:bg-primary/10"
-                      @click="handleFeedback(msg, true)"
                       title="Helpful"
+                      @click="handleFeedback(msg, true)"
                     >
                       <ThumbsUp
                         class="h-3 w-3"
@@ -366,8 +493,8 @@ const submitCorrection = async () => {
                       variant="ghost"
                       size="icon"
                       class="h-6 w-6 rounded-md hover:bg-destructive/10"
-                      @click="handleFeedback(msg, false)"
                       title="Not helpful"
+                      @click="handleFeedback(msg, false)"
                     >
                       <ThumbsDown
                         class="h-3 w-3"
@@ -376,7 +503,9 @@ const submitCorrection = async () => {
                     </Button>
                   </div>
                 </div>
-                <div v-else>{{ msg.content }}</div>
+                <div v-else>
+                  {{ msg.content }}
+                </div>
               </div>
             </div>
             <div v-if="store.isLoading" class="flex gap-3">
@@ -393,7 +522,7 @@ const submitCorrection = async () => {
 
       <!-- Input -->
       <div class="p-3 pt-0">
-        <form @submit.prevent="handleSend" class="flex gap-2">
+        <form class="flex gap-2" @submit.prevent="handleSend">
           <Input
             v-model="input"
             :placeholder="
@@ -421,7 +550,7 @@ const submitCorrection = async () => {
 
     <!-- Correction Dialog -->
     <Dialog v-model:open="isCorrectionOpen">
-      <DialogContent class="sm:max-w-[425px]">
+      <DialogContent class="sm:max-w-[700px]">
         <DialogHeader>
           <DialogTitle>帮助我们改进</DialogTitle>
           <DialogDescription>
@@ -429,15 +558,15 @@ const submitCorrection = async () => {
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <Textarea
-            v-model="correctionText"
-            placeholder="输入正确的 SQL..."
-            class="h-32 font-mono text-xs"
-          />
+          <SqlEditor v-model="correctionText" :data-source-id="store.dataSourceId" class="h-64" />
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="isCorrectionOpen = false">取消</Button>
-          <Button @click="submitCorrection">提交反馈</Button>
+          <Button variant="outline" @click="isCorrectionOpen = false">
+            取消
+          </Button>
+          <Button @click="submitCorrection">
+            提交反馈
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

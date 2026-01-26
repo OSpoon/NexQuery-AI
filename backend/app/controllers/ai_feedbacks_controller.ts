@@ -1,31 +1,38 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import AiFeedback from '#models/ai_feedback'
-import LangChainService from '#services/lang_chain_service'
 
 export default class AiFeedbacksController {
   /**
    * Store feedback
    */
   async store({ request, response }: HttpContext) {
-    const data = request.only(['question', 'generatedSql', 'isHelpful', 'userCorrection'])
+    const data = request.only([
+      'question',
+      'generatedSql',
+      'isHelpful',
+      'userCorrection',
+      'conversationId',
+    ])
 
     const feedback = await AiFeedback.create({
+      conversationId: data.conversationId || null,
       question: data.question,
       generatedSql: data.generatedSql,
       isHelpful: data.isHelpful,
       userCorrection: data.userCorrection || null,
     })
 
+    // Learning is now handled manually via Promotion to Knowledge Base (Pending Review)
+    /*
     if (data.userCorrection) {
       try {
         const langChainService = new LangChainService()
-        // Fire and forget learning
         langChainService.learnInteraction(data.question, data.userCorrection)
       } catch (error) {
-        // Log error but don't fail the request
         console.error('Failed to trigger learning from feedback:', error)
       }
     }
+    */
 
     return response.created(feedback)
   }

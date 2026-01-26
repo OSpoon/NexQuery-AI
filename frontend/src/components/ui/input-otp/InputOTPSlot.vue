@@ -6,7 +6,7 @@ import { computed } from 'vue'
 import { useVueOTPContext } from 'vue-input-otp'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<{ index: number; class?: HTMLAttributes['class'] }>()
+const props = defineProps<{ index: number, class?: HTMLAttributes['class'] }>()
 
 const delegatedProps = reactiveOmit(props, 'class')
 

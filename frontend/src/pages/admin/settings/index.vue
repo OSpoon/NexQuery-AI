@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { Save, Settings, Globe, Shield, Database, Mail, Send, Cpu, Key } from 'lucide-vue-next'
-import { Button } from '@/components/ui/button'
-import ApiKeysManager from '@/components/profile/ApiKeysManager.vue'
-import { useAuthStore } from '@/stores/auth'
-import { Input } from '@/components/ui/input'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { Label } from '@/components/ui/label'
-import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import { useSettingsStore } from '@/stores/settings'
-import { Switch } from '@/components/ui/switch'
 import { CryptoService } from '@nexquery/shared'
+import { Cpu, Database, Globe, Save, Shield } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
+import api from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
+import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
 
@@ -65,7 +64,8 @@ const settings = ref([
 
 const testPayload = ref('')
 const decryptedResult = computed(() => {
-  if (!testPayload.value || !cryptoService) return ''
+  if (!testPayload.value || !cryptoService)
+    return ''
   try {
     const trimmed = testPayload.value.trim()
     // Support nested data: { data: '...' }
@@ -73,14 +73,18 @@ const decryptedResult = computed(() => {
     if (trimmed.startsWith('{')) {
       try {
         const json = JSON.parse(trimmed)
-        if (json.data) cipher = json.data
-      } catch (e) {}
+        if (json.data)
+          cipher = json.data
+      }
+      catch {}
     }
 
     const decrypted = cryptoService.decrypt(cipher)
-    if (decrypted === null) return 'Decryption failed: Result is null'
+    if (decrypted === null)
+      return 'Decryption failed: Result is null'
     return typeof decrypted === 'object' ? JSON.stringify(decrypted, null, 2) : decrypted
-  } catch (e: any) {
+  }
+  catch (e: any) {
     return `Error: ${e.message}`
   }
 })
@@ -88,40 +92,45 @@ const decryptedResult = computed(() => {
 const loading = ref(true)
 const saving = ref(false)
 
-const fetchSettings = async () => {
+async function fetchSettings() {
   loading.value = true
   try {
     const response = await api.get('/settings')
     if (response.data && response.data.length > 0) {
       // Merge fetched settings with our local definitions for labels/descriptions
       response.data.forEach((s: any) => {
-        const existing = settings.value.find((local) => local.key === s.key)
+        const existing = settings.value.find(local => local.key === s.key)
         if (existing) {
           // Decrypt if necessary
           if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
             try {
               const decrypted = cryptoService.decrypt(s.value)
               existing.value = decrypted || s.value
-            } catch (e) {
+            }
+            catch (e) {
               console.error(`Failed to decrypt ${s.key}`, e)
               existing.value = String(s.value)
             }
-          } else {
+          }
+          else {
             existing.value = String(s.value)
           }
-        } else {
+        }
+        else {
           settings.value.push(s)
         }
       })
     }
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to load settings')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
-const saveSettings = async () => {
+async function saveSettings() {
   saving.value = true
   try {
     // Process settings before saving (encrypt sensitive fields)
@@ -142,14 +151,16 @@ const saveSettings = async () => {
     await settingsStore.fetchSettings()
 
     toast.success('Settings saved successfully')
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to save settings')
-  } finally {
+  }
+  finally {
     saving.value = false
   }
 }
 
-const authStore = useAuthStore()
+const _authStore = useAuthStore()
 
 onMounted(fetchSettings)
 </script>
@@ -158,10 +169,14 @@ onMounted(fetchSettings)
   <div class="container p-6 mx-auto max-w-4xl space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('settings.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('settings.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('settings.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('settings.desc') }}
+        </p>
       </div>
-      <Button @click="saveSettings" :disabled="saving">
+      <Button :disabled="saving" @click="saveSettings">
         <Save class="mr-2 h-4 w-4" /> {{ saving ? t('settings.saving') : t('settings.save') }}
       </Button>
     </div>
@@ -189,7 +204,9 @@ onMounted(fetchSettings)
             >
               <div class="space-y-0.5">
                 <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-                <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
+                <p class="text-xs text-muted-foreground">
+                  {{ t(`settings.keys.${s.key}_desc`) }}
+                </p>
               </div>
               <Switch
                 :id="s.key"
@@ -200,7 +217,9 @@ onMounted(fetchSettings)
             <div v-else class="grid gap-2">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
               <Input :id="s.key" v-model="s.value" />
-              <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
+              <p class="text-xs text-muted-foreground">
+                {{ t(`settings.keys.${s.key}_desc`) }}
+              </p>
             </div>
           </div>
         </CardContent>
@@ -224,7 +243,9 @@ onMounted(fetchSettings)
           >
             <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
             <Input :id="s.key" v-model="s.value" type="number" />
-            <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t(`settings.keys.${s.key}_desc`) }}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -263,7 +284,9 @@ onMounted(fetchSettings)
                   s.key === 'glm_api_key' && !s.value,
               }"
             />
-            <p class="text-xs text-muted-foreground">{{ t(`settings.keys.${s.key}_desc`) }}</p>
+            <p class="text-xs text-muted-foreground">
+              {{ t(`settings.keys.${s.key}_desc`) }}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -285,7 +308,7 @@ onMounted(fetchSettings)
               v-model="testPayload"
               class="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
               placeholder="Paste encrypted payload here (e.g. U2FsdGVk...)"
-            ></textarea>
+            />
             <p class="text-[10px] text-muted-foreground">
               Input can be the raw ciphertext or a JSON object containing a "data" field.
             </p>

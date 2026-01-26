@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import type { DateTime } from 'luxon'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import DataSource from '#models/data_source'
 import User from '#models/user'
@@ -17,7 +17,10 @@ export default class QueryTask extends BaseModel {
   @column()
   declare sqlTemplate: string
 
-  @column({ columnName: 'form_schema' })
+  @column({
+    columnName: 'form_schema',
+    prepare: (value: any) => (value ? JSON.stringify(value) : null),
+  })
   declare formSchema: any | null
 
   @column({ columnName: 'store_results' })
@@ -29,7 +32,9 @@ export default class QueryTask extends BaseModel {
   @column({ columnName: 'created_by' })
   declare createdBy: number | null
 
-  @column()
+  @column({
+    prepare: (value: any) => (value ? JSON.stringify(value) : null),
+  })
   declare tags: string[] | null
 
   @belongsTo(() => DataSource)

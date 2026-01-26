@@ -1,5 +1,5 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import type { DateTime } from 'luxon'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import AiConversation from '#models/ai_conversation'
 
@@ -15,6 +15,9 @@ export default class AiMessage extends BaseModel {
 
   @column()
   declare content: string
+
+  @column()
+  declare prompt: string | null
 
   @column({
     consume: (value: string | object) => (typeof value === 'string' ? JSON.parse(value) : value),

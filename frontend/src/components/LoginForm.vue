@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 import { ref } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { useI18n } from 'vue-i18n'
+import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Field, FieldDescription, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+import { cn } from '@/lib/utils'
+
+import { useAuthStore } from '@/stores/auth'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -18,8 +20,6 @@ const props = defineProps<{
 const router = useRouter()
 const route = useRoute()
 const authStore = useAuthStore()
-
-import { useI18n } from 'vue-i18n'
 const { t } = useI18n()
 
 const email = ref('')
@@ -29,7 +29,7 @@ const isTwoFactorStep = ref(false)
 const twoFactorCode = ref('')
 const tempToken = ref('')
 
-const handleSubmit = async (e: Event) => {
+async function handleSubmit(e: Event) {
   e.preventDefault()
 
   if (isTwoFactorStep.value) {
@@ -37,7 +37,8 @@ const handleSubmit = async (e: Event) => {
       toast.error('Please enter the verification code')
       return
     }
-  } else {
+  }
+  else {
     if (!email.value || !password.value) {
       toast.error('Please enter email and password')
       return
@@ -51,7 +52,8 @@ const handleSubmit = async (e: Event) => {
       toast.success('Login successful')
       const redirect = (route.query.redirect as string) || '/'
       router.push(redirect)
-    } else {
+    }
+    else {
       const result = await authStore.login(email.value, password.value)
 
       if (result && result.requiresPasswordChange) {
@@ -73,9 +75,11 @@ const handleSubmit = async (e: Event) => {
       const redirect = (route.query.redirect as string) || '/'
       router.push(redirect)
     }
-  } catch (error) {
+  }
+  catch (error) {
     toast.error(error instanceof Error ? error.message : t('auth.login_failed'))
-  } finally {
+  }
+  finally {
     isLoading.value = false
   }
 }
@@ -94,7 +98,9 @@ const handleSubmit = async (e: Event) => {
         <form @submit="handleSubmit">
           <FieldGroup v-if="!isTwoFactorStep">
             <Field>
-              <FieldLabel for="email"> {{ t('auth.email') }} </FieldLabel>
+              <FieldLabel for="email">
+                {{ t('auth.email') }}
+              </FieldLabel>
               <Input
                 id="email"
                 v-model="email"
@@ -106,7 +112,9 @@ const handleSubmit = async (e: Event) => {
             </Field>
             <Field>
               <div class="flex items-center">
-                <FieldLabel for="password"> {{ t('auth.password') }} </FieldLabel>
+                <FieldLabel for="password">
+                  {{ t('auth.password') }}
+                </FieldLabel>
                 <RouterLink
                   to="/forgot-password"
                   class="ml-auto inline-block text-sm underline-offset-4 hover:underline"
@@ -128,7 +136,9 @@ const handleSubmit = async (e: Event) => {
             <Field
               class="flex flex-col items-center justify-center [&>*]:w-auto text-center space-y-2"
             >
-              <FieldLabel for="code"> {{ t('auth.2fa_code') }} </FieldLabel>
+              <FieldLabel for="code">
+                {{ t('auth.2fa_code') }}
+              </FieldLabel>
               <InputOTP id="code" v-model="twoFactorCode" :maxlength="6">
                 <InputOTPGroup>
                   <InputOTPSlot :index="0" />
@@ -156,12 +166,16 @@ const handleSubmit = async (e: Event) => {
 
           <FieldDescription v-if="!isTwoFactorStep" class="text-center mt-4">
             {{ t('auth.no_account') }}
-            <RouterLink to="/register" class="underline"> {{ t('auth.sign_up') }} </RouterLink>
+            <RouterLink to="/register" class="underline">
+              {{ t('auth.sign_up') }}
+            </RouterLink>
           </FieldDescription>
           <FieldDescription v-else class="text-center mt-4">
-            <Button variant="link" size="sm" @click="isTwoFactorStep = false">{{
-              t('auth.back_to_login')
-            }}</Button>
+            <Button variant="link" size="sm" @click="isTwoFactorStep = false">
+              {{
+                t('auth.back_to_login')
+              }}
+            </Button>
           </FieldDescription>
         </form>
       </CardContent>

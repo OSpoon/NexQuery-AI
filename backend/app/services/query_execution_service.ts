@@ -1,5 +1,6 @@
-import QueryTask from '#models/query_task'
+import type QueryTask from '#models/query_task'
 import QueryLog from '#models/query_log'
+import type DataSource from '#models/data_source'
 // import Setting from '#models/setting'
 import encryption from '@adonisjs/core/services/encryption'
 import mysql from 'mysql2/promise'
@@ -8,26 +9,27 @@ import logger from '@adonisjs/core/services/logger'
 import { exec } from 'node:child_process'
 import util from 'node:util'
 
+import { isInternalIP } from '../utils/ip_utils.js'
+
 const execAsync = util.promisify(exec)
 const ALLOWED_COMMAND_PREFIXES = ['curl']
-
-import { isInternalIP } from '../utils/ip_utils.js'
 
 export interface ExecuteOptions {
   userId?: number
   ipAddress?: string
   userAgent?: string
   deviceInfo?: any
+  skipLogging?: boolean
 }
 
 export default class QueryExecutionService {
   async execute(
     task: QueryTask,
     inputParams: Record<string, any> = {},
-    options: ExecuteOptions = {}
+    options: ExecuteOptions = {},
   ) {
     const { userId, ipAddress, userAgent, deviceInfo } = options
-    let sql = task.sqlTemplate
+    const sql = task.sqlTemplate
 
     // Fetch timeout setting
     // const timeoutSetting = await Setting.findBy('key', 'query_timeout_ms')
@@ -55,7 +57,7 @@ export default class QueryExecutionService {
     try {
       if (ds.type === 'mysql') {
         const values: any[] = []
-        executedSql = sql.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
+        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
           values.push(inputParams[key] ?? null)
           return '?'
         })
@@ -72,7 +74,7 @@ export default class QueryExecutionService {
         const [rows] = await connection.execute({
           sql: executedSql,
           values,
-          timeout: timeout,
+          timeout,
         })
         await connection.end()
         queryResults = rows
@@ -80,7 +82,7 @@ export default class QueryExecutionService {
         const values: any[] = []
         let paramCounter = 1
 
-        executedSql = sql.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
+        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
           values.push(inputParams[key] ?? null)
           return `$${paramCounter++}`
         })
@@ -102,24 +104,24 @@ export default class QueryExecutionService {
           await client.end()
         }
       } else if (ds.type === 'api') {
-        executedSql = sql.replace(/{{\s*(\w+)\s*}}/g, (_, key) => {
+        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
           const val = allParams[key] ?? ''
           return String(val)
         })
 
         const commandToExecute = executedSql.trim()
-        const isAllowed = ALLOWED_COMMAND_PREFIXES.some((prefix) =>
-          commandToExecute.startsWith(prefix)
+        const isAllowed = ALLOWED_COMMAND_PREFIXES.some(prefix =>
+          commandToExecute.startsWith(prefix),
         )
 
         if (!isAllowed) {
           throw new Error(
-            `Command validation failed: Only commands starting with [${ALLOWED_COMMAND_PREFIXES.join(', ')}] are allowed.`
+            `Command validation failed: Only commands starting with [${ALLOWED_COMMAND_PREFIXES.join(', ')}] are allowed.`,
           )
         }
 
         const { stdout } = await execAsync(executedSql, {
-          timeout: timeout,
+          timeout,
           maxBuffer: 10 * 1024 * 1024,
         })
 
@@ -131,7 +133,7 @@ export default class QueryExecutionService {
           } else {
             queryResults = stdout
               .split('\n')
-              .filter((l) => l)
+              .filter(l => l)
               .map((l, i) => ({ line: i + 1, content: l }))
           }
         }
@@ -154,9 +156,10 @@ export default class QueryExecutionService {
         : null
 
       await QueryLog.create({
-        userId: userId,
+        userId,
         taskId: task.id,
-        executedSql: executedSql,
+        dataSourceId: task.dataSourceId,
+        executedSql,
         parameters: inputParams,
         executionTimeMs: duration,
         results: truncatedResults,
@@ -180,8 +183,9 @@ export default class QueryExecutionService {
       }
     } catch (error: any) {
       await QueryLog.create({
-        userId: userId,
+        userId,
         taskId: task.id,
+        dataSourceId: task.dataSourceId,
         executedSql: executedSql || sql,
         parameters: inputParams,
         status: 'failed',
@@ -198,10 +202,106 @@ export default class QueryExecutionService {
     }
   }
 
+  /**
+   * Execute raw SQL for preview purposes (with safety limits)
+   */
+  async rawExecute(dataSource: DataSource, sql: string, options: ExecuteOptions = {}) {
+    const { userId, ipAddress, userAgent, deviceInfo } = options
+    const timeout = 30000
+    const startTime = Date.now()
+    let queryResults: any = null
+
+    // Force limit 50 for safety
+    let finalSql = sql.trim()
+    if (dataSource.type === 'mysql' || dataSource.type === 'postgresql') {
+      // Remove trailing semicolon if present
+      finalSql = finalSql.replace(/;$/, '')
+      // Simple check for existing limit
+      if (!/\bLIMIT\b/i.test(finalSql)) {
+        finalSql += ' LIMIT 50'
+      }
+    }
+
+    try {
+      if (dataSource.type === 'mysql') {
+        const connection = await mysql.createConnection({
+          host: dataSource.host,
+          port: dataSource.port,
+          user: dataSource.username,
+          password: encryption.decrypt<string>(dataSource.password)!,
+          database: dataSource.database,
+          connectTimeout: timeout,
+        })
+
+        const [rows] = await connection.execute({
+          sql: finalSql,
+          timeout,
+        })
+        await connection.end()
+        queryResults = rows
+      } else if (dataSource.type === 'postgresql') {
+        const client = new pg.Client({
+          host: dataSource.host,
+          port: dataSource.port,
+          user: dataSource.username,
+          password: encryption.decrypt<string>(dataSource.password)!,
+          database: dataSource.database,
+          connectionTimeoutMillis: timeout,
+        })
+
+        await client.connect()
+        try {
+          const res = await client.query(finalSql)
+          queryResults = res.rows
+        } finally {
+          await client.end()
+        }
+      } else {
+        throw new Error(`Execution not supported for type: ${dataSource.type}`)
+      }
+
+      const duration = Date.now() - startTime
+
+      if (!options.skipLogging) {
+        await QueryLog.create({
+          userId,
+          dataSourceId: dataSource.id,
+          executedSql: finalSql,
+          executionTimeMs: duration,
+          status: 'success',
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          deviceInfo: deviceInfo || null,
+          isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        })
+      }
+
+      return {
+        data: queryResults,
+        duration,
+      }
+    } catch (error: any) {
+      if (!options.skipLogging) {
+        await QueryLog.create({
+          userId,
+          dataSourceId: dataSource.id,
+          executedSql: finalSql || sql,
+          status: 'failed',
+          errorMessage: error.message,
+          ipAddress: ipAddress || null,
+          userAgent: userAgent || null,
+          deviceInfo: deviceInfo || null,
+          isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        })
+      }
+      throw error
+    }
+  }
+
   public applyAdvancedConfig(results: any[], advancedConfig: any[]): any[] {
     const fieldMap = new Map<
       string,
-      { alias?: string; enums?: Record<string, string>; masking?: any }
+      { alias?: string, enums?: Record<string, string>, masking?: any }
     >()
 
     // Flatten config for O(1) lookup by field name (Store lowercase keys)
@@ -226,7 +326,7 @@ export default class QueryExecutionService {
           fields: Array.from(fieldMap.keys()),
           sampleRowKeys: results.length > 0 ? Object.keys(results[0]) : [],
         },
-        'Applying Advanced Config'
+        'Applying Advanced Config',
       )
 
       return results.map((row: any) => {
@@ -276,8 +376,9 @@ export default class QueryExecutionService {
     return results
   }
 
-  private maskValue(value: any, rule: { type: string; rule?: string; replace?: string }): any {
-    if (value === null || value === undefined) return value
+  private maskValue(value: any, rule: { type: string, rule?: string, replace?: string }): any {
+    if (value === null || value === undefined)
+      return value
     const strVal = String(value)
 
     switch (rule.type) {
@@ -292,11 +393,11 @@ export default class QueryExecutionService {
         return strVal
       case 'email':
         // Mask characters before @: test@example.com -> t***@example.com
-        return strVal.replace(/^(.{1}).*(@.*)$/, '$1***$2')
+        return strVal.replace(/^(.)[^@]*(@.*)$/, '$1***$2')
       case 'bank_card':
         // Mask all except last 4
         if (strVal.length > 4) {
-          return '**** **** **** ' + strVal.slice(-4)
+          return `**** **** **** ${strVal.slice(-4)}`
         }
         return strVal
       case 'custom':

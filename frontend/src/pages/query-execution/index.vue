@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import type { QueryTask } from '@nexquery/shared'
+import { ArrowLeft, Database, Download, Play } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowLeft, Play, Timer, Database, Download } from 'lucide-vue-next'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   Table,
   TableBody,
@@ -13,11 +15,10 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import api, { cryptoService } from '@/lib/api'
-import DynamicForm from './components/DynamicForm.vue'
-import { toast } from 'vue-sonner'
+
 import { useSettingsStore } from '@/stores/settings'
 
-import type { QueryTask } from '@nexquery/shared'
+import DynamicForm from './components/DynamicForm.vue'
 
 const settingsStore = useSettingsStore()
 
@@ -28,17 +29,28 @@ const results = ref<any[] | null>(null)
 const isExecuting = ref(false)
 const executionTime = ref<number | null>(null)
 
-const fetchTask = async () => {
+const isArrayResult = computed(() => {
+  return Array.isArray(results.value)
+})
+
+const columns = computed(() => {
+  if (!results.value || !isArrayResult.value || results.value.length === 0)
+    return []
+  return Object.keys(results.value![0])
+})
+
+async function fetchTask() {
   try {
     const response = await api.get(`/query-tasks/${route.params.id}`)
     task.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to load task')
     router.push({ name: 'query-tasks' })
   }
 }
 
-const onExecute = async (params: any) => {
+async function onExecute(params: any) {
   isExecuting.value = true
   results.value = null
   try {
@@ -47,19 +59,20 @@ const onExecute = async (params: any) => {
 
     // Check if the result itself is an encrypted packet (common for API tasks calling other platform APIs)
     if (
-      cryptoService &&
-      finalData &&
-      typeof finalData === 'object' &&
-      finalData.data &&
-      typeof finalData.data === 'string' &&
-      finalData.data.startsWith('U2FsdGVk')
+      cryptoService
+      && finalData
+      && typeof finalData === 'object'
+      && finalData.data
+      && typeof finalData.data === 'string'
+      && finalData.data.startsWith('U2FsdGVk')
     ) {
       try {
         const decrypted = cryptoService.decrypt(finalData.data)
         if (decrypted !== null) {
           finalData = decrypted
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.warn('[QueryExecution] Failed to decrypt nested result:', e)
       }
     }
@@ -67,14 +80,17 @@ const onExecute = async (params: any) => {
     results.value = finalData
     executionTime.value = response.data.duration
     toast.success('Query executed successfully')
-  } catch (error: any) {
-    toast.error('Execution failed: ' + (error.response?.data?.error || error.message))
-  } finally {
+  }
+  catch (error: any) {
+    toast.error(`Execution failed: ${error.response?.data?.error || error.message}`)
+  }
+  finally {
     isExecuting.value = false
   }
 }
-const downloadResults = () => {
-  if (!results.value || results.value.length === 0) return
+function downloadResults() {
+  if (!results.value || results.value.length === 0)
+    return
 
   const headers = columns.value.join(',')
   const rows = results.value!.map((row: any) =>
@@ -83,9 +99,11 @@ const downloadResults = () => {
         let val = row[col]
         if (val === null || val === undefined) {
           val = ''
-        } else if (typeof val === 'object') {
+        }
+        else if (typeof val === 'object') {
           val = JSON.stringify(val)
-        } else {
+        }
+        else {
           val = String(val)
         }
         // Escape double quotes and wrap in double quotes
@@ -107,16 +125,7 @@ const downloadResults = () => {
   document.body.removeChild(link)
 }
 
-const isArrayResult = computed(() => {
-  return Array.isArray(results.value)
-})
-
-const columns = computed(() => {
-  if (!results.value || !isArrayResult.value || results.value.length === 0) return []
-  return Object.keys(results.value![0])
-})
-
-import { computed } from 'vue'
+// End of scripts
 
 onMounted(fetchTask)
 </script>
@@ -124,11 +133,13 @@ onMounted(fetchTask)
 <template>
   <div class="p-6 space-y-6 h-full flex flex-col">
     <div class="flex items-center gap-4">
-      <Button variant="ghost" size="icon" @click="router.back()" class="shrink-0">
+      <Button variant="ghost" size="icon" class="shrink-0" @click="router.back()">
         <ArrowLeft class="h-5 w-5" />
       </Button>
       <div v-if="task" class="flex flex-col min-w-0">
-        <h1 class="text-2xl font-bold tracking-tight truncate">{{ task.name }}</h1>
+        <h1 class="text-2xl font-bold tracking-tight truncate">
+          {{ task.name }}
+        </h1>
         <div class="flex items-center text-sm text-muted-foreground gap-3 mt-1">
           <div class="flex items-center">
             <Database class="mr-1.5 h-3.5 w-3.5" />
@@ -162,16 +173,14 @@ onMounted(fetchTask)
             </CardDescription>
           </div>
           <div v-if="results" class="flex items-center gap-4">
-            <span class="text-sm font-medium" v-if="isArrayResult"
-              >{{ results.length }} rows returned</span
-            >
-            <span class="text-sm font-medium" v-else>JSON Result</span>
+            <span v-if="isArrayResult" class="text-sm font-medium">{{ results.length }} rows returned</span>
+            <span v-else class="text-sm font-medium">JSON Result</span>
             <Button
               v-if="settingsStore.allowExport && isArrayResult"
               variant="outline"
               size="sm"
-              @click="downloadResults"
               :disabled="results.length === 0"
+              @click="downloadResults"
             >
               <Download class="mr-2 h-4 w-4" /> Export CSV
             </Button>
@@ -182,8 +191,10 @@ onMounted(fetchTask)
             v-if="isExecuting"
             class="absolute inset-0 flex flex-col items-center justify-center bg-background/50 z-10"
           >
-            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-            <p class="text-muted-foreground text-sm mt-2">Running query...</p>
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+            <p class="text-muted-foreground text-sm mt-2">
+              Running query...
+            </p>
           </div>
 
           <div
@@ -198,9 +209,11 @@ onMounted(fetchTask)
             <Table v-else>
               <TableHeader class="sticky top-0 bg-background z-10 shadow-sm">
                 <TableRow>
-                  <TableHead v-for="col in columns" :key="col" class="whitespace-nowrap">{{
-                    col
-                  }}</TableHead>
+                  <TableHead v-for="col in columns" :key="col" class="whitespace-nowrap">
+                    {{
+                      col
+                    }}
+                  </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -208,7 +221,7 @@ onMounted(fetchTask)
                   <TableCell
                     v-for="col in columns"
                     :key="col"
-                    class="min-w-[100px] max-w-[400px] whitespace-normal break-words align-top"
+                    class="min-w-[100px] max-w-[400px] whitespace-normal wrap-break-word align-top"
                   >
                     {{ row[col] }}
                   </TableCell>
@@ -222,8 +235,12 @@ onMounted(fetchTask)
             class="h-full flex flex-col items-center justify-center text-muted-foreground p-8"
           >
             <Play v-if="!results" class="h-12 w-12 mb-4 opacity-20" />
-            <p v-if="!results">Fill in the parameters and click Execute to see results.</p>
-            <p v-else>No results returned.</p>
+            <p v-if="!results">
+              Fill in the parameters and click Execute to see results.
+            </p>
+            <p v-else>
+              No results returned.
+            </p>
           </div>
         </CardContent>
       </Card>

@@ -9,10 +9,10 @@ export default class UsersController {
   async index({ response }: HttpContext) {
     const users = await User.query().preload('roles')
     return response.ok(
-      users.map((user) => ({
+      users.map(user => ({
         ...user.toJSON(),
-        roles: user.roles.map((r) => r.toJSON()),
-      }))
+        roles: user.roles.map(r => r.toJSON()),
+      })),
     )
   }
 
@@ -52,7 +52,7 @@ export default class UsersController {
     await user.load('roles')
     return response.ok({
       ...user.toJSON(),
-      roles: user.roles.map((r) => r.toJSON()),
+      roles: user.roles.map(r => r.toJSON()),
     })
   }
 
@@ -61,7 +61,7 @@ export default class UsersController {
     const currentUser = auth.user!
 
     // Check if the user being deleted is an admin
-    const isAdmin = user.roles.some((role) => role.slug === 'admin')
+    const isAdmin = user.roles.some(role => role.slug === 'admin')
 
     if (isAdmin) {
       // Count how many admins exist in total

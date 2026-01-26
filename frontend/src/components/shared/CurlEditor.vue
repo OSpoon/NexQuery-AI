@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
-import { Plus, Trash2, Code2 } from 'lucide-vue-next'
+import { Code2, Plus, Trash2 } from 'lucide-vue-next'
+import { onMounted, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,14 +15,14 @@ import SqlEditor from './SqlEditor.vue'
 
 const props = defineProps<{
   modelValue: string
-  variables?: Array<{ name: string; description?: string }>
+  variables?: Array<{ name: string, description?: string }>
 }>()
 
 const emit = defineEmits(['update:modelValue'])
 
 const method = ref('GET')
 const url = ref('')
-const headers = ref<Array<{ key: string; value: string }>>([])
+const headers = ref<Array<{ key: string, value: string }>>([])
 const body = ref('')
 
 const methods = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
@@ -34,33 +34,38 @@ onMounted(() => {
   }
 })
 
-const parseCurl = (curl: string) => {
+function parseCurl(curl: string) {
   try {
     // Very basic curl parser
     const methodMatch = curl.match(/-X\s+(\w+)/) || curl.match(/--request\s+(\w+)/)
-    if (methodMatch && methodMatch[1]) method.value = methodMatch[1].toUpperCase()
-    else if (curl.includes('--data') || curl.includes('-d ')) method.value = 'POST'
+    if (methodMatch && methodMatch[1])
+      method.value = methodMatch[1].toUpperCase()
+    else if (curl.includes('--data') || curl.includes('-d '))
+      method.value = 'POST'
     else method.value = 'GET'
 
-    const urlMatch =
-      curl.match(/'(.*?)'/) || curl.match(/"(.*?)"/) || curl.match(/curl\s+(https?:\/\/\S+)/)
-    if (urlMatch && urlMatch[1]) url.value = urlMatch[1]
+    const urlMatch
+      = curl.match(/'(.*?)'/) || curl.match(/"(.*?)"/) || curl.match(/curl\s+(https?:\/\/\S+)/)
+    if (urlMatch && urlMatch[1])
+      url.value = urlMatch[1]
 
     const headerMatches = curl.matchAll(/-H\s+['"](.*?): (.*?)['"]/g)
-    headers.value = Array.from(headerMatches).map((m) => ({
+    headers.value = Array.from(headerMatches).map(m => ({
       key: m[1] || '',
       value: m[2] || '',
     }))
 
     const bodyMatch = curl.match(/-d\s+['"](.*?)['"]/) || curl.match(/--data\s+['"](.*?)['"]/)
-    if (bodyMatch && bodyMatch[1]) body.value = bodyMatch[1]
-  } catch (e) {
+    if (bodyMatch && bodyMatch[1])
+      body.value = bodyMatch[1]
+  }
+  catch (e) {
     console.error('Failed to parse existing curl:', e)
     url.value = curl // Fallback
   }
 }
 
-const generateCurl = () => {
+function generateCurl() {
   let cmd = `curl -X ${method.value} '${url.value}'`
 
   headers.value.forEach((h) => {
@@ -84,11 +89,11 @@ watch(
   { deep: true },
 )
 
-const addHeader = () => {
+function addHeader() {
   headers.value.push({ key: '', value: '' })
 }
 
-const removeHeader = (index: number) => {
+function removeHeader(index: number) {
   headers.value.splice(index, 1)
 }
 </script>
@@ -103,7 +108,9 @@ const removeHeader = (index: number) => {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem v-for="m in methods" :key="m" :value="m">{{ m }}</SelectItem>
+            <SelectItem v-for="m in methods" :key="m" :value="m">
+              {{ m }}
+            </SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -144,7 +151,7 @@ const removeHeader = (index: number) => {
       </p>
     </div>
 
-    <div class="space-y-2" v-if="['POST', 'PUT', 'PATCH'].includes(method)">
+    <div v-if="['POST', 'PUT', 'PATCH'].includes(method)" class="space-y-2">
       <Label class="text-xs">Body (JSON/Raw)</Label>
       <div class="h-40 border rounded-md overflow-hidden">
         <SqlEditor v-model="body" language="json" :variables="variables" />
@@ -157,8 +164,7 @@ const removeHeader = (index: number) => {
       </Label>
       <pre
         class="bg-muted p-2 rounded text-[10px] whitespace-pre-wrap break-all font-mono border"
-        >{{ generateCurl() }}</pre
-      >
+      >{{ generateCurl() }}</pre>
     </div>
   </div>
 </template>

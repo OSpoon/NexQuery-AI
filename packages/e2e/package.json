@@ -1,16 +1,16 @@
 {
-    "name": "@nexquery/e2e",
-    "version": "1.0.0",
-    "private": true,
-    "scripts": {
-        "test": "playwright test",
-        "test:ui": "playwright test --ui",
-        "test:debug": "playwright test --debug",
-        "codegen": "playwright codegen"
-    },
-    "devDependencies": {
-        "@playwright/test": "^1.40.0",
-        "typescript": "^5.0.0",
-        "@types/node": "^20.0.0"
-    }
+  "name": "@nexquery/e2e",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:ui": "playwright test --ui",
+    "test:debug": "playwright test --debug",
+    "codegen": "playwright codegen"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.40.0",
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
+  }
 }

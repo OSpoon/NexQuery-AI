@@ -1,24 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  History,
-  User as UserIcon,
-  FileCode,
-  Clock,
-  CheckCircle2,
-  XCircle,
-  ExternalLink,
   ArrowUpDown,
+  CheckCircle2,
+  Clock,
+  ExternalLink,
+  FileCode,
+  User as UserIcon,
+  XCircle,
 } from 'lucide-vue-next'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import api, { cryptoService } from '@/lib/api'
+import { h, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { RouterLink } from 'vue-router'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
-import type { ColumnDef } from '@tanstack/vue-table'
-import { RouterLink } from 'vue-router'
-import { useI18n } from 'vue-i18n'
-
+import Badge from '@/components/ui/badge/Badge.vue'
+import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -26,6 +23,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+import api, { cryptoService } from '@/lib/api'
 
 interface QueryLog {
   id: number
@@ -59,7 +58,7 @@ const loading = ref(true)
 const isDialogOpen = ref(false)
 const selectedLog = ref<QueryLog | null>(null)
 
-const openLogDetails = (log: QueryLog) => {
+function openLogDetails(log: QueryLog) {
   // Auto-decryption for API tasks if they appear encrypted
   const processedLog = { ...log }
 
@@ -71,18 +70,19 @@ const openLogDetails = (log: QueryLog) => {
   if (isPossiblyApi && processedLog.results) {
     const results = processedLog.results
     if (
-      results &&
-      typeof results === 'object' &&
-      results.data &&
-      typeof results.data === 'string' &&
-      cryptoService
+      results
+      && typeof results === 'object'
+      && results.data
+      && typeof results.data === 'string'
+      && cryptoService
     ) {
       try {
         const decrypted = cryptoService.decrypt(results.data)
         if (decrypted) {
           processedLog.results = decrypted
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.error('Web: Auto-decryption failed', e)
       }
     }
@@ -92,20 +92,23 @@ const openLogDetails = (log: QueryLog) => {
   isDialogOpen.value = true
 }
 
-const fetchLogs = async () => {
+async function fetchLogs() {
   loading.value = true
   try {
     const response = await api.get('/query-logs')
     logs.value = response.data.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch logs')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
-const formatDuration = (ms: number | null) => {
-  if (ms === null) return '-'
+function formatDuration(ms: number | null) {
+  if (ms === null)
+    return '-'
   return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
@@ -160,7 +163,8 @@ const columns: ColumnDef<QueryLog>[] = [
           h(CheckCircle2, { class: 'mr-1 h-4 w-4' }),
           t('history.success'),
         ])
-      } else {
+      }
+      else {
         return h(
           'div',
           {
@@ -231,8 +235,7 @@ const columns: ColumnDef<QueryLog>[] = [
             },
             () =>
               h(RouterLink, { to: { name: 'query-run', params: { id: log.task!.id } } }, () =>
-                h(ExternalLink, { class: 'h-4 w-4' }),
-              ),
+                h(ExternalLink, { class: 'h-4 w-4' })),
           ),
         )
       }
@@ -251,8 +254,12 @@ onMounted(() => {
   <div class="p-6 space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('history.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('history.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('history.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('history.desc') }}
+        </p>
       </div>
       <Button variant="outline" @click="fetchLogs">
         <Clock class="mr-2 h-4 w-4" /> {{ t('history.refresh') }}
@@ -281,11 +288,15 @@ onMounted(() => {
           <div class="grid grid-cols-2 gap-4 text-sm">
             <div>
               <span class="text-muted-foreground">{{ t('history.executed_by') }}:</span>
-              <p class="font-medium">{{ selectedLog.user?.fullName || 'Anonymous' }}</p>
+              <p class="font-medium">
+                {{ selectedLog.user?.fullName || 'Anonymous' }}
+              </p>
             </div>
             <div>
               <span class="text-muted-foreground">{{ t('history.time') }}:</span>
-              <p class="font-medium">{{ new Date(selectedLog.createdAt).toLocaleString() }}</p>
+              <p class="font-medium">
+                {{ new Date(selectedLog.createdAt).toLocaleString() }}
+              </p>
             </div>
             <div>
               <span class="text-muted-foreground">{{ t('history.status') }}:</span>
@@ -297,19 +308,19 @@ onMounted(() => {
             </div>
             <div>
               <span class="text-muted-foreground">{{ t('history.duration') }}:</span>
-              <p class="font-medium">{{ formatDuration(selectedLog.executionTimeMs) }}</p>
+              <p class="font-medium">
+                {{ formatDuration(selectedLog.executionTimeMs) }}
+              </p>
             </div>
 
-            <div class="col-span-2 border-t pt-2 mt-2" v-if="selectedLog.ipAddress">
+            <div v-if="selectedLog.ipAddress" class="col-span-2 border-t pt-2 mt-2">
               <span class="text-muted-foreground block mb-1">{{ t('history.source_info') }}:</span>
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <span class="text-xs text-muted-foreground">{{ t('history.ip_address') }}:</span>
                   <p class="font-mono text-sm">
                     {{ selectedLog.ipAddress }}
-                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground"
-                      >(Internal)</span
-                    >
+                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground">(Internal)</span>
                   </p>
                 </div>
                 <div>
@@ -326,12 +337,16 @@ onMounted(() => {
             v-if="selectedLog.errorMessage"
             class="p-3 rounded-md bg-destructive/10 text-destructive text-sm"
           >
-            <p class="font-semibold">{{ t('history.error') }}:</p>
+            <p class="font-semibold">
+              {{ t('history.error') }}:
+            </p>
             {{ selectedLog.errorMessage }}
           </div>
 
           <div>
-            <h4 class="text-sm font-semibold mb-2">{{ t('history.parameters') }}</h4>
+            <h4 class="text-sm font-semibold mb-2">
+              {{ t('history.parameters') }}
+            </h4>
             <div
               v-if="selectedLog.parameters && Object.keys(selectedLog.parameters).length > 0"
               class="p-3 bg-muted rounded-md font-mono text-xs whitespace-pre-wrap break-all"
@@ -344,14 +359,18 @@ onMounted(() => {
           </div>
 
           <div>
-            <h4 class="text-sm font-semibold mb-2">{{ t('history.executed_sql') }}</h4>
+            <h4 class="text-sm font-semibold mb-2">
+              {{ t('history.executed_sql') }}
+            </h4>
             <div class="p-3 bg-muted rounded-md font-mono text-xs whitespace-pre-wrap break-all">
               {{ selectedLog.executedSql }}
             </div>
           </div>
 
           <div v-if="selectedLog.results">
-            <h4 class="text-sm font-semibold mb-2">{{ t('history.results_snapshot') }}</h4>
+            <h4 class="text-sm font-semibold mb-2">
+              {{ t('history.results_snapshot') }}
+            </h4>
             <div
               class="p-3 bg-muted rounded-md font-mono text-xs max-h-[300px] overflow-y-auto whitespace-pre-wrap break-all"
             >

@@ -178,7 +178,8 @@ router.beforeEach(async (to, from, next) => {
         // Better redirect to dashboard or show error toast?
         // For now, redirect to dashboard/home
         next({ name: 'home' })
-      } else {
+      }
+      else {
         next({ name: 'home' })
       }
       return
@@ -213,10 +214,10 @@ router.beforeEach(async (to, from, next) => {
   if (authStore.isAuthenticated && authStore.user && settingsStore.require2fa) {
     // If 2FA is not enabled AND enforcement is on, force them to the profile page
     if (
-      !authStore.user.twoFactorEnabled &&
-      to.name !== 'profile' &&
-      to.name !== 'login' &&
-      to.name !== 'logout'
+      !authStore.user.twoFactorEnabled
+      && to.name !== 'profile'
+      && to.name !== 'login'
+      && to.name !== 'logout'
     ) {
       next({ name: 'profile' })
       return

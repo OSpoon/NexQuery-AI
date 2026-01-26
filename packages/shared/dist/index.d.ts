@@ -71,8 +71,9 @@ export interface QueryTask {
     dataSourceId: number;
     dataSource?: DataSource;
     creator?: User;
+    tags?: string[];
     createdAt: string;
     updatedAt?: string;
 }
-export * from './utils/crypto.js';
 export * from './constants/permissions.js';
+export * from './utils/crypto.js';

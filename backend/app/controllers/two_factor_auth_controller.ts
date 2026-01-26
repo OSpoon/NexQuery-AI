@@ -54,8 +54,7 @@ export default class TwoFactorAuthController {
 
     // Generate recovery codes (simple implementation)
     const recoveryCodes = Array.from({ length: 8 }, () =>
-      Math.random().toString(36).substring(2, 10).toUpperCase()
-    )
+      Math.random().toString(36).substring(2, 10).toUpperCase())
     user.twoFactorRecoveryCodes = JSON.stringify(recoveryCodes)
 
     await user.save()

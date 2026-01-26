@@ -1,96 +1,96 @@
 {
-	"pages": [
-		{
-			"path": "pages/index/index",
-			"style": {
-				"navigationBarTitleText": "任务列表"
-			}
-		},
-		{
-			"path": "pages/history/index",
-			"style": {
-				"navigationBarTitleText": "最近任务"
-			}
-		},
-		{
-			"path": "pages/history/detail",
-			"style": {
-				"navigationBarTitleText": "任务详情"
-			}
-		},
-		{
-			"path": "pages/profile/index",
-			"style": {
-				"navigationBarTitleText": "个人中心"
-			}
-		},
-		{
-			"path": "pages/profile/about",
-			"style": {
-				"navigationBarTitleText": "关于我们"
-			}
-		},
-		{
-			"path": "pages/profile/policy",
-			"style": {
-				"navigationBarTitleText": "协议条款"
-			}
-		},
-		{
-			"path": "pages/login/index",
-			"style": {
-				"navigationBarTitleText": "登录"
-			}
-		},
-		{
-			"path": "pages/login/bind",
-			"style": {
-				"navigationBarTitleText": "绑定账号"
-			}
-		},
-		{
-			"path": "pages/task/execute",
-			"style": {
-				"navigationBarTitleText": "执行任务"
-			}
-		},
-		{
-			"path": "pages/result/index",
-			"style": {
-				"navigationBarTitleText": "查询结果"
-			}
-		}
-	],
-	"tabBar": {
-		"color": "#999999",
-		"selectedColor": "#409eff",
-		"borderStyle": "black",
-		"backgroundColor": "#ffffff",
-		"list": [
-			{
-				"pagePath": "pages/index/index",
-				"text": "任务",
-				"iconPath": "static/tabs/task.png",
-				"selectedIconPath": "static/tabs/task_active.png"
-			},
-			{
-				"pagePath": "pages/history/index",
-				"text": "最近",
-				"iconPath": "static/tabs/history.png",
-				"selectedIconPath": "static/tabs/history_active.png"
-			},
-			{
-				"pagePath": "pages/profile/index",
-				"text": "我的",
-				"iconPath": "static/tabs/person.png",
-				"selectedIconPath": "static/tabs/person_active.png"
-			}
-		]
-	},
-	"globalStyle": {
-		"navigationBarTextStyle": "black",
-		"navigationBarTitleText": "NexQuery AI",
-		"navigationBarBackgroundColor": "#F8F8F8",
-		"backgroundColor": "#F8F8F8"
-	}
+  "pages": [
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "任务列表"
+      }
+    },
+    {
+      "path": "pages/history/index",
+      "style": {
+        "navigationBarTitleText": "最近任务"
+      }
+    },
+    {
+      "path": "pages/history/detail",
+      "style": {
+        "navigationBarTitleText": "任务详情"
+      }
+    },
+    {
+      "path": "pages/profile/index",
+      "style": {
+        "navigationBarTitleText": "个人中心"
+      }
+    },
+    {
+      "path": "pages/profile/about",
+      "style": {
+        "navigationBarTitleText": "关于我们"
+      }
+    },
+    {
+      "path": "pages/profile/policy",
+      "style": {
+        "navigationBarTitleText": "协议条款"
+      }
+    },
+    {
+      "path": "pages/login/index",
+      "style": {
+        "navigationBarTitleText": "登录"
+      }
+    },
+    {
+      "path": "pages/login/bind",
+      "style": {
+        "navigationBarTitleText": "绑定账号"
+      }
+    },
+    {
+      "path": "pages/task/execute",
+      "style": {
+        "navigationBarTitleText": "执行任务"
+      }
+    },
+    {
+      "path": "pages/result/index",
+      "style": {
+        "navigationBarTitleText": "查询结果"
+      }
+    }
+  ],
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#409eff",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "任务",
+        "iconPath": "static/tabs/task.png",
+        "selectedIconPath": "static/tabs/task_active.png"
+      },
+      {
+        "pagePath": "pages/history/index",
+        "text": "最近",
+        "iconPath": "static/tabs/history.png",
+        "selectedIconPath": "static/tabs/history_active.png"
+      },
+      {
+        "pagePath": "pages/profile/index",
+        "text": "我的",
+        "iconPath": "static/tabs/person.png",
+        "selectedIconPath": "static/tabs/person_active.png"
+      }
+    ]
+  },
+  "globalStyle": {
+    "navigationBarTextStyle": "black",
+    "navigationBarTitleText": "NexQuery AI",
+    "navigationBarBackgroundColor": "#F8F8F8",
+    "backgroundColor": "#F8F8F8"
+  }
 }

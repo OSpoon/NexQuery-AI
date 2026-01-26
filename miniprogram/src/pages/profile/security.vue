@@ -7,55 +7,65 @@ const newPassword = ref('')
 const confirmPassword = ref('')
 const loading = ref(false)
 
-const handleSave = async () => {
-    if (!currentPassword.value || !newPassword.value) {
-        uni.showToast({ title: '请填写完整', icon: 'none' })
-        return
-    }
+async function handleSave() {
+  if (!currentPassword.value || !newPassword.value) {
+    uni.showToast({ title: '请填写完整', icon: 'none' })
+    return
+  }
 
-    if (newPassword.value !== confirmPassword.value) {
-        uni.showToast({ title: '两次新密码不一致', icon: 'none' })
-        return
-    }
+  if (newPassword.value !== confirmPassword.value) {
+    uni.showToast({ title: '两次新密码不一致', icon: 'none' })
+    return
+  }
 
-    loading.value = true
-    try {
-        await api.post('/auth/change-password', {
-            currentPassword: currentPassword.value,
-            newPassword: newPassword.value
-        })
-        uni.showToast({ title: '密码已修改', icon: 'success' })
-        setTimeout(() => {
-            uni.navigateBack()
-        }, 1500)
-    } catch (e: any) {
-        const msg = e.response?.data?.message || '修改失败'
-        uni.showToast({ title: msg, icon: 'none' })
-    } finally {
-        loading.value = false
-    }
+  loading.value = true
+  try {
+    await api.post('/auth/change-password', {
+      currentPassword: currentPassword.value,
+      newPassword: newPassword.value,
+    })
+    uni.showToast({ title: '密码已修改', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
+  }
+  catch (e: any) {
+    const msg = e.response?.data?.message || '修改失败'
+    uni.showToast({ title: msg, icon: 'none' })
+  }
+  finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
-    <view class="container">
-        <view class="form-group">
-            <text class="label">当前密码</text>
-            <input class="input" type="password" v-model="currentPassword" placeholder="请输入当前密码" />
-        </view>
-
-        <view class="form-group">
-            <text class="label">新密码</text>
-            <input class="input" type="password" v-model="newPassword" placeholder="请输入新密码" />
-        </view>
-
-        <view class="form-group">
-            <text class="label">确认新密码</text>
-            <input class="input" type="password" v-model="confirmPassword" placeholder="再次输入新密码" />
-        </view>
-
-        <button class="save-btn" type="primary" :loading="loading" @click="handleSave">确认修改</button>
+  <view class="container">
+    <view class="form-group">
+      <text class="label">
+        当前密码
+      </text>
+      <input v-model="currentPassword" class="input" type="password" placeholder="请输入当前密码">
     </view>
+
+    <view class="form-group">
+      <text class="label">
+        新密码
+      </text>
+      <input v-model="newPassword" class="input" type="password" placeholder="请输入新密码">
+    </view>
+
+    <view class="form-group">
+      <text class="label">
+        确认新密码
+      </text>
+      <input v-model="confirmPassword" class="input" type="password" placeholder="再次输入新密码">
+    </view>
+
+    <button class="save-btn" type="primary" :loading="loading" @click="handleSave">
+      确认修改
+    </button>
+  </view>
 </template>
 
 <style scoped>

@@ -1,15 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Check, Copy, Plus, Trash2 } from 'lucide-vue-next'
+import { onMounted, ref } from 'vue'
+import { toast } from 'vue-sonner'
+import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -18,6 +12,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,11 +21,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Trash2, Plus, Copy, Check } from 'lucide-vue-next'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
 
 interface ApiKey {
   id: number
@@ -50,22 +50,25 @@ const tokenDialogOpen = ref(false)
 const createdToken = ref('')
 const copied = ref(false)
 
-const fetchKeys = async () => {
+async function fetchKeys() {
   loading.value = true
   try {
     const { data } = await api.get('/auth/keys')
     keys.value = data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch API keys')
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
 const expiration = ref('90d')
 
-const createKey = async () => {
-  if (!newKeyName.value.trim()) return
+async function createKey() {
+  if (!newKeyName.value.trim())
+    return
 
   creating.value = true
   try {
@@ -81,37 +84,43 @@ const createKey = async () => {
     expiration.value = '90d'
     fetchKeys()
     toast.success('API Key created successfully')
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to create API key')
-  } finally {
+  }
+  finally {
     creating.value = false
   }
 }
 
-const revokeKey = async (id: number) => {
+async function revokeKey(id: number) {
   if (
+    // eslint-disable-next-line no-alert
     !confirm(
       'Are you sure you want to revoke this key? Any scripts using it will stop working immediately.',
     )
-  )
+  ) {
     return
+  }
 
   try {
     await api.delete(`/auth/keys/${id}`)
     toast.success('API Key revoked')
     fetchKeys()
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to revoke key')
   }
 }
 
-const copyToken = async () => {
+async function copyToken() {
   try {
     await navigator.clipboard.writeText(createdToken.value)
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
     toast.success('Token copied to clipboard')
-  } catch (err) {
+  }
+  catch {
     toast.error('Failed to copy')
   }
 }
@@ -123,7 +132,9 @@ onMounted(fetchKeys)
   <div class="space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h3 class="text-lg font-medium">API Keys</h3>
+        <h3 class="text-lg font-medium">
+          API Keys
+        </h3>
         <p class="text-sm text-muted-foreground">
           Manage personal access tokens for external integrations.
         </p>
@@ -142,7 +153,9 @@ onMounted(fetchKeys)
             <TableHead>Status</TableHead>
             <TableHead>Created</TableHead>
             <TableHead>Last Used</TableHead>
-            <TableHead class="text-right">Actions</TableHead>
+            <TableHead class="text-right">
+              Actions
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -152,10 +165,12 @@ onMounted(fetchKeys)
             </TableCell>
           </TableRow>
           <TableRow v-for="key in keys" :key="key.id">
-            <TableCell class="font-medium">{{ key.name }}</TableCell>
+            <TableCell class="font-medium">
+              {{ key.name }}
+            </TableCell>
             <TableCell>
-              <Badge variant="outline" class="bg-green-500/10 text-green-600 border-green-200"
-                >Active
+              <Badge variant="outline" class="bg-green-500/10 text-green-600 border-green-200">
+                Active
               </Badge>
             </TableCell>
             <TableCell>{{ new Date(key.createdAt).toLocaleDateString() }}</TableCell>
@@ -197,10 +212,18 @@ onMounted(fetchKeys)
                 <SelectValue placeholder="Select validity period" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="30d">30 Days</SelectItem>
-                <SelectItem value="90d">90 Days</SelectItem>
-                <SelectItem value="180d">180 Days (6 Months)</SelectItem>
-                <SelectItem value="365d">365 Days (1 Year)</SelectItem>
+                <SelectItem value="30d">
+                  30 Days
+                </SelectItem>
+                <SelectItem value="90d">
+                  90 Days
+                </SelectItem>
+                <SelectItem value="180d">
+                  180 Days (6 Months)
+                </SelectItem>
+                <SelectItem value="365d">
+                  365 Days (1 Year)
+                </SelectItem>
               </SelectContent>
             </Select>
             <p class="text-[0.8rem] text-muted-foreground">
@@ -209,8 +232,10 @@ onMounted(fetchKeys)
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="dialogOpen = false">Cancel</Button>
-          <Button type="submit" @click="createKey" :disabled="!newKeyName || creating">
+          <Button variant="outline" @click="dialogOpen = false">
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="!newKeyName || creating" @click="createKey">
             {{ creating ? 'Generating...' : 'Generate Key' }}
           </Button>
         </DialogFooter>
@@ -246,7 +271,9 @@ onMounted(fetchKeys)
           </div>
         </div>
         <DialogFooter>
-          <Button @click="tokenDialogOpen = false">Done</Button>
+          <Button @click="tokenDialogOpen = false">
+            Done
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -23,7 +23,7 @@ export const http = defineConfig({
    * Trusting proxy is required to read the original client IP address
    * when running behind a proxy or load balancer (like Docker/Nginx)
    */
-  trustProxy: (_ip) => true,
+  trustProxy: _ip => true,
 
   /**
    * Enabling async local storage will let you access HTTP context

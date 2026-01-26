@@ -1,135 +1,169 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { onLoad } from '@dcloudio/uni-app'
+import { ref } from 'vue'
 import { cryptoService } from '@/lib/api'
 
 const log = ref<any>(null)
 
 onLoad(() => {
-    const data = uni.getStorageSync('current_log_detail')
-    if (data) {
-        try {
-            const parsed = JSON.parse(data)
+  const data = uni.getStorageSync('current_log_detail')
+  if (data) {
+    try {
+      const parsed = JSON.parse(data)
 
-            // Auto-decryption for API tasks
-            if (parsed.task?.dataSource?.type === 'api' && parsed.results) {
-                const results = parsed.results
+      // Auto-decryption for API tasks
+      if (parsed.task?.dataSource?.type === 'api' && parsed.results) {
+        const results = parsed.results
 
-                // If results is an object with { data: "ciphertext" }
-                if (results && typeof results === 'object' && results.data && typeof results.data === 'string' && cryptoService) {
-                    try {
-                        const decrypted = cryptoService.decrypt(results.data)
-                        if (decrypted) {
-                            parsed.results = decrypted
-                        }
-                    } catch (e) {
-                        console.error('Auto-decryption failed', e)
-                    }
-                }
+        // If results is an object with { data: "ciphertext" }
+        if (results && typeof results === 'object' && results.data && typeof results.data === 'string' && cryptoService) {
+          try {
+            const decrypted = cryptoService.decrypt(results.data)
+            if (decrypted) {
+              parsed.results = decrypted
             }
-
-            log.value = parsed
-        } catch (e) {
-            console.error('Failed to parse log detail', e)
+          }
+          catch (_e) {
+            console.error('Auto-decryption failed', _e)
+          }
         }
+      }
+
+      log.value = parsed
     }
+    catch (_e) {
+      console.error('Failed to parse log detail', _e)
+    }
+  }
 })
 
-const formatDuration = (ms: number) => {
-    if (!ms && ms !== 0) return '-'
-    return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
+function formatDuration(ms: number) {
+  if (!ms && ms !== 0)
+    return '-'
+  return ms < 1000 ? `${ms}ms` : `${(ms / 1000).toFixed(2)}s`
 }
 
-const formatDate = (dateStr: string) => {
-    if (!dateStr) return '-'
-    const date = new Date(dateStr)
-    if (isNaN(date.getTime())) return dateStr
-    return date.toLocaleString()
+function formatDate(dateStr: string) {
+  if (!dateStr)
+    return '-'
+  const date = new Date(dateStr)
+  if (Number.isNaN(date.getTime()))
+    return dateStr
+  return date.toLocaleString()
 }
 
-const viewResults = () => {
-    if (!log.value || !log.value.results) return
+function viewResults() {
+  if (!log.value || !log.value.results)
+    return
 
-    // Ensure it's passed as an array to result page for consistency
-    const results = Array.isArray(log.value.results)
-        ? log.value.results
-        : [log.value.results]
+  // Ensure it's passed as an array to result page for consistency
+  const results = Array.isArray(log.value.results)
+    ? log.value.results
+    : [log.value.results]
 
-    uni.setStorageSync('last_query_result', JSON.stringify(results))
-    uni.navigateTo({
-        url: '/pages/result/index'
-    })
+  uni.setStorageSync('last_query_result', JSON.stringify(results))
+  uni.navigateTo({
+    url: '/pages/result/index',
+  })
 }
 </script>
 
 <template>
-    <view class="container" v-if="log">
-        <!-- Header Section -->
-        <view class="section header-section">
-            <view class="task-info">
-                <text class="task-name">{{ log.task?.name || '未知任务' }}</text>
-                <text class="log-time">{{ formatDate(log.createdAt) }}</text>
-            </view>
-            <view class="status-badge" :class="log.status === 'success' ? 'success' : 'failed'">
-                <text>{{ log.status === 'success' ? '执行成功' : '执行失败' }}</text>
-            </view>
-        </view>
-
-        <!-- Basic Info -->
-        <view class="section">
-            <view class="section-title">基础信息</view>
-            <view class="info-grid">
-                <view class="info-item">
-                    <text class="label">耗时</text>
-                    <text class="value">{{ formatDuration(log.executionTimeMs) }}</text>
-                </view>
-                <view class="info-item">
-                    <text class="label">执行人</text>
-                    <text class="value">{{ log.user?.fullName || 'Anonymous' }}</text>
-                </view>
-                <view class="info-item" v-if="log.ipAddress">
-                    <text class="label">来源 IP</text>
-                    <text class="value">{{ log.ipAddress }}</text>
-                </view>
-            </view>
-        </view>
-
-        <!-- Error Message -->
-        <view class="section error-section" v-if="log.errorMessage">
-            <view class="section-title error-title">错误信息</view>
-            <text class="error-content">{{ log.errorMessage }}</text>
-        </view>
-
-        <!-- Executed SQL -->
-        <view class="section">
-            <view class="section-title">执行 SQL</view>
-            <view class="code-block">
-                <text>{{ log.executedSql }}</text>
-            </view>
-        </view>
-
-        <!-- Parameters -->
-        <view class="section" v-if="log.parameters && Object.keys(log.parameters).length > 0">
-            <view class="section-title">参数</view>
-            <view class="code-block">
-                <text>{{ JSON.stringify(log.parameters, null, 2) }}</text>
-            </view>
-        </view>
-
-        <!-- Results Snapshot -->
-        <view class="section" v-if="log.results">
-            <view class="section-title">结果概览 (JSON)</view>
-            <view class="code-block results-block">
-                <text>{{ JSON.stringify(log.results, null, 2) }}</text>
-            </view>
-        </view>
-
-        <view class="footer-actions" v-if="log.status === 'success' && log.results">
-            <button class="view-result-btn" type="primary" @click="viewResults">
-                进入详细结果视图
-            </button>
-        </view>
+  <view v-if="log" class="container">
+    <!-- Header Section -->
+    <view class="section header-section">
+      <view class="task-info">
+        <text class="task-name">
+          {{ log.task?.name || '未知任务' }}
+        </text>
+        <text class="log-time">
+          {{ formatDate(log.createdAt) }}
+        </text>
+      </view>
+      <view class="status-badge" :class="log.status === 'success' ? 'success' : 'failed'">
+        <text>{{ log.status === 'success' ? '执行成功' : '执行失败' }}</text>
+      </view>
     </view>
+
+    <!-- Basic Info -->
+    <view class="section">
+      <view class="section-title">
+        基础信息
+      </view>
+      <view class="info-grid">
+        <view class="info-item">
+          <text class="label">
+            耗时
+          </text>
+          <text class="value">
+            {{ formatDuration(log.executionTimeMs) }}
+          </text>
+        </view>
+        <view class="info-item">
+          <text class="label">
+            执行人
+          </text>
+          <text class="value">
+            {{ log.user?.fullName || 'Anonymous' }}
+          </text>
+        </view>
+        <view v-if="log.ipAddress" class="info-item">
+          <text class="label">
+            来源 IP
+          </text>
+          <text class="value">
+            {{ log.ipAddress }}
+          </text>
+        </view>
+      </view>
+    </view>
+
+    <!-- Error Message -->
+    <view v-if="log.errorMessage" class="section error-section">
+      <view class="section-title error-title">
+        错误信息
+      </view>
+      <text class="error-content">
+        {{ log.errorMessage }}
+      </text>
+    </view>
+
+    <!-- Executed SQL -->
+    <view class="section">
+      <view class="section-title">
+        执行 SQL
+      </view>
+      <view class="code-block">
+        <text>{{ log.executedSql }}</text>
+      </view>
+    </view>
+
+    <!-- Parameters -->
+    <view v-if="log.parameters && Object.keys(log.parameters).length > 0" class="section">
+      <view class="section-title">
+        参数
+      </view>
+      <view class="code-block">
+        <text>{{ JSON.stringify(log.parameters, null, 2) }}</text>
+      </view>
+    </view>
+
+    <!-- Results Snapshot -->
+    <view v-if="log.results" class="section">
+      <view class="section-title">
+        结果概览 (JSON)
+      </view>
+      <view class="code-block results-block">
+        <text>{{ JSON.stringify(log.results, null, 2) }}</text>
+      </view>
+    </view>
+
+    <view v-if="log.status === 'success' && log.results" class="footer-actions">
+      <button class="view-result-btn" type="primary" @click="viewResults">
+        进入详细结果视图
+      </button>
+    </view>
+  </view>
 </template>
 
 <style scoped>

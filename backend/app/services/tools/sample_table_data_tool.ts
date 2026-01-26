@@ -4,8 +4,8 @@ import DbHelper from '#services/db_helper'
 
 export class SampleTableDataTool extends StructuredTool {
   name = 'sample_table_data'
-  description =
-    'Get the first 3 rows of data from a table to understand the actual values (e.g., status codes, date formats).'
+  description
+    = 'Get the first 3 rows of data from a table to understand the actual values (e.g., status codes, date formats).'
 
   schema = z.object({
     dataSourceId: z.number(),
@@ -40,14 +40,15 @@ export class SampleTableDataTool extends StructuredTool {
         rows = res[0]
       }
 
-      if (!rows || rows.length === 0) return `Table '${tableName}' is empty.`
+      if (!rows || rows.length === 0)
+        return `Table '${tableName}' is empty.`
 
       // Filter out sensitive data
       const filteredRows = rows.map((row) => {
         const filtered: any = {}
         for (const key in row) {
           const lowKey = key.toLowerCase()
-          if (this.sensitiveFields.some((f) => lowKey.includes(f))) {
+          if (this.sensitiveFields.some(f => lowKey.includes(f))) {
             filtered[key] = '[HIDDEN-FOR-SECURITY]'
           } else {
             filtered[key] = row[key]

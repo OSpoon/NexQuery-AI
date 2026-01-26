@@ -1,17 +1,17 @@
-import { createApp } from 'vue'
-import { createPinia } from 'pinia'
 import { MarkdownCodeBlockNode, setCustomComponents } from 'markstream-vue'
-
-import '@/style.css'
-import 'vue-sonner/style.css'
-import '@/lib/monaco'
-import 'stream-markdown'
-import 'shiki'
+import { createPinia } from 'pinia'
+import { createApp } from 'vue'
 
 import App from './App.vue'
-import router from './router'
-
 import i18n from './i18n'
+import router from './router'
+import '@/style.css'
+import 'vue-sonner/style.css'
+
+import '@/lib/monaco'
+import 'stream-markdown'
+
+import 'shiki'
 
 setCustomComponents({
   code_block: MarkdownCodeBlockNode,

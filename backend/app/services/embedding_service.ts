@@ -37,7 +37,7 @@ export default class EmbeddingService {
       if (!response.ok) {
         const errorData = (await response.json().catch(() => ({}))) as any
         throw new Error(
-          errorData.error?.message || `Embedding API request failed: ${response.statusText}`
+          errorData.error?.message || `Embedding API request failed: ${response.statusText}`,
         )
       }
 

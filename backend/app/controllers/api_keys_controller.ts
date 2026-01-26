@@ -32,13 +32,13 @@ export default class ApiKeysController {
 
     // Create a token with specific duration
     const token = await User.accessTokens.create(user, ['*'], {
-      name: name,
+      name,
       expiresIn: duration,
     })
 
     return response.created({
       type: 'bearer',
-      name: name,
+      name,
       token: token.value!.release(), // Release the raw token value
       createdAt: new Date(),
     })

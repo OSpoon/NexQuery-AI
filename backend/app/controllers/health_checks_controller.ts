@@ -1,17 +1,110 @@
 import { HealthChecks } from '@adonisjs/core/health'
-import { DbCheck } from '@adonisjs/lucid/database'
 import type { HttpContext } from '@adonisjs/core/http'
 import db from '@adonisjs/lucid/services/db'
 import os from 'node:os'
 import { execSync } from 'node:child_process'
+import DataSource from '../models/data_source.js'
+import QueryExecutionService from '../services/query_execution_service.js'
 
 export default class HealthChecksController {
   async handle({ response }: HttpContext) {
     const health = new HealthChecks()
+    const queryService = new QueryExecutionService()
 
     health.register([
-      // Database Check
-      new DbCheck(db.connection()),
+      // Internal System Database Check (Renamed)
+      {
+        name: 'System Database',
+        async run() {
+          try {
+            await db.rawQuery('SELECT 1')
+            return {
+              name: 'System Database',
+              status: 'ok',
+              finishedAt: new Date(),
+              isHealthy: true,
+              message: 'System database connection is healthy',
+            }
+          } catch (error: any) {
+            return {
+              name: 'System Database',
+              status: 'error',
+              finishedAt: new Date(),
+              isHealthy: false,
+              message: `System database check failed: ${error.message}`,
+              error: error.message,
+              meta: {
+                connection: (db.connection() as any).name || 'unknown',
+                client: (db.connection() as any).config?.client || 'unknown',
+              },
+            }
+          }
+        },
+      },
+
+      // External Data Sources Integrity Check (New)
+      {
+        name: 'Data Sources',
+        async run() {
+          try {
+            // Check all SQL data sources regardless of status (user request)
+            // Exclude 'api' type sources as they are not SQL databases
+            const sources = await DataSource.query()
+              .whereNot('type', 'api')
+            const total = sources.length
+
+            if (total === 0) {
+              return {
+                name: 'Data Sources',
+                status: 'ok',
+                finishedAt: new Date(),
+                isHealthy: true,
+                message: 'No active SQL data sources configured',
+              }
+            }
+
+            let connected = 0
+            const details: any[] = []
+
+            await Promise.all(
+              sources.map(async (ds) => {
+                try {
+                  // Use rawExecute for a lightweight ping (SELECT 1)
+                  // Note: QueryExecutionService handles decryption and connection logic
+                  await queryService.rawExecute(ds, 'SELECT 1', { skipLogging: true })
+                  connected++
+                  details.push({ name: ds.name, status: 'ok' })
+                } catch (err: any) {
+                  details.push({ name: ds.name, status: 'error', error: err.message })
+                }
+              }),
+            )
+
+            const isHealthy = connected === total
+
+            return {
+              name: 'Data Sources',
+              status: isHealthy ? 'ok' : 'warning', // Warning if partial failure
+              finishedAt: new Date(),
+              isHealthy,
+              message: `Connected to ${connected}/${total} active data sources`,
+              meta: {
+                total,
+                connected,
+                details,
+              },
+            }
+          } catch (error: any) {
+            return {
+              name: 'Data Sources',
+              status: 'error',
+              finishedAt: new Date(),
+              isHealthy: false,
+              message: `Failed to check data sources: ${error.message}`,
+            }
+          }
+        },
+      },
 
       // Memory Usage Check
       {

@@ -1,30 +1,34 @@
 <script setup lang="ts">
+import { Terminal } from 'lucide-vue-next'
 import { ref } from 'vue'
 import ApiKeysManager from '@/components/profile/ApiKeysManager.vue'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
-import { Terminal } from 'lucide-vue-next'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
-const baseUrl = ref('http://localhost:3333')
+const baseUrl = ref('http://localhost:3008')
 </script>
 
 <template>
   <div class="p-6 space-y-6 max-w-6xl mx-auto">
     <div>
-      <h1 class="text-3xl font-bold tracking-tight">API Access Management</h1>
-      <p class="text-muted-foreground">Manage API keys and view integration documentation.</p>
+      <h1 class="text-3xl font-bold tracking-tight">
+        API Access Management
+      </h1>
+      <p class="text-muted-foreground">
+        Manage API keys and view integration documentation.
+      </p>
     </div>
 
     <!-- Management Section -->
     <Card>
       <CardHeader>
         <CardTitle>API Keys</CardTitle>
-        <CardDescription
-          >Generate and manage long-lived access tokens for external systems.</CardDescription
-        >
+        <CardDescription>
+          Generate and manage long-lived access tokens for external systems.
+        </CardDescription>
       </CardHeader>
       <CardContent>
         <ApiKeysManager />
@@ -34,7 +38,9 @@ const baseUrl = ref('http://localhost:3333')
     <!-- Documentation Section -->
     <div class="space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-2xl font-semibold tracking-tight">Integration Documentation</h2>
+        <h2 class="text-2xl font-semibold tracking-tight">
+          Integration Documentation
+        </h2>
         <div class="flex items-center gap-2">
           <Label for="base-url">API Base URL:</Label>
           <Input id="base-url" v-model="baseUrl" class="w-64 h-8" />
@@ -47,16 +53,21 @@ const baseUrl = ref('http://localhost:3333')
         <AlertDescription>
           All API requests must include the <code>Authorization</code> header with your API Key:
           <pre class="mt-2 text-xs bg-muted p-2 rounded">
-Authorization: Bearer &lt;YOUR_API_KEY&gt;</pre
-          >
+Authorization: Bearer &lt;YOUR_API_KEY&gt;</pre>
         </AlertDescription>
       </Alert>
 
-      <Tabs defaultValue="tasks" class="w-full">
+      <Tabs default-value="tasks" class="w-full">
         <TabsList class="grid w-full grid-cols-3">
-          <TabsTrigger value="tasks">Query Tasks</TabsTrigger>
-          <TabsTrigger value="execute">Execute Query</TabsTrigger>
-          <TabsTrigger value="logs">Query Logs</TabsTrigger>
+          <TabsTrigger value="tasks">
+            Query Tasks
+          </TabsTrigger>
+          <TabsTrigger value="execute">
+            Execute Query
+          </TabsTrigger>
+          <TabsTrigger value="logs">
+            Query Logs
+          </TabsTrigger>
         </TabsList>
 
         <!-- List Tasks -->
@@ -69,13 +80,17 @@ Authorization: Bearer &lt;YOUR_API_KEY&gt;</pre
             <CardContent class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 class="text-sm font-medium mb-2">Endpoint</h4>
+                  <h4 class="text-sm font-medium mb-2">
+                    Endpoint
+                  </h4>
                   <div class="bg-muted p-2 rounded text-sm font-mono">
                     GET {{ baseUrl }}/api/query-tasks
                   </div>
                 </div>
                 <div>
-                  <h4 class="text-sm font-medium mb-2">Parameters</h4>
+                  <h4 class="text-sm font-medium mb-2">
+                    Parameters
+                  </h4>
                   <ul class="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                     <li><code>page</code> (optional): Page number (default: 1)</li>
                     <li><code>limit</code> (optional): Items per page (default: 10)</li>
@@ -84,16 +99,19 @@ Authorization: Bearer &lt;YOUR_API_KEY&gt;</pre
               </div>
 
               <div>
-                <h4 class="text-sm font-medium mb-2">Example Request</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Example Request
+                </h4>
                 <pre class="bg-slate-950 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto">
 curl -X GET "{{ baseUrl }}/api/query-tasks?page=1&limit=5" \
   -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
-  -H "Content-Type: application/json"</pre
-                >
+  -H "Content-Type: application/json"</pre>
               </div>
 
               <div>
-                <h4 class="text-sm font-medium mb-2">Example Response</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Example Response
+                </h4>
                 <pre class="bg-slate-950 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto">
 {
   "meta": {
@@ -111,8 +129,7 @@ curl -X GET "{{ baseUrl }}/api/query-tasks?page=1&limit=5" \
       "sql_template": "SELECT count(*) FROM users WHERE created_at > :date"
     }
   ]
-}</pre
-                >
+}</pre>
               </div>
             </CardContent>
           </Card>
@@ -128,13 +145,17 @@ curl -X GET "{{ baseUrl }}/api/query-tasks?page=1&limit=5" \
             <CardContent class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 class="text-sm font-medium mb-2">Endpoint</h4>
+                  <h4 class="text-sm font-medium mb-2">
+                    Endpoint
+                  </h4>
                   <div class="bg-muted p-2 rounded text-sm font-mono">
                     POST {{ baseUrl }}/api/query-tasks/:id/execute
                   </div>
                 </div>
                 <div>
-                  <h4 class="text-sm font-medium mb-2">Body Parameters</h4>
+                  <h4 class="text-sm font-medium mb-2">
+                    Body Parameters
+                  </h4>
                   <ul class="text-sm text-muted-foreground list-disc pl-4 space-y-1">
                     <li><code>variables</code> (optional): Object containing SQL variables</li>
                   </ul>
@@ -142,7 +163,9 @@ curl -X GET "{{ baseUrl }}/api/query-tasks?page=1&limit=5" \
               </div>
 
               <div>
-                <h4 class="text-sm font-medium mb-2">Example Request</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Example Request
+                </h4>
                 <pre class="bg-slate-950 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto">
 curl -X POST "{{ baseUrl }}/api/query-tasks/1/execute" \
   -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;" \
@@ -151,12 +174,13 @@ curl -X POST "{{ baseUrl }}/api/query-tasks/1/execute" \
     "variables": {
       "date": "2024-01-01"
     }
-  }'</pre
-                >
+  }'</pre>
               </div>
 
               <div>
-                <h4 class="text-sm font-medium mb-2">Example Response</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Example Response
+                </h4>
                 <pre class="bg-slate-950 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto">
 {
   "status": "success",
@@ -169,8 +193,7 @@ curl -X POST "{{ baseUrl }}/api/query-tasks/1/execute" \
   "fields": [
     { "name": "count(*)", "type": "BIGINT" }
   ]
-}</pre
-                >
+}</pre>
               </div>
             </CardContent>
           </Card>
@@ -185,17 +208,20 @@ curl -X POST "{{ baseUrl }}/api/query-tasks/1/execute" \
             </CardHeader>
             <CardContent class="space-y-4">
               <div>
-                <h4 class="text-sm font-medium mb-2">Endpoint</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Endpoint
+                </h4>
                 <div class="bg-muted p-2 rounded text-sm font-mono">
                   GET {{ baseUrl }}/api/query-logs
                 </div>
               </div>
               <div>
-                <h4 class="text-sm font-medium mb-2">Example Request</h4>
+                <h4 class="text-sm font-medium mb-2">
+                  Example Request
+                </h4>
                 <pre class="bg-slate-950 text-slate-50 p-4 rounded-lg text-sm overflow-x-auto">
 curl -X GET "{{ baseUrl }}/api/query-logs?limit=10" \
-  -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;"</pre
-                >
+  -H "Authorization: Bearer &lt;YOUR_API_KEY&gt;"</pre>
               </div>
             </CardContent>
           </Card>

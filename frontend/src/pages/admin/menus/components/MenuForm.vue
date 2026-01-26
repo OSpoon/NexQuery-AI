@@ -1,11 +1,20 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
-import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
+import { useForm } from 'vee-validate'
+import { computed, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -13,16 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-  FormDescription,
-} from '@/components/ui/form'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
 
 const props = defineProps<{
   initialValues?: any
@@ -41,7 +41,7 @@ const formSchema = toTypedSchema(
     parentId: z.union([z.number(), z.null()]).optional(),
     sortOrder: z.coerce.number().default(0),
 
-    isActive: z.union([z.boolean(), z.number().transform((n) => !!n)]).default(true),
+    isActive: z.union([z.boolean(), z.number().transform(n => !!n)]).default(true),
   }),
 )
 
@@ -79,12 +79,12 @@ watch(
 
 // Filter out itself from parent options to avoid cycles (basic check)
 const parentOptions = computed(() => {
-  return props.allMenus.filter((m) => !props.isEditing || m.id !== props.initialValues.id)
+  return props.allMenus.filter(m => !props.isEditing || m.id !== props.initialValues.id)
 })
 
 const isSubmitting = ref(false)
 
-const onInvalidSubmit = ({ errors }: any) => {
+function onInvalidSubmit({ errors }: any) {
   console.error('Validation errors:', errors)
   toast.error('Please check the form for errors')
 }
@@ -95,28 +95,33 @@ const onSubmit = form.handleSubmit(async (values) => {
   const payload = { ...values }
 
   // Clean up empty strings for optional fields
-  if (!payload.permission) payload.permission = undefined
-  if (!payload.icon) payload.icon = undefined
+  if (!payload.permission)
+    payload.permission = undefined
+  if (!payload.icon)
+    payload.icon = undefined
 
   try {
     if (props.isEditing) {
       await api.put(`/menus/${props.initialValues.id}`, payload)
       toast.success('Menu updated')
-    } else {
+    }
+    else {
       await api.post('/menus', payload)
       toast.success('Menu created')
     }
     emit('success')
-  } catch (error: any) {
+  }
+  catch {
     toast.error('Failed to save menu')
-  } finally {
+  }
+  finally {
     isSubmitting.value = false
   }
 }, onInvalidSubmit)
 </script>
 
 <template>
-  <form @submit="onSubmit" class="h-full flex flex-col overflow-hidden" novalidate>
+  <form class="h-full flex flex-col overflow-hidden" novalidate @submit="onSubmit">
     <!-- Middle: Scrollable Content -->
     <div class="flex-1 overflow-y-auto p-6 pt-0 space-y-6">
       <div class="grid grid-cols-3 gap-4">
@@ -153,7 +158,9 @@ const onSubmit = form.handleSubmit(async (values) => {
               <FormControl>
                 <Input placeholder="LayoutDashboard" v-bind="componentField" />
               </FormControl>
-              <FormDescription class="text-xs">e.g. Users, Database, Settings</FormDescription>
+              <FormDescription class="text-xs">
+                e.g. Users, Database, Settings
+              </FormDescription>
               <FormMessage />
             </FormItem>
           </FormField>
@@ -195,7 +202,9 @@ const onSubmit = form.handleSubmit(async (values) => {
               </SelectTrigger>
             </FormControl>
             <SelectContent>
-              <SelectItem value="null">None (Top Level)</SelectItem>
+              <SelectItem value="null">
+                None (Top Level)
+              </SelectItem>
               <SelectItem v-for="menu in parentOptions" :key="menu.id" :value="String(menu.id)">
                 {{ menu.title }}
               </SelectItem>
@@ -211,7 +220,9 @@ const onSubmit = form.handleSubmit(async (values) => {
             <Checkbox id="is-active" :model-value="!!value" @update:model-value="handleChange" />
           </FormControl>
           <div class="space-y-1 leading-none">
-            <FormLabel for="is-active">Active</FormLabel>
+            <FormLabel for="is-active">
+              Active
+            </FormLabel>
             <FormDescription> Visible in sidebar </FormDescription>
           </div>
         </FormItem>
@@ -220,7 +231,9 @@ const onSubmit = form.handleSubmit(async (values) => {
 
     <!-- Fixed Footer -->
     <div class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg">
-      <Button type="button" variant="ghost" @click="emit('cancel')">Cancel</Button>
+      <Button type="button" variant="ghost" @click="emit('cancel')">
+        Cancel
+      </Button>
       <Button type="submit" :disabled="isSubmitting">
         {{ isSubmitting ? 'Saving...' : isEditing ? 'Save Changes' : 'Save Menu' }}
       </Button>

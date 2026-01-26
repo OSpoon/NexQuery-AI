@@ -11,7 +11,9 @@ export default class extends BaseSchema {
 
     // Index for JSONB tags (PostgreSQL only)
     this.defer(async (db) => {
-      await db.rawQuery('CREATE INDEX IF NOT EXISTS query_tasks_tags_gin_index ON query_tasks USING GIN (tags)')
+      await db.rawQuery(
+        'CREATE INDEX IF NOT EXISTS query_tasks_tags_gin_index ON query_tasks USING GIN (tags)',
+      )
     })
   }
 

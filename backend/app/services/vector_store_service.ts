@@ -1,6 +1,7 @@
 import { QdrantClient } from '@qdrant/js-client-rest'
 import env from '#start/env'
 import { createHash } from 'node:crypto'
+import logger from '@adonisjs/core/services/logger'
 
 export default class VectorStoreService {
   private client: QdrantClient
@@ -10,10 +11,13 @@ export default class VectorStoreService {
   public static readonly KNOWLEDGE_COLLECTION = 'knowledge_base_v1'
 
   constructor() {
+    const host = env.get('QDRANT_HOST')
+    const port = env.get('QDRANT_PORT')
+    const apiKey = env.get('QDRANT_API_KEY')
+
     this.client = new QdrantClient({
-      host: env.get('QDRANT_HOST'),
-      port: env.get('QDRANT_PORT'),
-      apiKey: env.get('QDRANT_API_KEY'),
+      url: `http://${host}:${port}`,
+      apiKey,
     })
   }
 
@@ -23,7 +27,7 @@ export default class VectorStoreService {
   public async ensureCollection(collectionName: string, vectorSize: number) {
     try {
       const response = await this.client.getCollections()
-      const exists = response.collections.some((c) => c.name === collectionName)
+      const exists = response.collections.some(c => c.name === collectionName)
 
       if (!exists) {
         await this.client.createCollection(collectionName, {
@@ -32,10 +36,10 @@ export default class VectorStoreService {
             distance: 'Cosine',
           },
         })
-        console.log(`[VectorStore] Created collection: ${collectionName}`)
+        logger.info(`[VectorStore] Created collection: ${collectionName}`)
       }
     } catch (error) {
-      console.error('[VectorStore] Error ensuring collection:', error)
+      logger.error({ error }, '[VectorStore] Error ensuring collection')
       // Do not throw, maybe qdrant is not ready, strict error handling might break sync
     }
   }
@@ -57,7 +61,7 @@ export default class VectorStoreService {
     dataSourceId: number,
     tableName: string,
     description: string,
-    vector: number[]
+    vector: number[],
   ) {
     await this.ensureCollection(VectorStoreService.TABLES_COLLECTION, vector.length)
 
@@ -68,7 +72,7 @@ export default class VectorStoreService {
       points: [
         {
           id: pointId,
-          vector: vector,
+          vector,
           payload: {
             dataSourceId,
             tableName,
@@ -86,7 +90,7 @@ export default class VectorStoreService {
     keyword: string,
     description: string,
     exampleSql: string | null | undefined,
-    vector: number[]
+    vector: number[],
   ) {
     await this.ensureCollection(VectorStoreService.KNOWLEDGE_COLLECTION, vector.length)
 
@@ -98,7 +102,7 @@ export default class VectorStoreService {
       points: [
         {
           id: pointId,
-          vector: vector,
+          vector,
           payload: {
             keyword,
             description,
@@ -116,7 +120,7 @@ export default class VectorStoreService {
     try {
       const results = await this.client.search(VectorStoreService.TABLES_COLLECTION, {
         vector: queryVector,
-        limit: limit,
+        limit,
         filter: {
           must: [
             {
@@ -132,8 +136,10 @@ export default class VectorStoreService {
       return results
     } catch (e: any) {
       // If collection doesn't exist (404), return empty
-      if (e.message && e.message.includes('Not Found')) return []
-      if ((e.status as number) === 404) return []
+      if (e.message && e.message.includes('Not Found'))
+        return []
+      if ((e.status as number) === 404)
+        return []
       throw e
     }
   }
@@ -141,16 +147,33 @@ export default class VectorStoreService {
   /**
    * Search Knowledge Base
    */
-  public async searchKnowledge(queryVector: number[], limit: number = 5) {
+  public async searchKnowledge(
+    queryVector: number[],
+    limit: number = 5,
+    status?: 'approved' | 'pending',
+  ) {
     try {
+      const filter: any = { must: [] }
+      if (status) {
+        filter.must.push({
+          key: 'status',
+          match: {
+            value: status,
+          },
+        })
+      }
+
       const results = await this.client.search(VectorStoreService.KNOWLEDGE_COLLECTION, {
         vector: queryVector,
-        limit: limit,
+        limit,
+        filter: filter.must.length > 0 ? filter : undefined,
       })
       return results
     } catch (e: any) {
-      if (e.message && e.message.includes('Not Found')) return []
-      if ((e.status as number) === 404) return []
+      if (e.message && e.message.includes('Not Found'))
+        return []
+      if ((e.status as number) === 404)
+        return []
       throw e
     }
   }
@@ -164,9 +187,9 @@ export default class VectorStoreService {
       await this.client.delete(VectorStoreService.KNOWLEDGE_COLLECTION, {
         points: [pointId],
       })
-      console.log(`[VectorStore] Deleted knowledge: ${keyword}`)
+      logger.info(`[VectorStore] Deleted knowledge: ${keyword}`)
     } catch (e: any) {
-      console.error('[VectorStore] Failed to delete knowledge', e)
+      logger.error({ error: e }, '[VectorStore] Failed to delete knowledge')
       // Don't throw, as it might already be deleted or collection missing
     }
   }

@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue'
+import type { DataSource } from '@nexquery/shared'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -19,8 +21,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import type { DataSource } from '@nexquery/shared'
 
 const props = defineProps<{
   dataSource: DataSource | null
@@ -68,7 +68,7 @@ const maskingTypes = [
   { value: 'custom', label: 'Custom Regex' },
 ]
 
-const initAdvancedConfig = () => {
+function initAdvancedConfig() {
   const ds: any = props.dataSource
   if (ds?.config?.advanced_config) {
     try {
@@ -92,11 +92,13 @@ const initAdvancedConfig = () => {
             : { type: 'none', rule: '', replace: '' },
         })),
       }))
-    } catch (e) {
+    }
+    catch (e) {
       console.error('Failed to parse advanced config', e)
       advancedConfig.value = []
     }
-  } else {
+  }
+  else {
     advancedConfig.value = []
   }
 }
@@ -111,15 +113,15 @@ watch(
 )
 
 // Helper functions for Advanced Config
-const addTableConfig = () => {
+function addTableConfig() {
   advancedConfig.value.push({ table: '', fields: [] })
 }
 
-const removeTableConfig = (index: number) => {
+function removeTableConfig(index: number) {
   advancedConfig.value.splice(index, 1)
 }
 
-const addFieldConfig = (tableIndex: number) => {
+function addFieldConfig(tableIndex: number) {
   advancedConfig.value[tableIndex]!.fields.push({
     name: '',
     alias: '',
@@ -128,27 +130,28 @@ const addFieldConfig = (tableIndex: number) => {
   })
 }
 
-const removeFieldConfig = (tableIndex: number, fieldIndex: number) => {
+function removeFieldConfig(tableIndex: number, fieldIndex: number) {
   advancedConfig.value[tableIndex]!.fields.splice(fieldIndex, 1)
 }
 
-const addEnum = (tableIndex: number, fieldIndex: number) => {
+function addEnum(tableIndex: number, fieldIndex: number) {
   advancedConfig.value[tableIndex]!.fields[fieldIndex]!.enums.push({ value: '', label: '' })
 }
 
-const removeEnum = (tableIndex: number, fieldIndex: number, enumIndex: number) => {
+function removeEnum(tableIndex: number, fieldIndex: number, enumIndex: number) {
   advancedConfig.value[tableIndex]!.fields[fieldIndex]!.enums.splice(enumIndex, 1)
 }
 
-const saveConfig = async () => {
-  if (!props.dataSource) return
+async function saveConfig() {
+  if (!props.dataSource)
+    return
 
   isSaving.value = true
   try {
     const configPayload = {
-      advanced_config: advancedConfig.value.map((t) => ({
+      advanced_config: advancedConfig.value.map(t => ({
         table: t.table,
-        fields: t.fields.map((f) => ({
+        fields: t.fields.map(f => ({
           name: f.name,
           alias: f.alias,
           enums:
@@ -188,9 +191,11 @@ const saveConfig = async () => {
     toast.success('Configuration saved successfully')
     emit('success')
     emit('update:open', false)
-  } catch (error: any) {
-    toast.error('Failed to save configuration: ' + (error.response?.data?.message || error.message))
-  } finally {
+  }
+  catch (error: any) {
+    toast.error(`Failed to save configuration: ${error.response?.data?.message || error.message}`)
+  }
+  finally {
     isSaving.value = false
   }
 }
@@ -202,15 +207,16 @@ const saveConfig = async () => {
       <DialogHeader class="p-6 pb-4 border-b shrink-0">
         <DialogTitle>{{ t('data_sources.advanced_settings') }}</DialogTitle>
         <DialogDescription>
-          {{ t('data_sources.desc') }} <strong>{{ dataSource?.name }}</strong
-          >.
+          {{ t('data_sources.desc') }} <strong>{{ dataSource?.name }}</strong>.
         </DialogDescription>
       </DialogHeader>
 
       <div class="flex-1 overflow-y-auto min-h-0 p-6">
         <div class="space-y-6">
           <div class="flex justify-between items-center">
-            <h3 class="text-sm font-medium">{{ t('data_sources.table_config_title') }}</h3>
+            <h3 class="text-sm font-medium">
+              {{ t('data_sources.table_config_title') }}
+            </h3>
             <Button type="button" variant="outline" size="sm" @click="addTableConfig">
               + {{ t('data_sources.add_table') }}
             </Button>
@@ -267,8 +273,9 @@ const saveConfig = async () => {
                     size="sm"
                     class="h-6 px-2 text-xs"
                     @click="addFieldConfig(tIndex)"
-                    >+ {{ t('data_sources.add_field') }}</Button
                   >
+                    + {{ t('data_sources.add_field') }}
+                  </Button>
                 </div>
 
                 <div
@@ -396,8 +403,9 @@ const saveConfig = async () => {
                         size="sm"
                         class="ml-auto block h-6 px-2 text-xs"
                         @click="addEnum(tIndex, fIndex)"
-                        >+ {{ 'data_sources.add_enum' }}</Button
                       >
+                        + {{ 'data_sources.add_enum' }}
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -414,10 +422,12 @@ const saveConfig = async () => {
       </div>
 
       <div class="p-6 pt-4 border-t flex justify-end gap-2 bg-background">
-        <Button variant="ghost" @click="emit('update:open', false)">{{
-          t('common.cancel')
-        }}</Button>
-        <Button @click="saveConfig" :disabled="isSaving">
+        <Button variant="ghost" @click="emit('update:open', false)">
+          {{
+            t('common.cancel')
+          }}
+        </Button>
+        <Button :disabled="isSaving" @click="saveConfig">
           {{ isSaving ? t('common.saving') : t('data_sources.save_config') }}
         </Button>
       </div>

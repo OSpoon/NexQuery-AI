@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
-import { useAuthStore } from '@/stores/auth'
-import { useSettingsStore } from '@/stores/settings'
-import { Toaster } from '@/components/ui/sonner'
-
 import GlobalWatermark from '@/components/common/GlobalWatermark.vue'
+import { Toaster } from '@/components/ui/sonner'
+import { useAuthStore } from '@/stores/auth'
+
+import { useSettingsStore } from '@/stores/settings'
 
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()

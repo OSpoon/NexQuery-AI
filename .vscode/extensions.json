@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "antfu.browse-lite",
+    "antfu.file-nesting",
+    "antfu.iconify",
+    "antfu.unocss",
+    "antfu.vite",
+    "vue.volar",
+    "bradlc.vscode-tailwindcss"
+  ]
+}

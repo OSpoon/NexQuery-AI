@@ -2,9 +2,15 @@ import type { HttpContext } from '@adonisjs/core/http'
 import LangChainService from '#services/lang_chain_service'
 import AiConversation from '#models/ai_conversation'
 import AiMessage from '#models/ai_message'
+import DataSource from '#models/data_source'
+import QueryExecutionService from '#services/query_execution_service'
+import { inject } from '@adonisjs/core'
 import { DateTime } from 'luxon'
 
+@inject()
 export default class AiController {
+  constructor(protected executionService: QueryExecutionService) {}
+
   async optimizeSql({ request, response }: HttpContext) {
     const { sql, dbType, schema } = request.all()
 
@@ -30,12 +36,14 @@ export default class AiController {
 
       response.response.end()
     } catch (error: any) {
-      if (response.response.writableEnded) return
+      if (response.response.writableEnded)
+        return
 
       response.response.write(`data: ${JSON.stringify({ error: error.message })}\n\n`)
       response.response.end()
     }
   }
+
   async chat({ request, response }: HttpContext) {
     const { question, dbType, schema } = request.all()
 
@@ -73,7 +81,7 @@ export default class AiController {
     const conversation = await AiConversation.query()
       .where('id', params.id)
       .where('user_id', user.id)
-      .preload('messages', (query) => query.orderBy('created_at', 'asc'))
+      .preload('messages', query => query.orderBy('created_at', 'asc'))
       .firstOrFail()
 
     return response.ok(conversation)
@@ -131,7 +139,7 @@ export default class AiController {
 
     // Notify frontend of conversation ID (always send it so frontend can sync)
     response.response.write(
-      `data: ${JSON.stringify({ type: 'conversation_id', id: conversation.id })}\n\n`
+      `data: ${JSON.stringify({ type: 'conversation_id', id: conversation.id })}\n\n`,
     )
 
     try {
@@ -145,7 +153,7 @@ export default class AiController {
       })
 
       let fullAssistantContent = ''
-      let agentSteps: any[] = []
+      const agentSteps: any[] = []
 
       for await (const chunk of stream) {
         // chunk is already a JSON string from the service (e.g. {"type": "thought", ...})
@@ -171,11 +179,15 @@ export default class AiController {
               status: 'running',
             })
           } else if (data.type === 'tool_end') {
-            const toolStep = agentSteps.find((s) => s.type === 'tool' && s.toolId === data.id)
+            const toolStep = agentSteps.find(s => s.type === 'tool' && s.toolId === data.id)
             if (toolStep) {
               toolStep.toolOutput = data.output
               toolStep.status = 'done'
             }
+          } else if (data.type === 'response') {
+            // Final Answer: Overwrite content (thoughts are already captured in agentSteps)
+            // This ensures the main message body contains the clean final output
+            fullAssistantContent = data.content
           }
         } catch (e) {
           // Chunk parsing failed
@@ -188,7 +200,8 @@ export default class AiController {
           conversationId: conversation.id,
           role: 'assistant',
           content: fullAssistantContent,
-          agentSteps: agentSteps,
+          prompt: question,
+          agentSteps,
         })
 
         // Update conversation timestamp
@@ -198,13 +211,15 @@ export default class AiController {
 
       response.response.end()
     } catch (error: any) {
-      if (response.response.writableEnded) return
+      if (response.response.writableEnded)
+        return
 
       const errorMsg = `data: ${JSON.stringify({ type: 'error', content: error.message })}\n\n`
       response.response.write(errorMsg)
       response.response.end()
     }
   }
+
   async learn({ request, response }: HttpContext) {
     const { question, sql } = request.all()
 
@@ -222,6 +237,30 @@ export default class AiController {
       // Even if learning fails, we usually don't want to break the UI flow, but here we report it
       return response.internalServerError({
         message: 'Failed to initiate learning',
+        error: error.message,
+      })
+    }
+  }
+
+  async preview({ request, response, auth }: HttpContext) {
+    const { dataSourceId, sql } = request.all()
+
+    if (!dataSourceId || !sql) {
+      return response.badRequest({ message: 'DataSource ID and SQL are required' })
+    }
+
+    try {
+      const dataSource = await DataSource.findOrFail(dataSourceId)
+      const result = await this.executionService.rawExecute(dataSource, sql, {
+        userId: auth.user?.id,
+        ipAddress: request.ip(),
+        userAgent: request.header('user-agent'),
+      })
+
+      return response.ok(result)
+    } catch (error: any) {
+      return response.internalServerError({
+        message: 'Preview failed',
         error: error.message,
       })
     }

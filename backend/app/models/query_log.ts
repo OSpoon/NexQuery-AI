@@ -1,8 +1,9 @@
-import { DateTime } from 'luxon'
-import { BaseModel, column, belongsTo } from '@adonisjs/lucid/orm'
+import type { DateTime } from 'luxon'
+import { BaseModel, belongsTo, column } from '@adonisjs/lucid/orm'
 import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import QueryTask from '#models/query_task'
+import DataSource from '#models/data_source'
 
 export default class QueryLog extends BaseModel {
   @column({ isPrimary: true })
@@ -13,6 +14,9 @@ export default class QueryLog extends BaseModel {
 
   @column()
   declare taskId: number | null
+
+  @column()
+  declare dataSourceId: number | null
 
   @column({
     prepare: (value: any) => JSON.stringify(value),
@@ -57,6 +61,11 @@ export default class QueryLog extends BaseModel {
     foreignKey: 'taskId',
   })
   declare task: BelongsTo<typeof QueryTask>
+
+  @belongsTo(() => DataSource, {
+    foreignKey: 'dataSourceId',
+  })
+  declare dataSource: BelongsTo<typeof DataSource>
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

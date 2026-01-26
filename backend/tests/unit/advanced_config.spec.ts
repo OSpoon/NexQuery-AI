@@ -18,8 +18,8 @@ test.group('Advanced Config Logic', () => {
             name: 'status',
             alias: 'Account Status',
             enums: {
-              '1': 'Active',
-              '0': 'Inactive',
+              1: 'Active',
+              0: 'Inactive',
             },
           },
           {
@@ -45,7 +45,7 @@ test.group('Advanced Config Logic', () => {
     const config = [
       {
         table: 't',
-        fields: [{ name: 'status', alias: 'S', enums: { '1': 'One' } }],
+        fields: [{ name: 'status', alias: 'S', enums: { 1: 'One' } }],
       },
     ]
 

@@ -1,70 +1,123 @@
 import { z } from 'zod'
 import { StructuredTool } from '@langchain/core/tools'
 import DbHelper from '#services/db_helper'
+import { createRequire } from 'node:module'
+
+const require = createRequire(import.meta.url)
+const { Parser } = require('node-sql-parser')
 
 export class ValidateSqlTool extends StructuredTool {
   name = 'validate_sql'
-  description =
-    'Validate a generated SQL query by running EXPLAIN. Use this to ensure syntax correctness before the final answer.'
+  description
+    = 'Validate a generated SQL query by running EXPLAIN. Use this to ensure syntax correctness before the final answer.'
 
   schema = z.object({
     dataSourceId: z.number(),
     sql: z.string().describe('The SQL query to validate. Must be a SELECT query.'),
   })
 
+  static validateAst(sql: string, dbType: string): string | null {
+    // 1. AST Guardrails (node-sql-parser)
+    const parser = new Parser()
+    let ast: any
+
+    // Map adonis dbType to node-sql-parser options
+    const parserOpt = {
+      database: dbType === 'postgresql' ? 'PostgreSQL' : 'MySQL',
+    }
+
+    try {
+      ast = parser.astify(sql, parserOpt)
+    } catch (e: any) {
+      // If AST parsing fails, double check with regex for minimal safety.
+      // Complex subqueries or specific dialect functions might fail parsing but be valid.
+      // We log warnings but block if it LOOKS like a dangerous DML and we couldn't parse it.
+      const upper = sql.toUpperCase()
+      if (
+        upper.includes('DELETE')
+        || upper.includes('UPDATE')
+        || upper.includes('DROP')
+        || upper.includes('TRUNCATE')
+      ) {
+        return `AST Validation Error: Could not parse SQL to verify safety. Error: ${e.message}. Please simplify or ensure standard syntax.`
+      }
+    }
+
+    if (ast) {
+      const statements = Array.isArray(ast) ? ast : [ast]
+
+      for (const stmt of statements) {
+        const type = stmt.type ? String(stmt.type).toUpperCase() : ''
+
+        // 1. Block DDL strictly
+        if (['DROP', 'TRUNCATE', 'ALTER', 'CREATE', 'REPLACE', 'GRANT', 'REVOKE'].includes(type)) {
+          return `Safety Error: DDL statement '${type}' is strictly prohibited.`
+        }
+
+        // 2. Enforce WHERE on DML
+        if (type === 'DELETE' || type === 'UPDATE') {
+          // node-sql-parser 'where' property is null if missing.
+          if (!stmt.where) {
+            return `Safety Error: ${type} statements MUST contain a WHERE clause to prevent accidental full-table data modification.`
+          }
+        }
+      }
+    }
+    return null
+  }
+
   async _call({ dataSourceId, sql }: z.infer<typeof this.schema>): Promise<string> {
     try {
       const { client, dbType } = await DbHelper.getConnection(dataSourceId)
 
+      const validationError = ValidateSqlTool.validateAst(sql, dbType)
+      if (validationError) {
+        return validationError
+      }
+
       const trimmedSql = sql.trim().toLowerCase()
-      // Relaxed check: Allow UPDATE/DELETE but warn about safety later.
-      // For now, let's keep it safe but allow CTEs and different select forms.
-      if (
-        !trimmedSql.startsWith('select') &&
-        !trimmedSql.startsWith('with') &&
-        !trimmedSql.startsWith('explain') &&
-        !trimmedSql.startsWith('show') &&
-        !trimmedSql.startsWith('describe')
-      ) {
-        // It's a DML (UPDATE, DELETE, INSERT, etc.) or DDL
-        // Safety check: specific dangerous commands
-        if (trimmedSql.startsWith('drop') || trimmedSql.startsWith('truncate')) {
-          return 'Error: DROP and TRUNCATE are not allowed even in Admin Mode for safety.'
-        }
+      // ... (rest of logic: Syntax Verification)
 
+      // 3. Syntax Verification (DB Native EXPLAIN)
+      const isSelect
+        = trimmedSql.startsWith('select')
+          || trimmedSql.startsWith('with')
+          || trimmedSql.startsWith('explain')
+          || trimmedSql.startsWith('show')
+          || trimmedSql.startsWith('describe')
+
+      if (!isSelect) {
+        // It's a DML (INSERT, UPDATE, DELETE).
         try {
-          // For DML, we MUST wrap in a transaction and rollback to validate it without executing.
+          // Use Transaction Rollback to safely "Explain/Test" the DML
           await client.transaction(async (trx) => {
-            // We just want to check if it runs without syntax error
-            // Note: This actually EXECUTES the query then rolls back.
-            // For huge updates this might be slow, but for validation it's the only accurate way
-            // aside from EXPLAIN UPDATE which isn't always supported or perfect.
-
-            // Try to use EXPLAIN if possible for DML (PostgreSQL supports it, MySQL 5.6+ supports EXPLAIN UPDATE)
-            // But for safety across versions, a rolled-back transaction is robust.
             if (dbType === 'postgresql') {
               await trx.rawQuery(`EXPLAIN ${sql}`)
             } else {
               // MySQL: EXPLAIN works on DELETE/INSERT/REPLACE/UPDATE
               await trx.rawQuery(`EXPLAIN ${sql}`)
             }
+            // Force Rollback to prevent any execution side-effects
+            throw new Error('__ROLLBACK__')
           })
           return 'Valid DML (Syntax Verified)'
         } catch (e: any) {
+          if (e.message === '__ROLLBACK__') {
+            return 'Valid DML (Syntax Verified)'
+          }
           return `DML Validation Error: ${e.message}`
         }
       }
 
+      // SELECT logic
       try {
-        // Run EXPLAIN to validate syntax and references
         await client.rawQuery(`EXPLAIN ${sql}`)
 
-        // If EXPLAIN passes, we perform a lightweight heuristic check for common logical pitfalls
-        // e.g. Cross Joins without conditions (simulated check)
+        // Heuristic: Cross Join Check
         if (
-          trimmedSql.includes('join') &&
-          !trimmedSql.includes('on') &&
-          !trimmedSql.includes('using')
+          trimmedSql.includes('join')
+          && !trimmedSql.includes('on')
+          && !trimmedSql.includes('using')
         ) {
           return 'Warning: You used a JOIN without ON/USING condition. This might cause a generic Cartesian product error or logic issue. Please verify.'
         }
@@ -76,20 +129,12 @@ export class ValidateSqlTool extends StructuredTool {
         // Heuristic: Auto-Correction Suggestions
         // Case 1: Unknown Column
         if (
-          errorMessage.includes('column') &&
-          (errorMessage.includes('does not exist') || errorMessage.includes('unknown'))
+          errorMessage.includes('column')
+          && (errorMessage.includes('does not exist') || errorMessage.includes('unknown'))
         ) {
-          // Extract column name from error if possible (PG puts it in quotes usually)
-          // PG: column "foo" does not exist
-          // MySQL: Unknown column 'foo' in 'field list'
           const match = errorMessage.match(/["'](\w+)["']/)
           if (match) {
             const badCol = match[1]
-            // We need to guess which table they meant. Since we don't parse the SQL to find the aliased table easily here without a parser,
-            // we'll try to find *any* table in the schema that has a similar column.
-            // This is expensive so we only do it on error.
-
-            // For now, simpler approach: Suggest strictly based on message
             return `SQL Validation Error: Column '${badCol}' does not exist. Please check the schema using 'get_table_schema' to find the correct column name.`
           }
         }

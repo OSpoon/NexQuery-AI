@@ -1,12 +1,12 @@
-import { HttpContext } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
 import env from '#start/env'
 import { CryptoService } from '@nexquery/shared'
 import logger from '@adonisjs/core/services/logger'
 
 export default class ApiEncryptionMiddleware {
   async handle({ request, response }: HttpContext, next: () => Promise<void>) {
-    const isEnabled =
-      env.get('API_ENCRYPTION_ENABLED', false) || env.get('ENABLE_API_ENCRYPTION', false)
+    const isEnabled
+      = env.get('API_ENCRYPTION_ENABLED', false) || env.get('ENABLE_API_ENCRYPTION', false)
 
     if (!isEnabled) {
       return await next()
@@ -54,7 +54,7 @@ export default class ApiEncryptionMiddleware {
       } catch (e: any) {
         logger.error(
           { decryptedRaw, error: e.message },
-          'Failed to parse decrypted request body as JSON'
+          'Failed to parse decrypted request body as JSON',
         )
         return response.badRequest({
           error: 'Invalid JSON after decryption',

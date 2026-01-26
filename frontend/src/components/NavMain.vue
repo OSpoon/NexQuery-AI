@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import type { LucideIcon } from 'lucide-vue-next'
-import { useRoute } from 'vue-router'
 import { ChevronRight } from 'lucide-vue-next'
+import { useRoute } from 'vue-router'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import {
   SidebarGroup,
   SidebarGroupLabel,
   SidebarMenu,
-  SidebarMenuAction,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarMenuSub,
@@ -34,15 +33,18 @@ defineProps<{
 const route = useRoute()
 
 // Check if item is active based on current route
-const isItemActive = (item: NavItem) => {
-  if (item.url === '#' || item.url.startsWith('#')) return false
+function isItemActive(item: NavItem) {
+  if (item.url === '#' || item.url.startsWith('#'))
+    return false
   return route.path === item.url || route.path.startsWith(item.url)
 }
 </script>
 
 <template>
   <SidebarGroup>
-    <SidebarGroupLabel v-if="title">{{ title }}</SidebarGroupLabel>
+    <SidebarGroupLabel v-if="title">
+      {{ title }}
+    </SidebarGroupLabel>
     <SidebarMenu>
       <Collapsible
         v-for="item in items"
@@ -52,7 +54,7 @@ const isItemActive = (item: NavItem) => {
         class="group/collapsible"
       >
         <SidebarMenuItem>
-          <CollapsibleTrigger as-child v-if="item.items?.length && item.url === '#'">
+          <CollapsibleTrigger v-if="item.items?.length && item.url === '#'" as-child>
             <SidebarMenuButton :tooltip="item.title" :is-active="isItemActive(item)">
               <component :is="item.icon" v-if="item.icon" />
               <span>{{ item.title }}</span>

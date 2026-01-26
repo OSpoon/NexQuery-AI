@@ -17,7 +17,7 @@ export default class AuthMiddleware {
     next: NextFn,
     options: {
       guards?: (keyof Authenticators)[]
-    } = {}
+    } = {},
   ) {
     await ctx.auth.authenticateUsing(options.guards, { loginRoute: this.redirectTo })
 
@@ -46,7 +46,7 @@ export default class AuthMiddleware {
       // request.url(false) returns path without query string.
       const pathOnly = ctx.request.url(false)
 
-      const isAllowed = allowedRoutes.some((route) => pathOnly === route)
+      const isAllowed = allowedRoutes.includes(pathOnly)
 
       if (!isAllowed) {
         return ctx.response.forbidden({

@@ -1,23 +1,26 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
+import type { QueryTask } from '@nexquery/shared'
+import { toTypedSchema } from '@vee-validate/zod'
 import { useDebounceFn } from '@vueuse/core'
 import { Sparkles, X } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
+import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
 import * as z from 'zod'
+import CurlEditor from '@/components/shared/CurlEditor.vue'
+import SqlEditor from '@/components/shared/SqlEditor.vue'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
-  FormDescription,
 } from '@/components/ui/form'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -25,18 +28,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import ScheduleManager from './ScheduleManager.vue'
-
-import SqlEditor from '@/components/shared/SqlEditor.vue'
-import CurlEditor from '@/components/shared/CurlEditor.vue'
-import AiOptimizationResult from './AiOptimizationResult.vue'
+import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 import { useSettingsStore } from '@/stores/settings'
-import { toast } from 'vue-sonner'
+import AiOptimizationResult from './AiOptimizationResult.vue'
 
-import type { QueryTask, DataSource } from '@nexquery/shared'
+import ScheduleManager from './ScheduleManager.vue'
 
 const props = defineProps<{
   initialValues?: QueryTask | null
@@ -50,7 +50,7 @@ const settingsStore = useSettingsStore()
 
 const activeTab = ref('definition')
 
-const dataSources = ref<Array<{ id: number; name: string; type: string }>>([])
+const dataSources = ref<Array<{ id: number, name: string, type: string }>>([])
 const sqlTemplate = ref(props.initialValues?.sqlTemplate || '')
 
 const formSchemaJson = ref(JSON.stringify(props.initialValues?.formSchema || [], null, 2))
@@ -59,24 +59,26 @@ const variables = computed(() => {
   try {
     const schema = JSON.parse(formSchemaJson.value || '[]')
     return schema.map((f: any) => ({ name: f.name, description: f.label }))
-  } catch (e) {
+  }
+  catch {
     return []
   }
 })
 
 const updateSchemaFromSql = useDebounceFn((sql: string) => {
-  const variableRegex = /{{\s*(\w+)\s*}}/g
-  const matches = [...sql.matchAll(variableRegex)].map((m) => m[1])
+  const variableRegex = /\{\{\s*(\w+)\s*\}\}/g
+  const matches = [...sql.matchAll(variableRegex)].map(m => m[1])
   const uniqueVars = [...new Set(matches)]
 
   try {
     const currentSchema = JSON.parse(formSchemaJson.value || '[]') as any[]
-    const existingMap = new Map(currentSchema.map((f) => [f.name, f]))
+    const existingMap = new Map(currentSchema.map(f => [f.name, f]))
 
     // Create new schema preserving existing fields if they still exist in SQL
     const newSchema = uniqueVars
       .map((v) => {
-        if (!v) return null
+        if (!v)
+          return null
         if (existingMap.has(v)) {
           return existingMap.get(v)
         }
@@ -94,11 +96,13 @@ const updateSchemaFromSql = useDebounceFn((sql: string) => {
     if (JSON.stringify(newSchema) !== JSON.stringify(currentSchema)) {
       formSchemaJson.value = JSON.stringify(newSchema, null, 2)
     }
-  } catch (e) {
+  }
+  catch {
     // If JSON is invalid, reset to derived schema from SQL
     const newSchema = uniqueVars
       .map((v) => {
-        if (!v) return null
+        if (!v)
+          return null
         return {
           name: v,
           label: v.charAt(0).toUpperCase() + v.slice(1),
@@ -135,13 +139,15 @@ const form = useForm({
 
     dataSourceId: props.initialValues?.dataSourceId,
     storeResults: (() => {
-      const val =
-        props.initialValues?.storeResults ??
-        (props.initialValues as any)?.store_execution_results ??
-        false
+      const val
+        = props.initialValues?.storeResults
+          ?? (props.initialValues as any)?.store_execution_results
+          ?? false
       // Handle various truthy types just in case
-      if (typeof val === 'string') return val === 'true' || val === '1'
-      if (typeof val === 'number') return val === 1
+      if (typeof val === 'string')
+        return val === 'true' || val === '1'
+      if (typeof val === 'number')
+        return val === 1
       return !!val
     })(),
     tags: props.initialValues?.tags || [],
@@ -155,8 +161,10 @@ watch(
     let booleanStoreResults = false
     if (newVal) {
       const val = newVal.storeResults ?? (newVal as any).store_execution_results
-      if (typeof val === 'string') booleanStoreResults = val === 'true' || val === '1'
-      else if (typeof val === 'number') booleanStoreResults = val === 1
+      if (typeof val === 'string')
+        booleanStoreResults = val === 'true' || val === '1'
+      else if (typeof val === 'number')
+        booleanStoreResults = val === 1
       else booleanStoreResults = !!val
     }
 
@@ -174,17 +182,18 @@ watch(
   { deep: true },
 )
 
-const fetchDataSources = async () => {
+async function fetchDataSources() {
   try {
     const response = await api.get('/data-sources')
     dataSources.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch data sources')
   }
 }
 
 const currentDataSource = computed(() => {
-  return dataSources.value.find((ds) => ds.id === form.values.dataSourceId)
+  return dataSources.value.find(ds => ds.id === form.values.dataSourceId)
 })
 
 const dbType = computed(() => {
@@ -200,7 +209,7 @@ const aiAnalysis = ref('') // Renamed from optimizationResult
 // optimizationUsage is removed as it's not used in the new optimizeSql logic
 
 // Get token from localStorage like api.ts does
-const getToken = () => {
+function getToken() {
   return localStorage.getItem('auth_token')
 }
 
@@ -213,13 +222,14 @@ const schemaTables = computed(() => {
     // this computed property needs to be updated to provide actual table schema.
     // For now, it sends the parsed form variables as a 'tables' array.
     return JSON.parse(formSchemaJson.value || '[]')
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Error parsing formSchemaJson for schemaTables:', e)
     return []
   }
 })
 
-const optimizeSql = async () => {
+async function optimizeSql() {
   if (!sqlTemplate.value.trim()) {
     toast.error('Please enter SQL to optimize')
     return
@@ -235,7 +245,7 @@ const optimizeSql = async () => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
+        'Authorization': `Bearer ${token}`,
       },
       body: JSON.stringify({
         sql: sqlTemplate.value,
@@ -255,11 +265,13 @@ const optimizeSql = async () => {
 
     let buffer = ''
 
-    if (!reader) throw new Error('No response body')
+    if (!reader)
+      throw new Error('No response body')
 
     while (true) {
       const { done, value } = await reader.read()
-      if (done) break
+      if (done)
+        break
 
       buffer += decoder.decode(value, { stream: true })
 
@@ -270,31 +282,36 @@ const optimizeSql = async () => {
       for (const line of lines) {
         if (line.startsWith('data: ')) {
           const data = line.slice(6).trim()
-          if (data === '[DONE]') continue
+          if (data === '[DONE]')
+            continue
           try {
             const parsed = JSON.parse(data)
             const content = parsed.chunk || parsed.choices?.[0]?.delta?.content || ''
             aiAnalysis.value += content
-          } catch (e) {
+          }
+          catch {
             // Ignore parse errors for partial chunks (though buffer should prevent this)
           }
         }
       }
     }
-  } catch (error: any) {
+  }
+  catch (error: any) {
     if (!aiAnalysis.value) {
       aiAnalysis.value = `Error: ${error.message}`
     }
-    toast.error('Optimization failed: ' + (error.message || 'Unknown error'))
-  } finally {
+    toast.error(`Optimization failed: ${error.message || 'Unknown error'}`)
+  }
+  finally {
     isOptimizing.value = false
   }
 }
 
 const tagInput = ref('')
-const addTag = () => {
+function addTag() {
   const val = tagInput.value.trim()
-  if (!val) return
+  if (!val)
+    return
 
   const currentTags = Array.isArray(form.values.tags) ? form.values.tags : []
   if (currentTags.length >= 3) {
@@ -316,7 +333,7 @@ const addTag = () => {
   tagInput.value = ''
 }
 
-const removeTag = (index: number) => {
+function removeTag(index: number) {
   const currentTags = [...(form.values.tags || [])]
   currentTags.splice(index, 1)
   form.setFieldValue('tags', currentTags)
@@ -335,7 +352,8 @@ const onSubmit = form.handleSubmit(async (values) => {
   let parsedSchema = null
   try {
     parsedSchema = JSON.parse(formSchemaJson.value)
-  } catch (e) {
+  }
+  catch {
     toast.error('Invalid Form Schema JSON')
     return
   }
@@ -351,14 +369,17 @@ const onSubmit = form.handleSubmit(async (values) => {
     if (props.isEditing && props.initialValues) {
       await api.put(`/query-tasks/${props.initialValues.id}`, payload)
       toast.success('Task updated')
-    } else {
+    }
+    else {
       await api.post('/query-tasks', payload)
       toast.success('Task created')
     }
     emit('success')
-  } catch (error: any) {
-    toast.error('Failed to save: ' + (error.response?.data?.message || error.message))
-  } finally {
+  }
+  catch (_error: any) {
+    toast.error(`Failed to save: ${_error.response?.data?.message || _error.message}`)
+  }
+  finally {
     isSubmitting.value = false
   }
 })
@@ -367,14 +388,18 @@ onMounted(fetchDataSources)
 </script>
 
 <template>
-  <form @submit="onSubmit" class="h-full flex flex-col overflow-hidden" novalidate>
+  <form class="h-full flex flex-col overflow-hidden" novalidate @submit="onSubmit">
     <Tabs v-model="activeTab" class="flex-1 flex flex-col overflow-hidden">
       <div class="px-6 pt-6 shrink-0">
         <TabsList>
-          <TabsTrigger value="definition">{{ t('query_tasks.definition') }}</TabsTrigger>
-          <TabsTrigger value="schedules" :disabled="!isEditing">{{
-            t('query_tasks.schedules')
-          }}</TabsTrigger>
+          <TabsTrigger value="definition">
+            {{ t('query_tasks.definition') }}
+          </TabsTrigger>
+          <TabsTrigger value="schedules" :disabled="!isEditing">
+            {{
+              t('query_tasks.schedules')
+            }}
+          </TabsTrigger>
         </TabsList>
       </div>
 
@@ -427,7 +452,9 @@ onMounted(fetchDataSources)
             <FormField v-slot="{ value, handleChange }" name="storeResults">
               <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
                 <div class="space-y-0.5">
-                  <FormLabel class="text-base">{{ t('query_tasks.store_results') }}</FormLabel>
+                  <FormLabel class="text-base">
+                    {{ t('query_tasks.store_results') }}
+                  </FormLabel>
                   <FormDescription>
                     {{ t('query_tasks.store_results_desc') }}
                   </FormDescription>
@@ -446,16 +473,16 @@ onMounted(fetchDataSources)
                 <div class="space-y-3">
                   <div class="flex gap-2">
                     <Input
-                      placeholder="Enter tag and press enter..."
                       v-model="tagInput"
-                      @keydown.enter.prevent="addTag"
+                      placeholder="Enter tag and press enter..."
                       :disabled="(value || []).length >= 3"
+                      @keydown.enter.prevent="addTag"
                     />
                     <Button
                       type="button"
                       variant="secondary"
-                      @click="addTag"
                       :disabled="(value || []).length >= 3"
+                      @click="addTag"
                     >
                       Add
                     </Button>
@@ -467,7 +494,7 @@ onMounted(fetchDataSources)
                       class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm"
                     >
                       {{ tag }}
-                      <button type="button" @click="removeTag(idx)" class="hover:text-destructive">
+                      <button type="button" class="hover:text-destructive" @click="removeTag(Number(idx))">
                         <X class="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -489,12 +516,12 @@ onMounted(fetchDataSources)
           </FormItem>
         </FormField>
 
-        <div class="space-y-2" v-if="currentDataSource">
+        <div v-if="currentDataSource" class="space-y-2">
           <Label>{{
             dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
           }}</Label>
           <div class="flex items-center justify-between">
-            <p class="text-xs text-muted-foreground" v-if="dbType !== 'api'">
+            <p v-if="dbType !== 'api'" class="text-xs text-muted-foreground">
               {{ t('query_tasks.placeholders_hint') }}
             </p>
 
@@ -509,13 +536,13 @@ onMounted(fetchDataSources)
                 </router-link>
               </div>
               <Button
+                v-if="dbType !== 'api'"
                 type="button"
                 variant="outline"
                 size="sm"
                 class="h-7 text-xs gap-1"
                 :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasGlmKey"
                 @click="optimizeSql"
-                v-if="dbType !== 'api'"
               >
                 <Sparkles class="w-3.5 h-3.5 text-yellow-500" />
                 {{ isOptimizing ? t('query_tasks.analyzing') : t('query_tasks.ai_optimize') }}
@@ -537,7 +564,9 @@ onMounted(fetchDataSources)
           v-else
           class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20"
         >
-          <p class="text-sm text-muted-foreground">请先选择数据源以开始编辑</p>
+          <p class="text-sm text-muted-foreground">
+            请先选择数据源以开始编辑
+          </p>
         </div>
       </TabsContent>
 
@@ -546,7 +575,11 @@ onMounted(fetchDataSources)
         value="schedules"
         class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden"
       >
-        <ScheduleManager v-if="isEditing && initialValues" :query-task-id="initialValues.id" />
+        <ScheduleManager
+          v-if="isEditing && initialValues"
+          :query-task-id="initialValues.id"
+          :has-parameters="variables.length > 0"
+        />
         <div v-else class="text-center text-muted-foreground mt-10">
           Please save the task before creating schedules.
         </div>
@@ -562,12 +595,14 @@ onMounted(fetchDataSources)
 
     <!-- Fixed Footer -->
     <div
-      class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
       v-if="activeTab === 'definition'"
+      class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
     >
-      <Button type="button" variant="ghost" @click="emit('cancel')">{{
-        t('common.cancel')
-      }}</Button>
+      <Button type="button" variant="ghost" @click="emit('cancel')">
+        {{
+          t('common.cancel')
+        }}
+      </Button>
       <Button type="submit" :disabled="isSubmitting">
         {{
           isSubmitting

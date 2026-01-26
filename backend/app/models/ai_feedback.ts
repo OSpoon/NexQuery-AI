@@ -1,9 +1,12 @@
-import { DateTime } from 'luxon'
+import type { DateTime } from 'luxon'
 import { BaseModel, column } from '@adonisjs/lucid/orm'
 
 export default class AiFeedback extends BaseModel {
   @column({ isPrimary: true })
   declare id: number
+
+  @column()
+  declare conversationId: number | null
 
   @column()
   declare question: string

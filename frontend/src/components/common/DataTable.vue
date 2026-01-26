@@ -1,22 +1,30 @@
 <script setup lang="ts" generic="TData, TValue">
+import type { ColumnDef, ColumnFiltersState, ExpandedState, SortingState, Updater, VisibilityState } from '@tanstack/vue-table'
+import type { Ref } from 'vue'
 import {
+
   FlexRender,
   getCoreRowModel,
-  getPaginationRowModel,
-  getFilteredRowModel,
-  getSortedRowModel,
-  useVueTable,
-  type ColumnDef,
-  type SortingState,
-  type ColumnFiltersState,
-  type VisibilityState,
-  type Updater,
-  type ExpandedState,
   getExpandedRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+
+  useVueTable,
+
 } from '@tanstack/vue-table'
-import { ref, type Ref } from 'vue'
 import { useLocalStorage } from '@vueuse/core'
 
+import { SlidersHorizontal } from 'lucide-vue-next'
+import { ref } from 'vue'
+import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import {
   Table,
   TableBody,
@@ -25,15 +33,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { ChevronDown, SlidersHorizontal } from 'lucide-vue-next'
 
 const props = defineProps<{
   columns: ColumnDef<TData, TValue>[]
@@ -44,7 +43,7 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'row-click', row: TData): void
+  rowClick: [row: TData]
 }>()
 
 const sorting = ref<SortingState>([])
@@ -67,11 +66,11 @@ const table = useVueTable({
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
   getExpandedRowModel: getExpandedRowModel(),
-  onSortingChange: (updaterOrValue) => valueUpdater(updaterOrValue, sorting),
-  onColumnFiltersChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnFilters),
-  onColumnVisibilityChange: (updaterOrValue) => valueUpdater(updaterOrValue, columnVisibility),
-  onRowSelectionChange: (updaterOrValue) => valueUpdater(updaterOrValue, rowSelection),
-  onExpandedChange: (updaterOrValue) => valueUpdater(updaterOrValue, expanded),
+  onSortingChange: updaterOrValue => valueUpdater(updaterOrValue, sorting),
+  onColumnFiltersChange: updaterOrValue => valueUpdater(updaterOrValue, columnFilters),
+  onColumnVisibilityChange: updaterOrValue => valueUpdater(updaterOrValue, columnVisibility),
+  onRowSelectionChange: updaterOrValue => valueUpdater(updaterOrValue, rowSelection),
+  onExpandedChange: updaterOrValue => valueUpdater(updaterOrValue, expanded),
   getSubRows: (row: any) => row.children,
   state: {
     get sorting() {
@@ -148,8 +147,8 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
               v-for="row in table.getRowModel().rows"
               :key="row.id"
               :data-state="row.getIsSelected() ? 'selected' : undefined"
-              @click="emit('row-click', row.original)"
               class="cursor-pointer hover:bg-muted/50"
+              @click="emit('rowClick', row.original)"
             >
               <TableCell v-for="cell in row.getVisibleCells()" :key="cell.id">
                 <FlexRender :render="cell.column.columnDef.cell" :props="cell.getContext()" />

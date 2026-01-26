@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { type HTMLAttributes, computed } from 'vue'
+import type { CheckboxRootEmits, CheckboxRootProps } from 'reka-ui'
+import type { HTMLAttributes } from 'vue'
+import { Check } from 'lucide-vue-next'
 import {
   CheckboxIndicator,
   CheckboxRoot,
-  type CheckboxRootEmits,
-  type CheckboxRootProps,
+
   useForwardPropsEmits,
 } from 'reka-ui'
-import { Check } from 'lucide-vue-next'
+import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<CheckboxRootProps & { class?: HTMLAttributes['class'] }>()

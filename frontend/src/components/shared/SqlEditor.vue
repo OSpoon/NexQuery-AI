@@ -1,25 +1,31 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount, watch, nextTick, computed } from 'vue'
+import type { Schema } from '@/lib/monaco-sql-init'
+import { AlertCircle, Braces, CheckCircle2, Eraser } from 'lucide-vue-next'
 import * as monaco from 'monaco-editor'
-import { Braces, Eraser, CheckCircle2, AlertCircle } from 'lucide-vue-next'
+import { format } from 'sql-formatter'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
+
 import api from '@/lib/api'
 import {
-  setupMonacoSql,
   registerSchema,
+
+  setupMonacoSql,
   unregisterSchema,
-  type Schema,
 } from '@/lib/monaco-sql-init'
 
 const props = defineProps<{
   modelValue: string
   language?: string
-  variables?: Array<{ name: string; description?: string }>
+  variables?: Array<{ name: string, description?: string }>
   dbType?: string
   dataSourceId?: number
+  readonly?: boolean
+  hideToolbar?: boolean
 }>()
-
 const emit = defineEmits(['update:modelValue', 'run'])
+
+const fullWidthChars = /[；，。“”（）]/
 
 const editorRef = ref<HTMLElement | null>(null)
 let editor: monaco.editor.IStandaloneCodeEditor | null = null
@@ -29,13 +35,16 @@ let variableProvider: monaco.IDisposable | null = null
 
 // Compute Language ID for Monaco
 const monacoLanguage = computed(() => {
-  if (props.language && props.language !== 'sql') return props.language // shell, json
-  if (props.dbType === 'postgresql') return 'pgsql'
+  if (props.language && props.language !== 'sql')
+    return props.language // shell, json
+  if (props.dbType === 'postgresql')
+    return 'pgsql'
   return 'mysql' // Default to mysql for SQL
 })
 
-const fetchSchema = async () => {
-  if (!props.dataSourceId || props.language === 'shell' || props.language === 'json') return
+async function fetchSchema() {
+  if (!props.dataSourceId || props.language === 'shell' || props.language === 'json')
+    return
   try {
     const response = await api.get(`/data-sources/${props.dataSourceId}/schema`)
     currentSchema.value = response.data
@@ -43,18 +52,20 @@ const fetchSchema = async () => {
     if (editor) {
       registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to fetch schema:', error)
   }
 }
 
-const registerVariableProvider = () => {
+function registerVariableProvider() {
   if (variableProvider) {
     variableProvider.dispose()
     variableProvider = null
   }
 
-  if (!props.variables || props.variables.length === 0) return
+  if (!props.variables || props.variables.length === 0)
+    return
 
   // Register a simple provider just for variables
   // Use the computed language
@@ -76,7 +87,7 @@ const registerVariableProvider = () => {
           kind: monaco.languages.CompletionItemKind.Variable,
           insertText: `{{${v.name}}}`,
           detail: v.description || 'Variable',
-          sortText: '0_' + v.name, // Top priority
+          sortText: `0_${v.name}`, // Top priority
           range,
         })
       })
@@ -85,12 +96,11 @@ const registerVariableProvider = () => {
   })
 }
 
-import { format } from 'sql-formatter'
-
 // ...
 
-const formatSql = () => {
-  if (!editor) return
+function formatSql() {
+  if (!editor)
+    return
   try {
     let value = editor.getValue()
 
@@ -123,15 +133,17 @@ const formatSql = () => {
     })
 
     editor.setValue(formatted)
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Format failed:', e)
     // Fallback to basic monaco format if available (though likely failed)
     editor.getAction('editor.action.formatDocument')?.run()
   }
 }
 
-const validateSql = () => {
-  if (!editor) return
+function validateSql() {
+  if (!editor)
+    return
   const value = editor.getValue()
 
   // 1. Check for Chinese Punctuation (Strict Error)
@@ -157,7 +169,7 @@ const validateSql = () => {
   const model = editor.getModel()
   if (model) {
     const markers = monaco.editor.getModelMarkers({ resource: model.uri })
-    const error = markers.find((m) => m.severity === monaco.MarkerSeverity.Error)
+    const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
     if (error) {
       syntaxError.value = error.message
       return
@@ -179,6 +191,7 @@ onMounted(() => {
         theme: 'vs-dark-premium',
         automaticLayout: true,
         minimap: { enabled: false },
+        readOnly: props.readonly || false,
         fontSize: 14,
         lineHeight: 22,
         scrollBeyondLastLine: false,
@@ -194,7 +207,7 @@ onMounted(() => {
         roundedSelection: true,
         cursorSmoothCaretAnimation: 'on',
         smoothScrolling: true,
-        fontFamily: "'Fira Code', 'Monaco', 'Cascadia Code', monospace",
+        fontFamily: '\'Fira Code\', \'Monaco\', \'Cascadia Code\', monospace',
         fontLigatures: true,
       })
 
@@ -228,13 +241,14 @@ onMounted(() => {
         monaco.editor.onDidChangeMarkers(([uri]) => {
           if (uri.toString() === model.uri.toString()) {
             const markers = monaco.editor.getModelMarkers({ resource: uri })
-            const error = markers.find((m) => m.severity === monaco.MarkerSeverity.Error)
+            const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
             if (error && !syntaxError.value) {
               // Don't overwrite Chinese char error if present (handled in validateSql)
               // Actually validateSql runs on content change.
               // Let's rely on markers.
               syntaxError.value = error.message
-            } else if (!error && !fullWidthChars.test(editor?.getValue() || '')) {
+            }
+            else if (!error && !fullWidthChars.test(editor?.getValue() || '')) {
               syntaxError.value = null
             }
           }
@@ -250,13 +264,20 @@ onMounted(() => {
   })
 })
 
-const fullWidthChars = /[；，。“”（）]/ // Moved out to be accessible
-
 watch(
   () => props.modelValue,
   (newValue) => {
     if (editor && newValue !== editor.getValue()) {
       editor.setValue(newValue)
+    }
+  },
+)
+
+watch(
+  () => props.readonly,
+  (newValue) => {
+    if (editor) {
+      editor.updateOptions({ readOnly: newValue })
     }
   },
 )
@@ -282,15 +303,16 @@ watch(
   },
 )
 
-const clearSql = () => {
+function clearSql() {
   editor?.setValue('')
 }
 
-const insertVariable = (variableName: string) => {
-  if (!editor) return
+function insertVariable(variableName: string) {
+  if (!editor)
+    return
   const selection = editor.getSelection()
   const text = `{{${variableName}}}`
-  const op = { range: selection!, text: text, forceMoveMarkers: true }
+  const op = { range: selection!, text, forceMoveMarkers: true }
   editor.executeEdits('insert-variable', [op])
   editor.focus()
 }
@@ -317,16 +339,22 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px]">
-    <div class="flex items-center justify-between px-2 py-1 bg-muted/30 border-b">
+  <div
+    class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px]"
+    :class="{ 'min-h-[150px]': hideToolbar }"
+  >
+    <div
+      v-if="!hideToolbar"
+      class="flex items-center justify-between px-2 py-1 bg-muted/30 border-b"
+    >
       <div class="flex items-center gap-1">
         <Button
           type="button"
           variant="ghost"
           size="icon"
           title="Format"
-          @click="formatSql"
           class="h-8 w-8"
+          @click="formatSql"
         >
           <Braces class="h-4 w-4" />
         </Button>
@@ -335,12 +363,12 @@ defineExpose({
           variant="ghost"
           size="icon"
           title="Clear"
-          @click="clearSql"
           class="h-8 w-8 text-destructive"
+          @click="clearSql"
         >
           <Eraser class="h-4 w-4" />
         </Button>
-        <div class="h-4 w-px bg-border mx-1"></div>
+        <div class="h-4 w-px bg-border mx-1" />
         <div
           v-if="syntaxError"
           class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
@@ -354,7 +382,7 @@ defineExpose({
           <span>{{ language === 'shell' ? 'Ready' : language === 'json' ? 'JSON' : 'SQL' }}</span>
         </div>
       </div>
-      <div class="flex items-center gap-2" v-if="variables && variables.length > 0">
+      <div v-if="variables && variables.length > 0" class="flex items-center gap-2">
         <span class="text-xs text-muted-foreground">Insert:</span>
         <div class="flex gap-1">
           <Button
@@ -371,7 +399,7 @@ defineExpose({
         </div>
       </div>
     </div>
-    <div ref="editorRef" class="w-full flex-1"></div>
+    <div ref="editorRef" class="w-full flex-1" />
   </div>
 </template>
 

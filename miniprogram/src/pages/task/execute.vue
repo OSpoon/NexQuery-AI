@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import api, { cryptoService } from '@/lib/api'
 import type { QueryTask } from '@nexquery/shared'
 import { onLoad } from '@dcloudio/uni-app'
+import { onMounted, ref } from 'vue'
+import api, { cryptoService } from '@/lib/api'
 
 const taskId = ref('')
 const task = ref<QueryTask | null>(null)
@@ -16,7 +16,7 @@ onLoad((options) => {
   }
 })
 
-const fetchTask = async () => {
+async function fetchTask() {
   loading.value = true
   try {
     const res = await api.get(`/query-tasks/${taskId.value}`)
@@ -27,22 +27,24 @@ const fetchTask = async () => {
         formData.value[item.name] = item.default || ''
       })
     }
-  } catch (error) {
+  }
+  catch (error) {
     console.error('Failed to fetch task', error)
     uni.showToast({ title: '加载任务失败', icon: 'none' })
-  } finally {
+  }
+  finally {
     loading.value = false
   }
 }
 
-const handleExecute = async () => {
+async function handleExecute() {
   // Validate required fields
   if (task.value?.formSchema) {
     for (const item of task.value.formSchema) {
       if (item.required && (!formData.value[item.name] && formData.value[item.name] !== 0)) {
         uni.showToast({
           title: `请输入${item.label}`,
-          icon: 'none'
+          icon: 'none',
         })
         return
       }
@@ -52,26 +54,27 @@ const handleExecute = async () => {
   executing.value = true
   try {
     const res = await api.post(`/query-tasks/${taskId.value}/execute`, {
-      params: formData.value
+      params: formData.value,
     })
 
     let finalData = res.data
 
     // Check if the result itself is an encrypted packet (common for API tasks calling other platform APIs)
     if (
-      cryptoService &&
-      finalData &&
-      typeof finalData === 'object' &&
-      finalData.data &&
-      typeof finalData.data === 'string' &&
-      finalData.data.startsWith('U2FsdGVk')
+      cryptoService
+      && finalData
+      && typeof finalData === 'object'
+      && finalData.data
+      && typeof finalData.data === 'string'
+      && finalData.data.startsWith('U2FsdGVk')
     ) {
       try {
         const decrypted = cryptoService.decrypt(finalData.data)
         if (decrypted !== null) {
           finalData = decrypted
         }
-      } catch (e) {
+      }
+      catch (e) {
         console.warn('[TaskExecute] Failed to decrypt nested result:', e)
       }
     }
@@ -80,22 +83,25 @@ const handleExecute = async () => {
     if (finalData && ((Array.isArray(finalData) && finalData.length > 0) || (typeof finalData === 'object' && Object.keys(finalData).length > 0))) {
       uni.setStorageSync('last_query_result', JSON.stringify(finalData))
       uni.navigateTo({
-        url: '/pages/result/index'
-      })
-    } else {
-      uni.showToast({
-        title: '查询成功，暂无数据',
-        icon: 'success'
+        url: '/pages/result/index',
       })
     }
-  } catch (error: any) {
+    else {
+      uni.showToast({
+        title: '查询成功，暂无数据',
+        icon: 'success',
+      })
+    }
+  }
+  catch (error: any) {
     console.error('Execution failed', error)
     uni.showModal({
       title: '执行失败',
       content: error.error || error.message || '查询失败',
-      showCancel: false
+      showCancel: false,
     })
-  } finally {
+  }
+  finally {
     executing.value = false
   }
 }
@@ -115,25 +121,41 @@ onMounted(() => {
 
     <view v-else-if="task" class="task-detail">
       <view class="header">
-        <text class="task-name">{{ task.name }}</text>
-        <text class="task-desc">{{ task.description || '无描述' }}</text>
+        <text class="task-name">
+          {{ task.name }}
+        </text>
+        <text class="task-desc">
+          {{ task.description || '无描述' }}
+        </text>
       </view>
 
       <view class="form-container">
         <view v-for="item in task.formSchema" :key="item.name" class="form-item">
-          <text class="label">{{ item.label }} <text v-if="item.required" class="required">*</text></text>
+          <text class="label">
+            {{ item.label }} <text v-if="item.required" class="required">
+              *
+            </text>
+          </text>
 
-          <input v-if="item.type === 'text' || item.type === 'input'" class="input" v-model="formData[item.name]"
-            :placeholder="'请输入' + item.label" />
+          <input
+            v-if="item.type === 'text' || item.type === 'input'" v-model="formData[item.name]" class="input"
+            :placeholder="`请输入${item.label}`"
+          >
 
-          <input v-else-if="item.type === 'number'" class="input" type="number" v-model="formData[item.name]"
-            :placeholder="'请输入' + item.label" />
+          <input
+            v-else-if="item.type === 'number'" v-model="formData[item.name]" class="input" type="number"
+            :placeholder="`请输入${item.label}`"
+          >
 
-          <textarea v-else-if="item.type === 'textarea'" class="textarea" v-model="formData[item.name]"
-            :placeholder="'请输入' + item.label" />
+          <textarea
+            v-else-if="item.type === 'textarea'" v-model="formData[item.name]" class="textarea"
+            :placeholder="`请输入${item.label}`"
+          />
 
           <!-- Add more types if needed -->
-          <text v-else class="unsupported">不支持的表单类型: {{ item.type }}</text>
+          <text v-else class="unsupported">
+            不支持的表单类型: {{ item.type }}
+          </text>
         </view>
       </view>
 

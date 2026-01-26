@@ -1,7 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, h } from 'vue'
+import type { ColumnDef } from '@tanstack/vue-table'
 import type { User } from '@/stores/auth'
-import { Users, Mail, ShieldCheck, ArrowUpDown, Edit, Trash2 } from 'lucide-vue-next'
+import { ArrowUpDown, Edit, Mail, ShieldCheck, Trash2, Users } from 'lucide-vue-next'
+import { h, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import DataTable from '@/components/common/DataTable.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,33 +15,30 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import UserForm from './components/UserForm.vue'
 import api from '@/lib/api'
-import { toast } from 'vue-sonner'
-import DataTable from '@/components/common/DataTable.vue'
-import type { ColumnDef } from '@tanstack/vue-table'
-import { useI18n } from 'vue-i18n'
+import UserForm from './components/UserForm.vue'
 
 const { t } = useI18n()
 const users = ref<User[]>([])
 const isDialogOpen = ref(false)
 const selectedUser = ref(null)
 
-const fetchUsers = async () => {
+async function fetchUsers() {
   try {
     const response = await api.get('/users')
     users.value = response.data
-  } catch (error) {
+  }
+  catch {
     toast.error('Failed to fetch users')
   }
 }
 
-const openEditDialog = (user: any) => {
+function openEditDialog(user: any) {
   selectedUser.value = user
   isDialogOpen.value = true
 }
 
-const toggleUserStatus = async (user: any) => {
+async function toggleUserStatus(user: any) {
   const newStatus = !user.isActive
   try {
     await api.put(`/users/${user.id}`, {
@@ -48,19 +49,23 @@ const toggleUserStatus = async (user: any) => {
     // Simple toast, could be improved with i18n specific logic if needed foundationally
     toast.success(`User updated`)
     fetchUsers()
-  } catch (error) {
+  }
+  catch {
     toast.error(`Failed to update user`)
   }
 }
 
-const deleteUser = async (user: any) => {
-  if (!confirm(t('users.delete_confirm', { name: user.fullName }))) return
+async function deleteUser(user: any) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(t('users.delete_confirm', { name: user.fullName })))
+    return
 
   try {
     await api.delete(`/users/${user.id}`)
     toast.success(t('users.delete_success', { name: user.fullName }))
     fetchUsers()
-  } catch (error: any) {
+  }
+  catch (error: any) {
     const message = error.response?.data?.message || 'Failed to delete user'
     toast.error(message)
   }
@@ -129,8 +134,10 @@ const columns: ColumnDef<User>[] = [
       const isActive = row.original.isActive
       const roles = row.original.roles || []
 
-      if (!isActive) return h(Badge, { variant: 'destructive' }, () => t('users.disabled'))
-      if (roles.length === 0) return h(Badge, { variant: 'secondary' }, () => t('users.pending'))
+      if (!isActive)
+        return h(Badge, { variant: 'destructive' }, () => t('users.disabled'))
+      if (roles.length === 0)
+        return h(Badge, { variant: 'secondary' }, () => t('users.pending'))
       return h(Badge, { variant: 'default' }, () => t('users.active'))
     },
   },
@@ -195,8 +202,12 @@ onMounted(fetchUsers)
   <div class="p-6 space-y-6">
     <div class="flex justify-between items-center">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('users.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('users.desc') }}</p>
+        <h1 class="text-3xl font-bold tracking-tight">
+          {{ t('users.title') }}
+        </h1>
+        <p class="text-muted-foreground">
+          {{ t('users.desc') }}
+        </p>
       </div>
     </div>
 

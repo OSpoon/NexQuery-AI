@@ -7,7 +7,7 @@ import { SplitterResizeHandle, useForwardPropsEmits } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<
-  SplitterResizeHandleProps & { class?: HTMLAttributes['class']; withHandle?: boolean }
+  SplitterResizeHandleProps & { class?: HTMLAttributes['class'], withHandle?: boolean }
 >()
 const emits = defineEmits<SplitterResizeHandleEmits>()
 

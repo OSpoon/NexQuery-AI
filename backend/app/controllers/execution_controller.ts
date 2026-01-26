@@ -29,7 +29,7 @@ export default class ExecutionController {
           'x-forwarded-for': request.header('x-forwarded-for'),
           'x-real-ip': request.header('x-real-ip'),
         },
-        'Debug: IP Resolution Details'
+        'Debug: IP Resolution Details',
       )
 
       return response.ok({

@@ -1,5 +1,6 @@
 import app from '@adonisjs/core/services/app'
-import { HttpContext, ExceptionHandler } from '@adonisjs/core/http'
+import type { HttpContext } from '@adonisjs/core/http'
+import { ExceptionHandler } from '@adonisjs/core/http'
 
 export default class HttpExceptionHandler extends ExceptionHandler {
   /**
@@ -14,7 +15,7 @@ export default class HttpExceptionHandler extends ExceptionHandler {
    */
   async handle(error: any, ctx: HttpContext) {
     if (ctx.request.url().startsWith('/api')) {
-      ctx.request.request.headers['accept'] = 'application/json'
+      ctx.request.request.headers.accept = 'application/json'
       const status = error.status || 500
       return ctx.response.status(status).send({
         message: error.message,

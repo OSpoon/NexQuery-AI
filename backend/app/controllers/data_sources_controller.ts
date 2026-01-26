@@ -156,7 +156,7 @@ export default class DataSourcesController {
       return response.ok({ message: 'Schema sync completed successfully' })
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to sync schema')
-      return response.internalServerError({ message: 'Failed to sync schema: ' + error.message })
+      return response.internalServerError({ message: `Failed to sync schema: ${error.message}` })
     }
   }
 
@@ -206,7 +206,7 @@ export default class DataSourcesController {
         rows = result.rows
       }
 
-      const tableMap = new Map<string, Array<{ name: string; type: string; comment: string }>>()
+      const tableMap = new Map<string, Array<{ name: string, type: string, comment: string }>>()
       for (const row of rows) {
         const tableName = row.tableName
         const col = {
@@ -228,11 +228,11 @@ export default class DataSourcesController {
       return response.ok(schema)
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to fetch schema')
-      return response.internalServerError({ message: 'Failed to fetch schema: ' + error.message })
+      return response.internalServerError({ message: `Failed to fetch schema: ${error.message}` })
     }
   }
 
-  private async validateConnection(config: any): Promise<{ success: boolean; message: string }> {
+  private async validateConnection(config: any): Promise<{ success: boolean, message: string }> {
     if (!config.host || (!config.username && config.type !== 'api')) {
       return { success: false, message: 'Missing connection details' }
     }
@@ -250,7 +250,7 @@ export default class DataSourcesController {
         await connection.end()
         return { success: true, message: 'Connection successful' }
       } catch (error: any) {
-        return { success: false, message: 'Connection failed: ' + error.message }
+        return { success: false, message: `Connection failed: ${error.message}` }
       }
     } else if (config.type === 'postgresql') {
       const client = new pg.Client({
@@ -266,7 +266,7 @@ export default class DataSourcesController {
         await client.end()
         return { success: true, message: 'Connection successful' }
       } catch (error: any) {
-        return { success: false, message: 'Connection failed: ' + error.message }
+        return { success: false, message: `Connection failed: ${error.message}` }
       }
     } else if (config.type === 'api') {
       // For API/CURL, we don't have a standard connection protocol effectively

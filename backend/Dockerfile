@@ -50,7 +50,7 @@ COPY --from=build /app/backend/package.json ./backend/package.json
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --no-frozen-lockfile
 
 # Expose the application port
-EXPOSE 3333
+EXPOSE 3008
 
 # Start the server from the build directory
 WORKDIR /app/backend/build

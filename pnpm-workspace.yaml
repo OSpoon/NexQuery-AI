@@ -1,6 +1,9 @@
-packages:
-  - 'backend'
-  - 'frontend'
-  - 'miniprogram'
-  - 'packages/*'
+shellEmulator: true
 
+trustPolicy: no-downgrade
+
+packages:
+  - backend
+  - frontend
+  - miniprogram
+  - 'packages/*'

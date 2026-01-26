@@ -5,8 +5,8 @@ import DataSource from '#models/data_source'
 
 export class SearchColumnValuesTool extends StructuredTool {
   name = 'search_column_values'
-  description =
-    'Search for actual values in a specific database table column using a fuzzy keyword. Use this when you are unsure about the exact spelling or format of a value (e.g. user name, product name, status code) referenced by the user.'
+  description
+    = 'Search for actual values in a specific database table column using a fuzzy keyword. Use this when you are unsure about the exact spelling or format of a value (e.g. user name, product name, status code) referenced by the user.'
 
   schema = z.object({
     dataSourceId: z.number().describe('The ID of the data source to execute the query on.'),
@@ -31,14 +31,14 @@ export class SearchColumnValuesTool extends StructuredTool {
 
       // Basic SQL Injection prevention for table/column names
       // In a real production env, verify against schema or use strict quoting
-      if (!/^[a-zA-Z0-9_]+$/.test(tableName) || !/^[a-zA-Z0-9_]+$/.test(columnName)) {
+      if (!/^\w+$/.test(tableName) || !/^\w+$/.test(columnName)) {
         return 'Error: Invalid table or column name format.'
       }
 
       const connection = db.connection(
         dataSource.type === 'mysql' || dataSource.type === 'postgresql'
           ? `ds_${dataSource.id}`
-          : undefined
+          : undefined,
       )
 
       // Use dynamic query building which handles parameter binding for values
@@ -50,11 +50,11 @@ export class SearchColumnValuesTool extends StructuredTool {
         .limit(limit)
 
       // Map to array of strings for cleaner LLM consumption
-      const values = results.map((row) => row[columnName])
+      const values = results.map(row => row[columnName])
 
       return JSON.stringify({
         found: values.length > 0,
-        values: values,
+        values,
         note:
           values.length === 0 ? 'No matches found. Try a different keyword or table.' : undefined,
       })

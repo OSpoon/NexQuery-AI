@@ -2,13 +2,14 @@ import DbHelper from '#services/db_helper'
 import EmbeddingService from '#services/embedding_service'
 import TableMetadata from '#models/table_metadata'
 import VectorStoreService from '#services/vector_store_service'
+import logger from '@adonisjs/core/services/logger'
 
 export default class SchemaSyncService {
   /**
    * Sync all tables from a data source to the vector store (TableMetadata)
    */
   public async syncDataSource(dataSourceId: number) {
-    console.log(`[SchemaSync] Starting sync for DS: ${dataSourceId}`)
+    logger.info(`[SchemaSync] Starting sync for DS: ${dataSourceId}`)
     const { client, dbType } = await DbHelper.getConnection(dataSourceId)
     const embeddingService = new EmbeddingService()
     const vectorStore = new VectorStoreService()
@@ -16,7 +17,7 @@ export default class SchemaSyncService {
     // 1. List all tables
     let tables: string[] = []
     if (dbType === 'postgresql') {
-      const query = "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+      const query = 'SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\''
       const result = await client.rawQuery(query)
       tables = result.rows.map((r: any) => r.table_name)
     } else {
@@ -26,7 +27,7 @@ export default class SchemaSyncService {
       tables = rows.map((r: any) => Object.values(r)[0])
     }
 
-    console.log(`[SchemaSync] Found ${tables.length} tables. Processing...`)
+    logger.info(`[SchemaSync] Found ${tables.length} tables. Processing...`)
 
     // 2. Process each table
     for (const tableName of tables) {
@@ -44,17 +45,17 @@ export default class SchemaSyncService {
 
         // If the schema text hasn't changed and we have an embedding, reuse it (Cache hit)
         if (
-          existingMetadata &&
-          existingMetadata.description === schemaText &&
-          existingMetadata.embedding &&
-          existingMetadata.embedding.length > 0
+          existingMetadata
+          && existingMetadata.description === schemaText
+          && existingMetadata.embedding
+          && existingMetadata.embedding.length > 0
         ) {
-          console.log(`[SchemaSync] Cache hit for table: ${tableName}. Reusing Database embedding.`)
+          logger.info(`[SchemaSync] Cache hit for table: ${tableName}. Reusing Database embedding.`)
           embedding = existingMetadata.embedding
         } else {
           // Cache miss: Generate new embedding via API
-          console.log(
-            `[SchemaSync] Cache miss for table: ${tableName}. Generating new embedding...`
+          logger.info(
+            `[SchemaSync] Cache miss for table: ${tableName}. Generating new embedding...`,
           )
           embedding = await embeddingService.generate(schemaText)
         }
@@ -64,8 +65,8 @@ export default class SchemaSyncService {
           { dataSourceId, tableName },
           {
             description: schemaText,
-            embedding: embedding,
-          }
+            embedding,
+          },
         )
 
         // 5. Upsert to Vector Store
@@ -73,19 +74,19 @@ export default class SchemaSyncService {
           await vectorStore.upsertTable(dataSourceId, tableName, schemaText, embedding)
         }
 
-        console.log(`[SchemaSync] Synced: ${tableName}`)
+        logger.info(`[SchemaSync] Synced: ${tableName}`)
       } catch (e) {
-        console.error(`[SchemaSync] Failed to sync table ${tableName}`, e)
+        logger.error({ error: e }, `[SchemaSync] Failed to sync table ${tableName}`)
       }
     }
 
-    console.log(`[SchemaSync] Completed sync for DS: ${dataSourceId}`)
+    logger.info(`[SchemaSync] Completed sync for DS: ${dataSourceId}`)
   }
 
   private async getTableSchemaText(
     client: any,
     dbType: string,
-    tableName: string
+    tableName: string,
   ): Promise<string> {
     let columnsDesc = ''
     let tableComment = ''
@@ -98,7 +99,7 @@ export default class SchemaSyncService {
          JOIN pg_namespace n ON c.relnamespace = n.oid 
          LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = 0
          WHERE c.relname = ? AND n.nspname = 'public'`,
-        [tableName]
+        [tableName],
       )
       if (tableCommentRes.rows.length > 0 && tableCommentRes.rows[0].description) {
         tableComment = tableCommentRes.rows[0].description
@@ -124,12 +125,12 @@ export default class SchemaSyncService {
               AND a.attnum > 0
               AND NOT a.attisdropped;
       `,
-        [tableName]
+        [tableName],
       )
 
       columnsDesc = columns.rows
         .map(
-          (c: any) => `- ${c.column_name} (${c.data_type})${c.comment ? ` // ${c.comment}` : ''}`
+          (c: any) => `- ${c.column_name} (${c.data_type})${c.comment ? ` // ${c.comment}` : ''}`,
         )
         .join('\n')
     } else {

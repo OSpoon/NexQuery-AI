@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { StructuredTool } from '@langchain/core/tools'
 import DbHelper from '#services/db_helper'
+import logger from '@adonisjs/core/services/logger'
 
 export class ListTablesTool extends StructuredTool {
   name = 'list_tables'
@@ -12,13 +13,13 @@ export class ListTablesTool extends StructuredTool {
 
   async _call({ dataSourceId }: z.infer<typeof this.schema>): Promise<string> {
     try {
-      console.log(`[ListTablesTool] Called for DS: ${dataSourceId}`)
+      logger.info(`[ListTablesTool] Called for DS: ${dataSourceId}`)
       const { client, dbType } = await DbHelper.getConnection(dataSourceId)
 
       let result: any
       if (dbType === 'postgresql') {
-        const query =
-          "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public'"
+        const query
+          = 'SELECT table_name FROM information_schema.tables WHERE table_schema = \'public\''
         result = await client.rawQuery(query)
         // PG returns { rows: [] }
         return JSON.stringify(result.rows.map((r: any) => r.table_name))

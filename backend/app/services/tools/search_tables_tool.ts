@@ -3,24 +3,25 @@ import { StructuredTool } from '@langchain/core/tools'
 import EmbeddingService from '#services/embedding_service'
 import TableMetadata from '#models/table_metadata'
 import VectorStoreService from '#services/vector_store_service'
+import logger from '@adonisjs/core/services/logger'
 
 export class SearchTablesTool extends StructuredTool {
   name = 'search_tables'
-  description =
-    'Search for relevant tables using semantic search. Use this when you are unsure which tables contain the needed data. Provide a natural language description of what you are looking for.'
+  description
+    = 'Search for relevant tables using semantic search. Use this when you are unsure which tables contain the needed data. Provide a natural language description of what you are looking for.'
 
   schema = z.object({
     dataSourceId: z.number().describe('The ID of the data source to query'),
     query: z
       .string()
       .describe(
-        'Natural language description of the data you are looking for (e.g., "customer orders", "employee salaries")'
+        'Natural language description of the data you are looking for (e.g., "customer orders", "employee salaries")',
       ),
   })
 
   async _call({ dataSourceId, query }: z.infer<typeof this.schema>): Promise<string> {
     try {
-      console.log(`[SearchTablesTool] Searching for: "${query}" in DS: ${dataSourceId}`)
+      logger.info(`[SearchTablesTool] Searching for: "${query}" in DS: ${dataSourceId}`)
 
       const embeddingService = new EmbeddingService()
       const vectorStore = new VectorStoreService()
@@ -39,11 +40,11 @@ export class SearchTablesTool extends StructuredTool {
       }
 
       return JSON.stringify(
-        results.map((t) => ({
+        results.map(t => ({
           table: t.payload?.tableName,
-          description: (t.payload?.fullSchema as string)?.slice(0, 200) + '...',
+          description: `${(t.payload?.fullSchema as string)?.slice(0, 200)}...`,
           relevance: t.score.toFixed(4),
-        }))
+        })),
       )
     } catch (error: any) {
       return `Error searching tables: ${error.message}`
