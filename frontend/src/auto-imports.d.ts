@@ -326,9 +326,6 @@ declare global {
   // @ts-ignore
   export type { Menu, Permission, Role, User } from './stores/auth'
   import('./stores/auth')
-  // @ts-ignore
-  export type { ConfirmOptions } from './stores/confirm'
-  import('./stores/confirm')
 }
 
 // for vue template auto import
@@ -484,9 +481,7 @@ declare module 'vue' {
     readonly useClipboardItems: UnwrapRef<typeof import('@vueuse/core')['useClipboardItems']>
     readonly useCloned: UnwrapRef<typeof import('@vueuse/core')['useCloned']>
     readonly useColorMode: UnwrapRef<typeof import('@vueuse/core')['useColorMode']>
-    readonly useConfirm: UnwrapRef<typeof import('./composables/useConfirm')['useConfirm']>
     readonly useConfirmDialog: UnwrapRef<typeof import('@vueuse/core')['useConfirmDialog']>
-    readonly useConfirmStore: UnwrapRef<typeof import('./stores/confirm')['useConfirmStore']>
     readonly useCountdown: UnwrapRef<typeof import('@vueuse/core')['useCountdown']>
     readonly useCounter: UnwrapRef<typeof import('@vueuse/core')['useCounter']>
     readonly useCounterStore: UnwrapRef<typeof import('./stores/counter')['useCounterStore']>

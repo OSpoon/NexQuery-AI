@@ -21,12 +21,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import BpmnViewer from '@/components/workflow/BpmnViewer.vue'
-import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
 const router = useRouter()
 const { t } = useI18n()
-const { confirm } = useConfirm()
 
 const processDefinitions = ref<any[]>([])
 const tasks = ref<any[]>([])
@@ -42,6 +40,19 @@ function getVariable(processInstance: any, name: string) {
     return undefined
   const v = processInstance.variables.find((v: any) => v.name === name)
   return v ? v.value : undefined
+}
+
+function getWorkflowType(item: any) {
+  const varType = getVariable(item, 'workflowType')
+  if (varType)
+    return varType
+
+  // Fallback to registry if we have the definition key
+  const defKey = item.processDefinitionKey
+  if (defKey && workflowRegistry.value.has(defKey)) {
+    return workflowRegistry.value.get(defKey).workflowType
+  }
+  return undefined
 }
 
 function formatDate(date: string | null | undefined) {
@@ -156,11 +167,8 @@ async function toggleState(def: any) {
 }
 
 async function deleteWorkflow(def: any) {
-  if (!await confirm({
-    title: t('workflow.toast.delete_confirm_title') || 'Confirm Deletion',
-    description: t('workflow.confirm_delete', { key: def.key }),
-    variant: 'destructive',
-  })) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(t('workflow.confirm_delete', { key: def.key }))) {
     return
   }
 
@@ -409,8 +417,15 @@ onMounted(async () => {
             </TableHeader>
             <TableBody>
               <TableRow v-for="item in history" :key="item.id">
-                <TableCell class="font-medium">
-                  {{ item.processDefinitionName || item.processDefinitionKey }}
+                <TableCell>
+                  <div class="font-medium">
+                    {{ item.processDefinitionName || item.processDefinitionKey }}
+                  </div>
+                  <div v-if="getWorkflowType(item)" class="mt-1">
+                    <Badge variant="outline" class="text-[10px] h-5 px-1.5 font-normal text-muted-foreground">
+                      {{ getWorkflowType(item) }}
+                    </Badge>
+                  </div>
                 </TableCell>
                 <TableCell class="text-xs text-muted-foreground">
                   {{ getVariable(item, 'initiator') || '-' }}
@@ -418,18 +433,15 @@ onMounted(async () => {
                 <TableCell>{{ formatDate(item.startTime) }}</TableCell>
                 <TableCell>{{ item.endTime ? formatDate(item.endTime) : '-' }}</TableCell>
                 <TableCell>
-                  <Badge variant="outline">
-                    {{ t('workflow.type') }}: {{ getVariable(item, 'workflowType') }}
-                  </Badge>
                   <Badge :variant="item.endTime ? 'secondary' : 'default'">
-                    {{ item.endTime ? 'Completed' : 'Running' }}
+                    {{ item.endTime ? t('workflow.status.completed') : t('workflow.status.active') }}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   <!-- Try to find approval result variable -->
                   <span v-if="getVariable(item, 'approved') !== null">
                     <Badge :variant="getVariable(item, 'approved') ? 'default' : 'destructive'" :class="getVariable(item, 'approved') ? 'bg-green-500 hover:bg-green-600' : ''">
-                      {{ getVariable(item, 'approved') ? 'Approved' : 'Rejected' }}
+                      {{ getVariable(item, 'approved') ? t('workflow.timeline.status_approved') : t('workflow.timeline.status_rejected') }}
                     </Badge>
                   </span>
                   <span v-else>-</span>

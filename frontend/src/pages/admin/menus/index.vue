@@ -22,12 +22,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 import MenuForm from './components/MenuForm.vue'
 
 const { t } = useI18n()
-const { confirm } = useConfirm()
 const menus = ref<Menu[]>([])
 const isDialogOpen = ref(false)
 const editingMenu = ref(null)
@@ -69,11 +67,8 @@ function openEditDialog(menu: any) {
 }
 
 async function deleteMenu(id: number) {
-  if (!await confirm({
-    title: t('menus.delete_confirm'),
-    description: t('menus.desc'), // Or a more specific description
-    variant: 'destructive',
-  })) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(`${t('menus.delete_confirm')}\n\n${t('menus.desc')}`)) {
     return
   }
   try {

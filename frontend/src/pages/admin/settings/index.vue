@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CryptoService } from '@nexquery/shared'
-import { Cpu, Database, Globe, Save, Shield } from 'lucide-vue-next'
+import { Cpu, Database, Globe, Save, Shield, Workflow } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -8,6 +8,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
 import api from '@/lib/api'
 import { useAuthStore } from '@/stores/auth'
@@ -60,6 +67,11 @@ const settings = ref([
     value: 'embedding-3',
     group: 'integration',
   },
+  {
+    key: 'workflow_bindings',
+    value: '{}',
+    group: 'hidden', // not shown in generic loop
+  },
 ])
 
 const testPayload = ref('')
@@ -92,6 +104,10 @@ const decryptedResult = computed(() => {
 const loading = ref(true)
 const saving = ref(false)
 const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
+const activeWorkflows = ref<{ key: string, name: string, version: number }[]>([])
+const workflowBindings = ref<Record<string, string>>({
+  sql_approval: '__NONE__',
+})
 
 async function fetchRoles() {
   try {
@@ -100,6 +116,30 @@ async function fetchRoles() {
   }
   catch (e) {
     console.error('Failed to fetch roles', e)
+  }
+}
+
+async function fetchWorkflows() {
+  try {
+    // Only fetch definitions, users bind by Key
+    const response = await api.get('/workflow/definitions')
+    if (response.data && response.data.data) {
+      // De-duplicate by key, keeping latest version usually helps but here we want LIST of keys
+      // Actually /workflow/definitions returns specific procDefs.
+      // We want distinct keys.
+      // Let's assume the API returns list of Defs.
+      // We'll filter unique keys.
+      const seen = new Set()
+      activeWorkflows.value = response.data.data.filter((w: any) => {
+        if (seen.has(w.key))
+          return false
+        seen.add(w.key)
+        return true
+      }).map((w: any) => ({ key: w.key, name: w.name }))
+    }
+  }
+  catch (e) {
+    console.error('Failed to fetch workflows', e)
   }
 }
 
@@ -126,9 +166,32 @@ async function fetchSettings() {
           else {
             existing.value = String(s.value)
           }
+
+          // Special handling for workflow_bindings
+          if (s.key === 'workflow_bindings') {
+            try {
+              const parsed = JSON.parse(s.value || '{}')
+              // If parsed value has a real key, use it. If empty/missing, default to __NONE__
+              if (parsed.sql_approval) {
+                workflowBindings.value = { ...workflowBindings.value, ...parsed }
+              }
+              // If empty in DB, keep default __NONE__
+            }
+            catch {}
+          }
         }
         else {
           settings.value.push(s)
+          // Also handle if it's workflow_bindings but not in our init list (though we added it)
+          if (s.key === 'workflow_bindings') {
+            try {
+              const parsed = JSON.parse(s.value || '{}')
+              if (parsed.sql_approval) {
+                workflowBindings.value = { ...workflowBindings.value, ...parsed }
+              }
+            }
+            catch {}
+          }
         }
       })
     }
@@ -144,6 +207,26 @@ async function fetchSettings() {
 async function saveSettings() {
   saving.value = true
   try {
+    // Sync workflow bindings to settings array
+    const bindingSetting = settings.value.find(s => s.key === 'workflow_bindings')
+    // Clone logic: if __NONE__, we can save it as __NONE__ or empty string.
+    // Let's save as __NONE__ to be explicit in DB too, or convert.
+    // If backend logic checks if(boundWorkflowKey) -> __NONE__ is true-ish string.
+    // Backend: const boundConfig = workflowConfigs.find(w => w.key === boundWorkflowKey)
+    // If boundWorkflowKey is "__NONE__", find returns undefined -> fallback to auto-detect.
+    // This is DESIRED behavior for "None (Auto-detect)".
+
+    if (bindingSetting) {
+      bindingSetting.value = JSON.stringify(workflowBindings.value)
+    }
+    else {
+      settings.value.push({
+        key: 'workflow_bindings',
+        value: JSON.stringify(workflowBindings.value),
+        group: 'hidden',
+      })
+    }
+
     // Process settings before saving (encrypt sensitive fields)
     const settingsToSave = settings.value.map((s) => {
       if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
@@ -176,6 +259,7 @@ const _authStore = useAuthStore()
 onMounted(() => {
   fetchSettings()
   fetchRoles()
+  fetchWorkflows()
 })
 </script>
 
@@ -260,6 +344,43 @@ onMounted(() => {
             <p class="text-xs text-muted-foreground">
               {{ t(`settings.keys.${s.key}_desc`) }}
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div class="flex items-center space-x-2">
+            <Workflow class="h-5 w-5 text-primary" />
+            <div>
+              <CardTitle>Workflow Bindings</CardTitle>
+              <CardDescription>Bind specific logic to workflows to ensure stability.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid gap-2">
+            <div class="flex flex-col space-y-1">
+              <Label>High Risk SQL Approval</Label>
+              <span class="text-xs text-muted-foreground">Select the workflow to trigger for high-risk SQL execution.</span>
+            </div>
+            <Select v-model="workflowBindings.sql_approval">
+              <SelectTrigger class="w-full">
+                <SelectValue placeholder="Select a workflow..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__NONE__">
+                  None (Disabled)
+                </SelectItem>
+                <SelectItem
+                  v-for="wf in activeWorkflows"
+                  :key="wf.key"
+                  :value="wf.key"
+                >
+                  {{ wf.name }}
+                </SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </CardContent>
       </Card>

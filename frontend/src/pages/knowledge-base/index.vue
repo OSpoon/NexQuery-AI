@@ -20,10 +20,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
-const { confirm } = useConfirm()
 const { t } = useI18n()
 
 interface KnowledgeBaseItem {
@@ -67,11 +65,8 @@ function openEditDialog(item: KnowledgeBaseItem) {
 }
 
 async function deleteItem(id: number) {
-  if (!await confirm({
-    title: t('knowledge_base.confirm.title'),
-    description: t('knowledge_base.confirm.desc'),
-    variant: 'destructive',
-  })) {
+  // eslint-disable-next-line no-alert
+  if (!confirm(`${t('knowledge_base.confirm.title')}\n\n${t('knowledge_base.confirm.desc')}`)) {
     return
   }
   try {

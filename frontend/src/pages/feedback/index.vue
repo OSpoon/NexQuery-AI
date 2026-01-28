@@ -21,11 +21,9 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
 const { t } = useI18n()
-const { confirm } = useConfirm()
 const isDark = useDark()
 
 interface FeedbackItem {
@@ -227,11 +225,8 @@ async function confirmPromotion() {
 }
 
 async function deleteFeedback(id: number, silent = false) {
-  if (!silent && !await confirm({
-    title: t('common.confirm_delete'),
-    description: t('knowledge_base.confirm.desc'),
-    variant: 'destructive',
-  })) {
+  // eslint-disable-next-line no-alert
+  if (!silent && !confirm(`${t('common.confirm_delete')}\n\n${t('knowledge_base.confirm.desc')}`)) {
     return
   }
   try {
