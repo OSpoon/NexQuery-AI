@@ -230,40 +230,6 @@ export default class WorkflowController {
   }
 
   /**
-   * Update process state (suspend/activate)
-   */
-  async updateState({ params, request, response }: HttpContext) {
-    const { action } = request.only(['action'])
-    if (!['suspend', 'activate'].includes(action)) {
-      return response.badRequest({ message: 'Invalid action. Must be suspend or activate' })
-    }
-
-    // Check binding safety
-    const bindingSetting = await Setting.findBy('key', 'workflow_bindings')
-    if (bindingSetting && bindingSetting.value && action === 'suspend') {
-      try {
-        const bindings = JSON.parse(bindingSetting.value)
-        const boundKeys = Object.values(bindings)
-
-        // We need the key of the process definition
-        const def = await this.workflowService.getProcessDefinitionById(params.id)
-        if (def && boundKeys.includes(def.key)) {
-          return response.badRequest({ message: `Cannot suspend this workflow because it is currently bound to a system process.` })
-        }
-      } catch (e) {
-        logger.warn('Failed to parse workflow_bindings during updateState check')
-      }
-    }
-
-    try {
-      await this.workflowService.updateProcessState(params.id, action)
-      return response.ok({ message: `Process definition ${action}d successfully` })
-    } catch (error) {
-      return response.badRequest({ message: 'Failed to update process state', error: error.message })
-    }
-  }
-
-  /**
    * Delete specific deployment
    */
   async destroyDeployment({ params, response }: HttpContext) {

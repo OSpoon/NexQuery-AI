@@ -41,6 +41,13 @@
 -   **敏感数据加密**: 数据库连接串与 API Key 使用 [`CryptoService`](packages/shared/src/utils/crypto.ts) 进行 AES-256 加密存储。
 -   **安全审计**: 完整的查询历史记录与操作日志。
 
+### 🔄 审批流控 (Workflow Governance)
+集成 **Flowable** 引擎，实现 SQL 操作的全生命周期治理。
+-   **高危拦截**: 基于关键词 (`DELETE`, `DROP` 等) 自动识别并重定向至审批流。
+-   **可视化建模**: 内置 BPMN 2.0 拖拽式建模器，快速定义多级审批与自动化分流。
+-   **动态通知**: 审批状态实时触达，支持通过 Webhook 联动外部告警系统。
+-   **执行屏障**: 未经授权的高危变更无法触达数据库，确保生产环境绝对安全。
+
 ### ⚙️ 自动化与推送
 -   **定时任务**: 基于 [`SchedulerService`](backend/app/services/scheduler_service.ts) 支持 Cron 表达式或一次性定时执行查询任务。
 -   **多渠道触达**:
@@ -58,6 +65,7 @@
     -   核心配置: [`adonisrc.ts`](backend/adonisrc.ts)
 -   **Shared**: [`packages/shared`](packages/shared) (前后端统一加密与类型定义)
 -   **AI Engine**: LangChain, ZhipuGLM (GLM-4)
+-   **Workflow Engine**: Flowable (BPMN 2.0)
 
 ## 📖 文档指南
 

@@ -60,3 +60,23 @@ pnpm install
 
 *   **VSCode**: 推荐安装 Volar (Vue) 和 AdonisJS 插件。
 *   **Debug**: 可以在 VSCode 中配置 Launch.json 直接调试 Node.js 后端。
+
+## 5. 工作流系统 (Workflow System)
+
+项目集成 **Flowable (BPMN 2.0)** 作为核心审批引擎。
+
+### 5.1 架构设计
+- **Flowable Engine**: 独立运行在 Docker 中，后端通过 REST API 进行通信。
+- **WorkflowService**: 封装了与 Flowable 的所有交互（部署、启动、任务操作、历史查询）。
+- **BpmnModeler**: 前端使用 `bpmn-js` 深度定制的设计器，支持 Flowable 扩展属性配置。
+
+### 5.2 核心逻辑位置
+- **Service**: [`WorkflowService.ts`](../backend/app/services/workflow_service.ts)
+- **Controller**: [`WorkflowController.ts`](../backend/app/controllers/workflow_controller.ts)
+- **Designer**: [`BpmnModeler.vue`](../frontend/src/components/workflow/BpmnModeler.vue)
+- **Moddle Extensions**: [`flowable.json`](../frontend/src/components/workflow/flowable.json) (BPMN 属性定义)
+
+### 5.3 审批通知流程
+1. `BpmnModeler` 配置 HTTP Service Task。
+2. 配置 `requestUrl` 指向后端 `WebhookController`。
+3. Flowable 运行时发起通知请求，后端解析参数并调用 `NotificationService` 发送邮件。

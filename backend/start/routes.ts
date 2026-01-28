@@ -150,7 +150,6 @@ router
         router.get('workflow/registry', [WorkflowController, 'registry']) // Get workflow metadata
         router.get('workflow/definitions/:id', [WorkflowController, 'showDefinition'])
         router.get('workflow/definitions/:id/instances', [WorkflowController, 'getInstancesByDefinition'])
-        router.put('workflow/definitions/:id/state', [WorkflowController, 'updateState'])
         router.delete('workflow/deployments/:id', [WorkflowController, 'destroyDeployment'])
         router.get('workflow/definitions/:id/xml', [WorkflowController, 'getXML'])
         router.get('workflow/definitions/:id/image', [WorkflowController, 'getImage'])

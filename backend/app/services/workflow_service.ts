@@ -123,17 +123,6 @@ export default class WorkflowService {
   }
 
   /**
-   * Suspend or Activate a process definition
-   */
-  async updateProcessState(processDefinitionId: string, action: 'suspend' | 'activate') {
-    const payload = {
-      action: action === 'suspend' ? 'suspend' : 'activate',
-      includeProcessInstances: true,
-    }
-    return this.request(`/flowable-ui/process-api/repository/process-definitions/${processDefinitionId}`, 'PUT', payload)
-  }
-
-  /**
    * Get running process instances by process definition ID
    */
   async getProcessInstancesByDefinitionId(processDefinitionId: string) {
