@@ -218,6 +218,18 @@ export default class WorkflowController {
   }
 
   /**
+   * Get running process instances by definition ID (for delete check)
+   */
+  async getInstancesByDefinition({ params, response }: HttpContext) {
+    try {
+      const result = await this.workflowService.getProcessInstancesByDefinitionId(params.id)
+      return response.ok(result)
+    } catch (error) {
+      return response.badRequest({ message: 'Failed to fetch process instances', error: error.message })
+    }
+  }
+
+  /**
    * Update process state (suspend/activate)
    */
   async updateState({ params, request, response }: HttpContext) {

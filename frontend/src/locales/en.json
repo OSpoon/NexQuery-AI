@@ -359,9 +359,8 @@
     "deployment_id": "Deployment ID",
     "toast": {
       "request_submitted": "Request submitted successfully",
-      "workflow_activated": "Workflow activated successfully",
-      "workflow_suspended": "Workflow suspended successfully",
       "workflow_deleted": "Workflow deleted successfully",
+      "cannot_delete_active_instances": "Cannot delete: {count} active process instance(s) exist",
       "failed_to_load": "Failed to load workflows",
       "failed_to_start": "Failed to start process",
       "failed_to_update": "Failed to update state",

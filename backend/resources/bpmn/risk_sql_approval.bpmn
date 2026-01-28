@@ -103,7 +103,7 @@
     
     <endEvent id="endEvent" name="End" />
   </process>
-  
+
   <bpmndi:BPMNDiagram id="BPMNDiagram_risk_sql_approval">
     <bpmndi:BPMNPlane bpmnElement="risk_sql_approval" id="BPMNPlane_risk_sql_approval">
         <!-- Start -->

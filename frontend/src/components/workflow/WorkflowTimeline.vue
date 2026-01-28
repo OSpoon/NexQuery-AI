@@ -252,7 +252,6 @@ function formatDuration(ms?: number) {
             :variant="node.status === 'completed' ? 'default' : node.status === 'rejected' ? 'destructive' : node.status === 'active' ? 'secondary' : 'outline'"
             class="text-xs"
           >
-            >
             {{ node.status === 'completed' ? t('workflow.timeline.status_approved') : node.status === 'rejected' ? t('workflow.timeline.status_rejected') : node.status === 'active' ? t('workflow.timeline.status_active') : t('workflow.timeline.status_pending') }}
           </Badge>
         </div>

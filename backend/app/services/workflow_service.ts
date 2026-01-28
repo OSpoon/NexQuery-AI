@@ -134,6 +134,16 @@ export default class WorkflowService {
   }
 
   /**
+   * Get running process instances by process definition ID
+   */
+  async getProcessInstancesByDefinitionId(processDefinitionId: string) {
+    const result = await this.request('/flowable-ui/process-api/query/process-instances', 'POST', {
+      processDefinitionId,
+    })
+    return result
+  }
+
+  /**
    * Delete a deployment (and its definitions)
    */
   async deleteDeployment(deploymentId: string) {

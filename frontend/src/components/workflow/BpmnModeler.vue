@@ -76,6 +76,19 @@ const processConfig = ref({
 
 const newKeyword = ref('')
 
+// Check if the selected sequence flow is from a gateway
+const isGatewayFlow = computed(() => {
+  if (!selectedElement.value || selectedElement.value.type !== 'bpmn:SequenceFlow') {
+    return false
+  }
+  const bo = selectedElement.value.businessObject
+  if (!bo || !bo.sourceRef) {
+    return false
+  }
+  const sourceType = bo.sourceRef.$type
+  return sourceType === 'bpmn:ExclusiveGateway' || sourceType === 'bpmn:ParallelGateway'
+})
+
 // Basic XML template for a new workflow
 const emptyBpmn = `<?xml version="1.0" encoding="UTF-8"?>
 <definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://www.flowable.org/processdef">
@@ -831,28 +844,6 @@ function updateNodeProperty(prop: string, value: string) {
   }
 }
 
-/**
- * Reset HTTP config to internal notification defaults
- */
-function resetToInternalNotification() {
-  const element = selectedElement.value
-  if (!element || (element.type !== 'bpmn:ServiceTask' && element.type !== 'bpmn:SendTask'))
-    return
-
-  const defaultUrl = 'http://backend:3008/api/internal/workflow/notification'
-  const defaultBody = JSON.stringify({
-    type: 'rejection',
-    recipient: '$' + '{initiatorEmail}',
-    processInstanceId: '$' + '{processInstanceId}',
-    reason: 'Approval rejected by $' + '{currentUser}',
-  }, null, 2)
-
-  updateNodeProperty('httpConfig.requestUrl', defaultUrl)
-  updateNodeProperty('httpConfig.requestMethod', 'POST')
-  updateNodeProperty('httpConfig.requestHeaders', 'Content-Type: application/json')
-  updateNodeProperty('httpConfig.requestBody', defaultBody)
-}
-
 async function handleSave() {
   if (!modeler.value)
     return
@@ -1256,9 +1247,6 @@ onBeforeUnmount(() => {
                         <SelectItem value="http">
                           HTTP Request (Webhook)
                         </SelectItem>
-                        <SelectItem value="expression">
-                          Expression
-                        </SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -1281,17 +1269,7 @@ onBeforeUnmount(() => {
                   <!-- HTTP Configuration -->
                   <div v-else class="space-y-3">
                     <div class="space-y-1.5">
-                      <div class="flex items-center justify-between">
-                        <Label class="text-[10px] text-muted-foreground">Request URL</Label>
-                        <Button
-                          variant="link"
-                          size="sm"
-                          class="h-4 p-0 text-[9px]"
-                          @click="resetToInternalNotification"
-                        >
-                          Use Internal System
-                        </Button>
-                      </div>
+                      <Label class="text-[10px] text-muted-foreground">Request URL</Label>
                       <Input
                         v-model="elementProperties.httpConfig.requestUrl"
                         class="h-8 text-xs bg-background font-mono"
@@ -1336,19 +1314,9 @@ onBeforeUnmount(() => {
                       </div>
                     </div>
 
-                    <div class="space-y-1.5">
-                      <Label class="text-[10px] text-muted-foreground">Request Body (JSON)</Label>
-                      <Textarea
-                        v-model="elementProperties.httpConfig.requestBody"
-                        class="text-xs bg-background font-mono min-h-[80px]"
-                        placeholder="{ &quot;type&quot;: &quot;approval&quot;, ... }"
-                        @input="updateNodeProperty('httpConfig.requestBody', ($event.target as HTMLTextAreaElement).value)"
-                      />
-                    </div>
-
                     <div class="p-2 bg-muted/50 rounded text-[9px] text-muted-foreground">
                       <p>
-                        Allows Flowable to call backend APIs to trigger notifications or other logic.
+                        通过 URL 参数传递动态变量，例如: ?type=approval&recipient=${initiator}
                       </p>
                     </div>
                   </div>
@@ -1356,18 +1324,28 @@ onBeforeUnmount(() => {
               </div>
 
               <!-- Sequence Flow (from Gateway) Configuration -->
-              <div v-if="selectedElement.type === 'bpmn:SequenceFlow'" class="space-y-1.5 border-t pt-2 mt-2">
+              <div v-if="isGatewayFlow" class="space-y-1.5 border-t pt-2 mt-2">
                 <Label class="text-[10px] uppercase text-primary font-bold">条件表达式</Label>
 
                 <div class="space-y-1.5">
-                  <Textarea
+                  <Select
                     v-model="elementProperties.conditionExpression"
-                    class="text-xs bg-background font-mono min-h-[60px]"
-                    placeholder="${approved == true}"
-                    @input="updateNodeProperty('conditionExpression', ($event.target as HTMLTextAreaElement).value)"
-                  />
+                    @update:model-value="updateNodeProperty('conditionExpression', $event)"
+                  >
+                    <SelectTrigger class="h-8 text-xs">
+                      <SelectValue placeholder="选择条件" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="${approved == true}">
+                        ✅ 已批准 (approved == true)
+                      </SelectItem>
+                      <SelectItem value="${approved == false}">
+                        ❌ 已拒绝 (approved == false)
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                   <p class="text-[9px] text-muted-foreground">
-                    使用 ${} 表达式，例如: ${approved == true}
+                    选择网关后的条件分支
                   </p>
                 </div>
               </div>
@@ -1440,12 +1418,6 @@ onBeforeUnmount(() => {
                     <SelectItem value="sql_approval">
                       SQL Approval
                     </SelectItem>
-                    <SelectItem value="data_export">
-                      Data Export
-                    </SelectItem>
-                    <SelectItem value="custom">
-                      Custom
-                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <p class="text-[9px] text-muted-foreground">
@@ -1493,12 +1465,6 @@ onBeforeUnmount(() => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">
-                      Low
-                    </SelectItem>
-                    <SelectItem value="medium">
-                      Medium
-                    </SelectItem>
                     <SelectItem value="high">
                       High
                     </SelectItem>

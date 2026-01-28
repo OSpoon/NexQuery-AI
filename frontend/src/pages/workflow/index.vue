@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { format } from 'date-fns'
-import { CheckCircle2, Eye, History, Play, Plus } from 'lucide-vue-next'
+import { CheckCircle2, Eye, History, Play, Plus, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -164,19 +164,20 @@ async function fetchHistory() {
   }
 }
 
-async function toggleState(def: any) {
-  const action = def.suspended ? 'activate' : 'suspend'
-  try {
-    await api.put(`/workflow/definitions/${def.id}/state`, { action })
-    toast.success(t(action === 'activate' ? 'workflow.toast.workflow_activated' : 'workflow.toast.workflow_suspended'))
-    fetchProcessDefinitions()
-  }
-  catch (error: any) {
-    handleApiError(error, 'workflow.toast.failed_to_update')
-  }
-}
-
 async function deleteWorkflow(def: any) {
+  // Check for active process instances first
+  try {
+    const instancesRes = await api.get(`/workflow/definitions/${def.id}/instances`)
+    const activeCount = instancesRes.data?.total || 0
+    if (activeCount > 0) {
+      toast.error(t('workflow.toast.cannot_delete_active_instances', { count: activeCount }))
+      return
+    }
+  }
+  catch {
+    // Silently continue if check fails
+  }
+
   // eslint-disable-next-line no-alert
   if (!confirm(t('workflow.confirm_delete', { key: def.key }))) {
     return
@@ -306,69 +307,61 @@ onMounted(async () => {
               </p>
             </CardContent>
           </Card>
-
           <!-- Existing Workflow Cards -->
-          <Card v-for="def in processDefinitions" :key="def.id" class="hover:shadow-md transition-shadow min-w-[320px] flex flex-col">
-            <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2 overflow-hidden">
-              <div class="flex items-center gap-2 min-w-0">
-                <Badge :variant="def.suspended ? 'destructive' : 'default'" class="shrink-0 font-normal text-[10px] h-5">
-                  {{ def.suspended ? 'Suspended' : 'Active' }}
-                </Badge>
-                <CardTitle class="text-sm font-medium truncate">
-                  {{ def.category || 'Process' }}
-                </CardTitle>
-              </div>
-              <Play class="h-4 w-4 text-muted-foreground shrink-0" />
-            </CardHeader>
-            <CardContent class="overflow-hidden">
-              <div class="text-2xl font-bold mb-2 truncate" :title="def.name || def.key">
-                {{ def.name || def.key }}
-              </div>
-              <!-- Version Badge (Always Show) -->
-              <div class="flex flex-wrap gap-1.5 mb-3">
-                <Badge variant="outline" class="text-[10px] font-normal border-primary/30 text-primary">
-                  v{{ def.version }}
-                </Badge>
-                <!-- Workflow Metadata (If Registry Available) -->
-                <template v-if="workflowRegistry.get(def.key)">
-                  <Badge variant="outline">
-                    {{ t('workflow.priority') }}: {{ workflowRegistry.get(def.key).priority }}
-                  </Badge>
-                  <Badge variant="outline" class="text-[10px] font-normal">
-                    {{ workflowRegistry.get(def.key).workflowType || 'custom' }}
+          <Card v-for="def in processDefinitions" :key="def.id" class="hover:shadow-md transition-shadow min-w-[320px] flex flex-col group">
+            <CardHeader class="flex flex-row items-start justify-between space-y-0 pb-3">
+              <div class="space-y-2 flex-1 min-w-0">
+                <div class="text-lg font-bold truncate leading-none group-hover:text-primary transition-colors" :title="def.name || def.key">
+                  {{ def.name || def.key }}
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  <Badge variant="outline" class="text-[10px] font-normal border-primary/30 text-primary h-5 px-1.5 bg-primary/5">
+                    v{{ def.version }}
                   </Badge>
                   <Badge
-                    v-if="workflowRegistry.get(def.key).priority"
+                    v-if="workflowRegistry.get(def.key)?.priority"
                     :variant="workflowRegistry.get(def.key).priority === 'high' ? 'destructive' : 'secondary'"
-                    class="text-[10px] font-normal"
+                    class="text-[10px] font-normal h-5 px-1.5 capitalize"
                   >
-                    {{ workflowRegistry.get(def.key).priority }} priority
+                    {{ workflowRegistry.get(def.key).priority }}
                   </Badge>
-                </template>
+                </div>
               </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="shrink-0 h-8 w-8 text-muted-foreground/30 hover:text-destructive hover:bg-destructive/10 -mt-1 -mr-2 transition-colors"
+                @click="deleteWorkflow(def)"
+              >
+                <Trash2 class="h-4 w-4" />
+              </Button>
+            </CardHeader>
 
-              <p class="text-xs text-muted-foreground mb-3 line-clamp-2">
+            <CardContent class="flex-1 flex flex-col pt-0 pb-4">
+              <p class="text-xs text-muted-foreground mb-4 line-clamp-2 min-h-10">
                 {{ workflowRegistry.get(def.key)?.description || def.description || 'No description available' }}
               </p>
 
               <!-- Trigger Keywords (if SQL Approval) -->
-              <div v-if="workflowRegistry.get(def.key)?.workflowType === 'sql_approval' && workflowRegistry.get(def.key)?.triggerKeywords?.length" class="mb-3">
-                <p class="text-[10px] text-muted-foreground mb-1">
-                  Trigger Keywords:
-                </p>
+              <div v-if="workflowRegistry.get(def.key)?.workflowType === 'sql_approval' && workflowRegistry.get(def.key)?.triggerKeywords?.length" class="mb-4">
+                <div class="flex items-center gap-1.5 mb-2">
+                  <div class="h-px flex-1 bg-border/50" />
+                  <span class="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Keywords</span>
+                  <div class="h-px flex-1 bg-border/50" />
+                </div>
                 <div class="flex flex-wrap gap-1">
                   <Badge
                     v-for="keyword in workflowRegistry.get(def.key).triggerKeywords.slice(0, 5)"
                     :key="keyword"
                     variant="secondary"
-                    class="text-[9px] px-1 py-0"
+                    class="text-[9px] px-1.5 py-0 bg-muted/60 text-muted-foreground hover:bg-muted font-mono"
                   >
                     {{ keyword }}
                   </Badge>
                   <Badge
                     v-if="workflowRegistry.get(def.key).triggerKeywords.length > 5"
-                    variant="secondary"
-                    class="text-[9px] px-1 py-0"
+                    variant="outline"
+                    class="text-[9px] px-1 py-0 border-dashed"
                   >
                     +{{ workflowRegistry.get(def.key).triggerKeywords.length - 5 }}
                   </Badge>
@@ -376,28 +369,19 @@ onMounted(async () => {
               </div>
 
               <div class="flex flex-col gap-2 mt-auto">
-                <Button class="w-full shadow-sm" variant="default" :disabled="def.suspended" @click="openStartDialog(def)">
+                <Button variant="default" size="sm" class="w-full shadow-sm font-medium" :disabled="def.suspended" @click="openStartDialog(def)">
                   <Play class="mr-2 h-4 w-4" />
                   Simulate Trigger
                 </Button>
 
                 <Button
-                  variant="outline"
-                  class="w-full"
+                  variant="ghost"
+                  class="w-full text-muted-foreground hover:text-primary hover:bg-primary/5"
                   size="sm"
                   @click="router.push({ name: 'workflow-definition', params: { id: def.id } })"
                 >
                   <Eye class="mr-2 h-4 w-4" /> View Details
                 </Button>
-
-                <div class="flex items-center justify-between pt-2 border-t text-xs font-medium mt-1">
-                  <Button variant="link" class="h-auto p-0 text-muted-foreground hover:text-primary" @click="toggleState(def)">
-                    {{ def.suspended ? 'Activate' : 'Suspend' }}
-                  </Button>
-                  <Button variant="link" class="h-auto p-0 text-destructive hover:text-destructive/80" @click="deleteWorkflow(def)">
-                    Delete
-                  </Button>
-                </div>
               </div>
             </CardContent>
           </Card>
