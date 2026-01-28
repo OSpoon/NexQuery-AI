@@ -15,6 +15,12 @@ export default class QueryLog extends BaseModel {
   @column()
   declare taskId: number | null
 
+  @column({ columnName: 'process_instance_id' })
+  declare processInstanceId: string | null
+
+  @column({ columnName: 'approval_comment' })
+  declare approvalComment: string | null
+
   @column()
   declare dataSourceId: number | null
 

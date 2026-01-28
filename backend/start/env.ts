@@ -76,4 +76,13 @@ export default await Env.create(new URL('../', import.meta.url), {
   */
   WECHAT_APP_ID: Env.schema.string.optional(),
   WECHAT_APP_SECRET: Env.schema.string.optional(),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for Flowable Workflow
+  |----------------------------------------------------------
+  */
+  FLOWABLE_HOST: Env.schema.string.optional(), // e.g. http://localhost:8080 or http://flowable:8080
+  FLOWABLE_USER: Env.schema.string.optional(),
+  FLOWABLE_PASSWORD: Env.schema.string.optional(),
 })

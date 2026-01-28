@@ -168,7 +168,7 @@ function setTheme(themeValue: string) {
               v-for="item in [
                 { href: 'https://webhook.site', icon: Webhook, label: 'Webhook.site' },
                 { href: 'http://localhost:1080', icon: Mail, label: 'MailCatcher' },
-                { href: 'http://localhost:8080', icon: Database, label: 'Adminer' },
+                { href: 'http://localhost:8088', icon: Database, label: 'Adminer' },
                 { href: 'http://localhost:6333/dashboard', icon: HardDrive, label: 'Qdrant' },
                 { href: 'https://us.cloud.langfuse.com', icon: Activity, label: 'Langfuse' },
               ]"

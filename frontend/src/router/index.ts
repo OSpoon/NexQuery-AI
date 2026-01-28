@@ -130,6 +130,31 @@ const router = createRouter({
           name: 'ai-feedback',
           component: () => import('@/pages/feedback/index.vue'),
         },
+        {
+          path: 'workflow',
+          name: 'workflow',
+          component: () => import('@/pages/workflow/index.vue'),
+        },
+        {
+          path: 'workflow/instances/:id',
+          name: 'workflow-detail',
+          component: () => import('@/pages/workflow/detail.vue'),
+        },
+        {
+          path: 'workflow/history/:id',
+          name: 'workflow-history-detail',
+          component: () => import('@/pages/workflow/history-detail.vue'),
+        },
+        {
+          path: 'workflow/definitions/:id',
+          name: 'workflow-definition',
+          component: () => import('@/pages/workflow/definition.vue'),
+        },
+        {
+          path: 'workflow/design',
+          name: 'workflow-design',
+          component: () => import('@/pages/workflow/design.vue'),
+        },
       ],
     },
     {

@@ -10,6 +10,8 @@ export declare const PERMISSIONS: {
     readonly MANAGE_AI_FEEDBACK: "manage_ai_feedback";
     readonly MANAGE_KNOWLEDGE_BASE: "manage_knowledge_base";
     readonly MANAGE_SETTINGS: "manage_settings";
+    readonly WORKFLOW_INITIATE: "workflow:initiate";
+    readonly WORKFLOW_APPROVE: "workflow:approve";
 };
 export declare const PERMISSION_DETAILS: ({
     name: string;
@@ -54,5 +56,13 @@ export declare const PERMISSION_DETAILS: ({
 } | {
     name: string;
     slug: "manage_settings";
+    description: string;
+} | {
+    name: string;
+    slug: "workflow:initiate";
+    description: string;
+} | {
+    name: string;
+    slug: "workflow:approve";
     description: string;
 })[];

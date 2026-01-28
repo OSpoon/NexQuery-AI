@@ -2,7 +2,7 @@
 import { toTypedSchema } from '@vee-validate/zod'
 import { Play } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -18,9 +18,10 @@ import {
 const props = defineProps<{
   schema: any[]
   isExecuting: boolean
+  approvalStatus?: 'idle' | 'pending' | 'approved' | 'rejected'
 }>()
 
-const emit = defineEmits(['execute'])
+const emit = defineEmits(['execute', 'change'])
 
 // Dynamically build Zod schema based on JSON schema
 const dynamicZodSchema = computed(() => {
@@ -41,9 +42,12 @@ const dynamicZodSchema = computed(() => {
   return toTypedSchema(z.object(shape))
 })
 
-const { handleSubmit, setFieldValue } = useForm({
+const { handleSubmit, setFieldValue, values } = useForm({
   validationSchema: dynamicZodSchema,
 })
+watch(values, () => {
+  emit('change') // Signal that the user modified the form
+}, { deep: true })
 
 const onSubmit = handleSubmit((values) => {
   emit('execute', values)
@@ -93,9 +97,29 @@ const onSubmit = handleSubmit((values) => {
     </div>
 
     <div class="flex justify-start pt-2" :class="{ 'mt-0': schema.length === 0 }">
-      <Button type="submit" class="w-full md:w-auto px-8" :disabled="isExecuting">
-        <Play v-if="!isExecuting" class="mr-2 h-4 w-4" />
-        {{ isExecuting ? 'Running Query...' : 'Execute' }}
+      <Button
+        type="submit"
+        class="w-full md:w-auto px-8"
+        :disabled="isExecuting || approvalStatus === 'pending' || approvalStatus === 'rejected'"
+        :variant="approvalStatus === 'rejected' ? 'destructive' : 'default'"
+      >
+        <template v-if="isExecuting">
+          <Play class="mr-2 h-4 w-4 animate-spin" /> <!-- Loader2 not imported, reusing Play or using text -->
+          Running...
+        </template>
+        <template v-else-if="approvalStatus === 'pending'">
+          Waiting for Approval...
+        </template>
+        <template v-else-if="approvalStatus === 'approved'">
+          Execute (Approved)
+        </template>
+        <template v-else-if="approvalStatus === 'rejected'">
+          Request Rejected
+        </template>
+        <template v-else>
+          <Play class="mr-2 h-4 w-4" />
+          Execute
+        </template>
       </Button>
     </div>
   </form>

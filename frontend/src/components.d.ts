@@ -37,6 +37,8 @@ declare module 'vue' {
     AvatarFallback: typeof import('./components/ui/avatar/AvatarFallback.vue')['default']
     AvatarImage: typeof import('./components/ui/avatar/AvatarImage.vue')['default']
     Badge: typeof import('./components/ui/badge/Badge.vue')['default']
+    BpmnModeler: typeof import('./components/workflow/BpmnModeler.vue')['default']
+    BpmnViewer: typeof import('./components/workflow/BpmnViewer.vue')['default']
     Breadcrumb: typeof import('./components/ui/breadcrumb/Breadcrumb.vue')['default']
     BreadcrumbEllipsis: typeof import('./components/ui/breadcrumb/BreadcrumbEllipsis.vue')['default']
     BreadcrumbItem: typeof import('./components/ui/breadcrumb/BreadcrumbItem.vue')['default']
@@ -362,5 +364,6 @@ declare module 'vue' {
     TooltipContent: typeof import('./components/ui/tooltip/TooltipContent.vue')['default']
     TooltipProvider: typeof import('./components/ui/tooltip/TooltipProvider.vue')['default']
     TooltipTrigger: typeof import('./components/ui/tooltip/TooltipTrigger.vue')['default']
+    WorkflowTimeline: typeof import('./components/workflow/WorkflowTimeline.vue')['default']
   }
 }

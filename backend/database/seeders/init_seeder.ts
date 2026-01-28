@@ -69,6 +69,7 @@ export default class extends BaseSeeder {
       permissions[PERMISSIONS.VIEW_HISTORY],
       permissions[PERMISSIONS.MANAGE_KNOWLEDGE_BASE],
       permissions[PERMISSIONS.MANAGE_AI_FEEDBACK],
+      permissions[PERMISSIONS.WORKFLOW_INITIATE],
     ]
     await developerRole.related('permissions').sync(getIds(devPerms))
 
@@ -160,6 +161,13 @@ export default class extends BaseSeeder {
         permission: PERMISSIONS.MANAGE_AI_FEEDBACK,
         sortOrder: 60,
       },
+      {
+        title: 'Workflow',
+        path: '/workflow',
+        icon: 'GitPullRequest',
+        permission: PERMISSIONS.WORKFLOW_INITIATE,
+        sortOrder: 70,
+      },
     ]
 
     for (const m of mainMenus) {
@@ -227,8 +235,7 @@ export default class extends BaseSeeder {
       { key: 'query_timeout_ms', value: '30000', type: 'number', group: 'general' },
       { key: 'glm_api_key', value: '', type: 'string', group: 'integration' },
       { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'integration' },
-      { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'integration' },
-      { key: 'show_watermark', value: 'true', type: 'boolean', group: 'general' },
+      { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'integration', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
     ]
 
     for (const s of defaultSettings) {

@@ -311,5 +311,89 @@
       "ai_embedding_model": "AI 嵌入模型",
       "ai_embedding_model_desc": "默认的向量搜索与知识库模型 (如 embedding-3)。"
     }
+  },
+  "workflow": {
+    "title": "工作流",
+    "desc": "管理审批流程和待办任务",
+    "tabs": {
+      "my_tasks": "我的任务",
+      "available_workflows": "可用工作流",
+      "history": "历史记录"
+    },
+    "create_new": "创建新工作流",
+    "view_details": "查看详情",
+    "start_process": "发起流程",
+    "activate": "激活",
+    "suspend": "暂停",
+    "status": {
+      "active": "激活",
+      "suspended": "已暂停",
+      "pending": "待处理",
+      "completed": "已完成",
+      "rejected": "已拒绝"
+    },
+    "type": "类型",
+    "priority": "优先级",
+    "trigger_keywords": "触发关键词",
+    "version": "版本",
+    "deployment_id": "部署 ID",
+    "toast": {
+      "request_submitted": "请求提交成功",
+      "workflow_activated": "工作流激活成功",
+      "workflow_suspended": "工作流暂停成功",
+      "workflow_deleted": "工作流删除成功",
+      "failed_to_load": "加载工作流失败",
+      "failed_to_start": "启动流程失败",
+      "failed_to_update": "更新状态失败",
+      "failed_to_delete": "删除失败",
+      "created": "工作流创建成功!",
+      "updated": "工作流更新成功!",
+      "failed_to_save": "保存工作流失败",
+      "failed_to_load_diagram": "加载 BPMN 图表失败",
+      "deployment_not_found": "未找到部署 ID",
+      "deployed": "工作流部署成功!",
+      "name_required": "请提供工作流名称",
+      "deployment_failed": "部署失败",
+      "failed_to_load_for_edit": "加载工作流编辑失败",
+      "comment_required": "请提供意见(至少 5 个字符)",
+      "request_approved": "请求已批准",
+      "request_rejected": "请求已拒绝",
+      "action_failed": "操作失败",
+      "failed_to_load_details": "加载工作流详情失败",
+      "failed_to_load_history": "加载历史详情失败"
+    },
+    "confirm_delete": "确定要删除此部署吗?这将删除 {key} 的所有版本和任务。",
+    "definition": {
+      "title": "工作流定义",
+      "new_workflow": "新工作流",
+      "info": "信息",
+      "diagram": "流程图",
+      "xml": "XML 源码"
+    },
+    "designer": {
+      "title": "工作流设计器",
+      "deploy": "部署",
+      "update": "更新"
+    },
+    "detail": {
+      "process_info": "流程信息",
+      "process_id": "流程 ID",
+      "definition_id": "定义 ID",
+      "started_by": "发起人",
+      "start_time": "开始时间",
+      "current_task": "当前任务",
+      "task_assignee": "处理人",
+      "task_created": "创建时间",
+      "action_required": "需要操作",
+      "your_comment": "您的意见",
+      "approve": "批准",
+      "reject": "拒绝",
+      "process_variables": "流程变量",
+      "timeline": "时间线"
+    },
+    "history": {
+      "audit_log": "工作流审计日志",
+      "terminated": "工作流已终止"
+    }
   }
 }

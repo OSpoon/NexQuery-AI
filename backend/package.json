@@ -46,6 +46,7 @@
     "adonis-autoswagger": "^3.73.0",
     "croner": "^9.1.0",
     "edge.js": "^6.4.0",
+    "fast-xml-parser": "^4.5.0",
     "langchain": "^1.2.10",
     "langfuse": "^3.38.6",
     "langfuse-langchain": "^3.38.6",

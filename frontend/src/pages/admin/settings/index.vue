@@ -91,6 +91,17 @@ const decryptedResult = computed(() => {
 
 const loading = ref(true)
 const saving = ref(false)
+const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
+
+async function fetchRoles() {
+  try {
+    const response = await api.get('/roles')
+    availableRoles.value = response.data
+  }
+  catch (e) {
+    console.error('Failed to fetch roles', e)
+  }
+}
 
 async function fetchSettings() {
   loading.value = true
@@ -162,7 +173,10 @@ async function saveSettings() {
 
 const _authStore = useAuthStore()
 
-onMounted(fetchSettings)
+onMounted(() => {
+  fetchSettings()
+  fetchRoles()
+})
 </script>
 
 <template>

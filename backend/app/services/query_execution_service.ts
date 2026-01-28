@@ -20,6 +20,8 @@ export interface ExecuteOptions {
   userAgent?: string
   deviceInfo?: any
   skipLogging?: boolean
+  processInstanceId?: string | null
+  approvalComment?: string | null
 }
 
 export default class QueryExecutionService {
@@ -28,7 +30,7 @@ export default class QueryExecutionService {
     inputParams: Record<string, any> = {},
     options: ExecuteOptions = {},
   ) {
-    const { userId, ipAddress, userAgent, deviceInfo } = options
+    const { userId, ipAddress, userAgent, deviceInfo, processInstanceId, approvalComment } = options
     const sql = task.sqlTemplate
 
     // Fetch timeout setting
@@ -168,6 +170,8 @@ export default class QueryExecutionService {
         userAgent: userAgent || null,
         deviceInfo: deviceInfo || null,
         isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        processInstanceId: processInstanceId || null,
+        approvalComment: approvalComment || null,
       })
 
       logger.info({ taskId: task.id, userId, duration }, 'Query executed successfully')
@@ -194,6 +198,8 @@ export default class QueryExecutionService {
         userAgent: userAgent || null,
         deviceInfo: deviceInfo || null,
         isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        processInstanceId: processInstanceId || null,
+        approvalComment: approvalComment || null,
       })
 
       logger.error({ taskId: task.id, userId, error: error.message }, 'Query execution failed')
