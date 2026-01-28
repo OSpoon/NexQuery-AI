@@ -2,6 +2,9 @@ import type { HttpContext } from '@adonisjs/core/http'
 import WorkflowService from '#services/workflow_service'
 import WorkflowRegistry from '#services/workflow_registry'
 import logger from '@adonisjs/core/services/logger'
+import app from '@adonisjs/core/services/app'
+import { readFile } from 'node:fs/promises'
+import Setting from '#models/setting'
 
 export default class WorkflowController {
   private workflowService: WorkflowService
@@ -223,6 +226,23 @@ export default class WorkflowController {
       return response.badRequest({ message: 'Invalid action. Must be suspend or activate' })
     }
 
+    // Check binding safety
+    const bindingSetting = await Setting.findBy('key', 'workflow_bindings')
+    if (bindingSetting && bindingSetting.value && action === 'suspend') {
+      try {
+        const bindings = JSON.parse(bindingSetting.value)
+        const boundKeys = Object.values(bindings)
+
+        // We need the key of the process definition
+        const def = await this.workflowService.getProcessDefinitionById(params.id)
+        if (def && boundKeys.includes(def.key)) {
+          return response.badRequest({ message: `Cannot suspend this workflow because it is currently bound to a system process.` })
+        }
+      } catch (e) {
+        logger.warn('Failed to parse workflow_bindings during updateState check')
+      }
+    }
+
     try {
       await this.workflowService.updateProcessState(params.id, action)
       return response.ok({ message: `Process definition ${action}d successfully` })
@@ -235,6 +255,27 @@ export default class WorkflowController {
    * Delete specific deployment
    */
   async destroyDeployment({ params, response }: HttpContext) {
+    // Check binding safety
+    const bindingSetting = await Setting.findBy('key', 'workflow_bindings')
+    if (bindingSetting && bindingSetting.value) {
+      try {
+        const bindings = JSON.parse(bindingSetting.value)
+        const boundKeys = Object.values(bindings) as string[]
+
+        // Get active workflows to match deploymentId
+        const registered = await this.workflowRegistry.getRegisteredWorkflows()
+        const boundDeployments = registered
+          .filter(w => boundKeys.includes(w.key))
+          .map(w => w.deploymentId)
+
+        if (boundDeployments.includes(params.id)) {
+          return response.badRequest({ message: `Cannot delete this deployment because it contains a workflow currently bound to a system process.` })
+        }
+      } catch (e) {
+        logger.warn('Failed to parse workflow_bindings during destroyDeployment check')
+      }
+    }
+
     try {
       await this.workflowService.deleteDeployment(params.id)
       return response.ok({ message: 'Workflow deployment deleted successfully' })
@@ -292,74 +333,8 @@ export default class WorkflowController {
    */
   async seed({ response }: HttpContext) {
     try {
-      // In a real app, use fs/promises to read from resources path
-      // Here we will just hardcode the XML content for the "High Risk SQL Approval" process
-      // to avoid file system complexity in this specific controller environment.
-      // But we have the file on disk, so let's try reading it.
-
-      // Resolve path relative to this file? No, better use application root if possible.
-      // Assuming typical structure: backend/resources/bpmn/risk_sql_approval.bpmn20.xml
-
-      // Simple fallback: Embedded XML if read fails
-      // Ideally we read from '#resources/bpmn/...'
-
-      const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
-<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:flowable="http://flowable.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" targetNamespace="http://www.flowable.org/processdef">
-  <process id="risk_sql_approval" name="Enterprise Risk SQL Approval" isExecutable="true">
-    <extensionElements>
-      <flowable:properties>
-        <flowable:property name="workflowType" value="sql_approval" />
-        <flowable:property name="triggerKeywords" value="DELETE,DROP,TRUNCATE,ALTER,GRANT,REVOKE" />
-        <flowable:property name="priority" value="high" />
-        <flowable:property name="description" value="Approval workflow for high-risk SQL operations" />
-      </flowable:properties>
-    </extensionElements>
-    <startEvent id="startEvent" name="Start" />
-    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="techReview" />
-    <userTask id="techReview" name="Technical Review (DBA)" flowable:candidateGroups="admin" />
-    <sequenceFlow id="flow2" sourceRef="techReview" targetRef="securityCheck" />
-    <userTask id="securityCheck" name="Security Compliance" flowable:candidateGroups="admin" />
-    <sequenceFlow id="flow3" sourceRef="securityCheck" targetRef="finalApproval" />
-    <userTask id="finalApproval" name="Final Management Approval" flowable:candidateGroups="admin" />
-    <sequenceFlow id="flow4" sourceRef="finalApproval" targetRef="endEvent" />
-    <endEvent id="endEvent" name="End" />
-  </process>
-  <bpmndi:BPMNDiagram id="BPMNDiagram_risk_sql_approval">
-    <bpmndi:BPMNPlane bpmnElement="risk_sql_approval" id="BPMNPlane_risk_sql_approval">
-      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
-        <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="163.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="techReview" id="BPMNShape_techReview">
-        <omgdc:Bounds height="80.0" width="100.0" x="180.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="securityCheck" id="BPMNShape_securityCheck">
-        <omgdc:Bounds height="80.0" width="100.0" x="330.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="finalApproval" id="BPMNShape_finalApproval">
-        <omgdc:Bounds height="80.0" width="100.0" x="480.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
-        <omgdc:Bounds height="28.0" width="28.0" x="650.0" y="164.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
-        <omgdi:waypoint x="130.0" y="178.0" />
-        <omgdi:waypoint x="180.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
-        <omgdi:waypoint x="280.0" y="178.0" />
-        <omgdi:waypoint x="330.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
-        <omgdi:waypoint x="430.0" y="178.0" />
-        <omgdi:waypoint x="480.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
-        <omgdi:waypoint x="580.0" y="178.0" />
-        <omgdi:waypoint x="650.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-    </bpmndi:BPMNPlane>
-  </bpmndi:BPMNDiagram>
-</definitions>`
+      const filePath = app.makePath('resources/bpmn/risk_sql_approval.bpmn')
+      const xmlContent = await readFile(filePath, 'utf-8')
 
       await this.workflowService.deployProcessDefinition('risk_sql_approval', xmlContent)
 

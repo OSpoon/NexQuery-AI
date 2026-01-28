@@ -73,7 +73,7 @@ async function fetchWorkflowMetadata() {
     // Create a map: processKey -> metadata
     const registry = new Map()
     workflows.forEach((wf: any) => {
-      registry.set(wf.processKey, wf.config)
+      registry.set(wf.key, wf.config)
     })
     workflowRegistry.value = registry
   }
@@ -121,6 +121,16 @@ function openStartDialog(def: any) {
   selectedProcess.value = def
 }
 
+function handleApiError(error: any, defaultKey: string) {
+  const backendMessage = error.response?.data?.message || ''
+  if (backendMessage.includes('bound to a system process')) {
+    toast.error(t('workflow.toast.error_binding_active'))
+  }
+  else {
+    toast.error(`${t(defaultKey)}: ${backendMessage || error.message}`)
+  }
+}
+
 async function startProcess() {
   if (!selectedProcess.value)
     return
@@ -140,7 +150,7 @@ async function startProcess() {
     selectedProcess.value = null
   }
   catch (error: any) {
-    toast.error(`${t('workflow.toast.failed_to_start')}: ${error.response?.data?.message || error.message}`)
+    handleApiError(error, 'workflow.toast.failed_to_start')
   }
 }
 
@@ -162,7 +172,7 @@ async function toggleState(def: any) {
     fetchProcessDefinitions()
   }
   catch (error: any) {
-    toast.error(`${t('workflow.toast.failed_to_update')}: ${error.response?.data?.message || error.message}`)
+    handleApiError(error, 'workflow.toast.failed_to_update')
   }
 }
 
@@ -178,7 +188,7 @@ async function deleteWorkflow(def: any) {
     fetchProcessDefinitions()
   }
   catch (error: any) {
-    toast.error(`${t('workflow.toast.failed_to_delete')}: ${error.response?.data?.message || error.message}`)
+    handleApiError(error, 'workflow.toast.failed_to_delete')
   }
 }
 
@@ -314,22 +324,27 @@ onMounted(async () => {
               <div class="text-2xl font-bold mb-2 truncate" :title="def.name || def.key">
                 {{ def.name || def.key }}
               </div>
-
-              <!-- Workflow Metadata -->
-              <div v-if="workflowRegistry.get(def.key)" class="flex flex-wrap gap-1.5 mb-3">
-                <Badge variant="outline">
-                  {{ t('workflow.priority') }}: {{ workflowRegistry.get(def.key).priority }}
+              <!-- Version Badge (Always Show) -->
+              <div class="flex flex-wrap gap-1.5 mb-3">
+                <Badge variant="outline" class="text-[10px] font-normal border-primary/30 text-primary">
+                  v{{ def.version }}
                 </Badge>
-                <Badge variant="outline" class="text-[10px] font-normal">
-                  {{ workflowRegistry.get(def.key).workflowType || 'custom' }}
-                </Badge>
-                <Badge
-                  v-if="workflowRegistry.get(def.key).priority"
-                  :variant="workflowRegistry.get(def.key).priority === 'high' ? 'destructive' : 'secondary'"
-                  class="text-[10px] font-normal"
-                >
-                  {{ workflowRegistry.get(def.key).priority }} priority
-                </Badge>
+                <!-- Workflow Metadata (If Registry Available) -->
+                <template v-if="workflowRegistry.get(def.key)">
+                  <Badge variant="outline">
+                    {{ t('workflow.priority') }}: {{ workflowRegistry.get(def.key).priority }}
+                  </Badge>
+                  <Badge variant="outline" class="text-[10px] font-normal">
+                    {{ workflowRegistry.get(def.key).workflowType || 'custom' }}
+                  </Badge>
+                  <Badge
+                    v-if="workflowRegistry.get(def.key).priority"
+                    :variant="workflowRegistry.get(def.key).priority === 'high' ? 'destructive' : 'secondary'"
+                    class="text-[10px] font-normal"
+                  >
+                    {{ workflowRegistry.get(def.key).priority }} priority
+                  </Badge>
+                </template>
               </div>
 
               <p class="text-xs text-muted-foreground mb-3 line-clamp-2">

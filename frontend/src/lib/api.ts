@@ -54,51 +54,46 @@ api.interceptors.request.use((config) => {
   return config
 })
 
+// Helper to decrypt response data
+function decryptResponse(response: any) {
+  if (
+    cryptoService
+    && response.data
+    && response.data.data
+    && typeof response.data.data === 'string'
+  ) {
+    try {
+      const isEncrypted = response.headers['x-encryption-enabled'] === 'true'
+      if (isEncrypted) {
+        const decrypted = cryptoService.decrypt(response.data.data)
+        if (decrypted !== null) {
+          response.data = decrypted
+        }
+      }
+    }
+    catch (e) {
+      console.error('Response decryption failed', e)
+    }
+  }
+  return response
+}
+
 // Add response interceptor
 api.interceptors.response.use(
   (response) => {
-    // Decryption Logic
-    if (
-      cryptoService
-      && response.data
-      && response.data.data
-      && typeof response.data.data === 'string'
-    ) {
-      try {
-        // We assume usage of { data: "ciphertext" } wrapper for encrypted responses
-        // Check if encryption was enabled/expected?
-        // We can just rely on the structure or the header X-Encryption-Enabled from server if present.
-        // Middleware sets 'x-encryption-enabled: true'
-
-        // Only decrypt if it looks like the encrypted wrapper or header is present
-        // Checking header is safer
-        const isEncrypted = response.headers['x-encryption-enabled'] === 'true'
-
-        if (isEncrypted) {
-          const decrypted = cryptoService.decrypt(response.data.data)
-          if (decrypted !== null) {
-            response.data = decrypted
-          }
-          else {
-            console.error('Response decryption returned null')
-          }
-        }
-      }
-      catch (e) {
-        console.error('Response decryption failed', e)
-      }
-    }
-    return response
+    return decryptResponse(response)
   },
   (error) => {
+    // Decrypt error response data if possible
+    if (error.response) {
+      decryptResponse(error.response)
+    }
+
     if (error.response && error.response.status === 401) {
       const data = error.response.data
 
       // Check for password expiration
       if (data && data.code === 'PASSWORD_EXPIRED') {
-        // Redirect to change password page (we need to create this route)
-        // Store the fact that it's an expired password scenario?
-        // Maybe just query param?
         if (window.location.pathname !== '/change-password') {
           window.location.href = '/change-password?reason=expired'
         }

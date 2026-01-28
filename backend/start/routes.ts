@@ -20,6 +20,7 @@ const ScheduledQueriesController = () => import('#controllers/scheduled_queries_
 const ApiKeysController = () => import('#controllers/api_keys_controller')
 const KnowledgeBasesController = () => import('#controllers/knowledge_bases_controller')
 const WorkflowController = () => import('#controllers/workflow_controller')
+const WebhookController = () => import('#controllers/webhook_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
 const PasswordResetsController = () => import('#controllers/password_resets_controller')
@@ -41,6 +42,9 @@ router.get('/docs', async () => {
 router
   .group(() => {
     router.get('health', [HealthChecksController, 'handle'])
+
+    // Internal System Routes (No Encryption Wrapper)
+    router.post('internal/workflow/notification', [WebhookController, 'handleNotification'])
 
     // Public Auth
     router.post('auth/2fa/verify', [AuthController, 'verify2fa']) // 2FA Verification during login

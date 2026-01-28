@@ -14,6 +14,7 @@ interface RegisteredWorkflow {
   name: string
   version: number
   deploymentId: string
+  suspended: boolean
   config: WorkflowConfig
 }
 
@@ -43,6 +44,7 @@ export default class WorkflowRegistry {
           name: def.name,
           version: def.version,
           deploymentId: def.deploymentId,
+          suspended: !!def.suspended,
           config,
         })
       } catch (error) {
@@ -54,6 +56,7 @@ export default class WorkflowRegistry {
           name: def.name,
           version: def.version,
           deploymentId: def.deploymentId,
+          suspended: !!def.suspended,
           config: {},
         })
       }
@@ -168,6 +171,14 @@ export default class WorkflowRegistry {
 
     // 过滤出 SQL 审批类型的工作流
     const sqlWorkflows = workflows.filter(w => w.config.workflowType === 'sql_approval')
+
+    // Sort by priority (High > Medium > Low) so the most important one matches first
+    const priorityOrder: Record<string, number> = { high: 3, medium: 2, low: 1 }
+    sqlWorkflows.sort((a, b) => {
+      const aP = priorityOrder[a.config.priority?.toLowerCase() || 'low'] || 0
+      const bP = priorityOrder[b.config.priority?.toLowerCase() || 'low'] || 0
+      return bP - aP
+    })
 
     for (const workflow of sqlWorkflows) {
       if (workflow.config.triggerKeywords) {

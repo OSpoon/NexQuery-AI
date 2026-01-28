@@ -297,10 +297,9 @@ export default class WorkflowService {
     const payload = { action: 'complete', variables }
     const result = await this.request(`/flowable-ui/process-api/runtime/tasks/${taskId}`, 'POST', payload)
 
-    // 6. Handle process termination on rejection
-    if (!approved && processInstanceId) {
-      await this.deleteProcessInstance(processInstanceId, `Rejected by ${operatorEmail}: ${comment}`)
-        .catch(err => logger.warn({ processInstanceId, error: err.message }, 'Failed to terminate process'))
+    // 6. Process flow is now handled by BPMN gateways
+    if (!approved) {
+      logger.info({ processInstanceId, approved }, 'Task rejected, Flowable will route to rejection path')
     }
 
     return result

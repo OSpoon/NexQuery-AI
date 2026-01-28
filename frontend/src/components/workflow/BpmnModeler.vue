@@ -39,7 +39,15 @@ const elementProperties = ref({
   name: '',
   type: '',
   candidateGroups: '', // User Task
-  implementation: '', // Service Task / Send Task
+  implementation: '', // Value (class name or expression)
+  implementationType: 'http', // 'http' or 'expression'
+  httpConfig: {
+    requestMethod: 'POST',
+    requestUrl: '',
+    requestHeaders: 'Content-Type: application/json',
+    requestBody: '',
+    handleExceptions: 'false',
+  },
   conditionExpression: '', // Sequence Flow from Gateway
   eventType: '', // Events
   timerDefinition: '', // Timer Events
@@ -162,6 +170,53 @@ const flowableModdleDescriptor = {
           name: 'delegateExpression',
           isAttr: true,
           type: 'String',
+        },
+        {
+          name: 'type',
+          isAttr: true,
+          type: 'String',
+        },
+      ],
+    },
+    {
+      name: 'SendTask',
+      extends: ['bpmn:SendTask'],
+      properties: [
+        {
+          name: 'class',
+          isAttr: true,
+          type: 'String',
+        },
+        {
+          name: 'delegateExpression',
+          isAttr: true,
+          type: 'String',
+        },
+        {
+          name: 'type',
+          isAttr: true,
+          type: 'String',
+        },
+      ],
+    },
+    {
+      name: 'Field',
+      superClass: ['Element'],
+      properties: [
+        {
+          name: 'name',
+          isAttr: true,
+          type: 'String',
+        },
+        {
+          name: 'string',
+          type: 'String',
+          xml: { serialize: 'property' },
+        },
+        {
+          name: 'expression',
+          type: 'String',
+          xml: { serialize: 'property' },
         },
       ],
     },
@@ -331,6 +386,7 @@ async function initModeler() {
         '自动任务',
       )
 
+      /*
       // Send Task (发送通知/邮件)
       actions['create.send-task'] = createAction(
         'bpmn:SendTask',
@@ -338,6 +394,7 @@ async function initModeler() {
         'bpmn-icon-send-task',
         '发送任务',
       )
+      */
 
       // Exclusive Gateway (条件分支)
       actions['create.exclusive-gateway'] = createAction(
@@ -347,6 +404,7 @@ async function initModeler() {
         '条件分支',
       )
 
+      /*
       // Parallel Gateway (并行分支)
       actions['create.parallel-gateway'] = createAction(
         'bpmn:ParallelGateway',
@@ -354,11 +412,56 @@ async function initModeler() {
         'bpmn-icon-gateway-parallel',
         '并行分支',
       )
+      */
 
       return actions
     }
 
-    // Create modeler instance with custom palette
+    /**
+     * Custom Replace Menu Provider
+     * Filters the "Change element" (bpmn-replace) menu to show only approved items.
+     */
+    function customReplaceMenuProvider(popupMenu: any) {
+      popupMenu.registerProvider('bpmn-replace', this)
+    }
+
+    customReplaceMenuProvider.$inject = ['popupMenu']
+
+    customReplaceMenuProvider.prototype.getPopupMenuEntries = function (_element: any) {
+      // Allowed items filter
+      const allowedTypes = [
+        'bpmn:StartEvent',
+        'bpmn:EndEvent',
+        'bpmn:UserTask',
+        'bpmn:ServiceTask',
+        'bpmn:ExclusiveGateway',
+        'bpmn:SequenceFlow',
+      ]
+
+      return function (entries: any) {
+        const filteredEntries: any = {}
+
+        // We iterate through all entries and only keep those that are in our whitelist
+        // and aren't complex variants (like message/timer start events for now)
+        for (const key in entries) {
+          const entry = entries[key]
+          const target = entry.target
+
+          if (target && allowedTypes.includes(target.type)) {
+            // Further filter: avoid complex event variants for Start/End/Gateway
+            // Simple Start Event, Simple End Event, Simple Task, etc.
+            if (target.eventDefinitionType)
+              continue // Hide Signal/Message/Timer events
+
+            filteredEntries[key] = entry
+          }
+        }
+
+        return filteredEntries
+      }
+    }
+
+    // Create modeler instance with custom palette and popup menu
     modeler.value = new BpmnModeler({
       container: container.value,
       keyboard: {
@@ -371,8 +474,9 @@ async function initModeler() {
         },
         // Add custom palette
         {
-          __init__: ['customPaletteProvider'],
+          __init__: ['customPaletteProvider', 'customReplaceMenuProvider'],
           customPaletteProvider: ['type', customPaletteProvider],
+          customReplaceMenuProvider: ['type', customReplaceMenuProvider],
         },
       ],
       moddleExtensions: {
@@ -394,9 +498,19 @@ async function initModeler() {
         // Reset all type-specific properties
         elementProperties.value.candidateGroups = ''
         elementProperties.value.implementation = ''
+        elementProperties.value.implementationType = 'http'
         elementProperties.value.conditionExpression = ''
         elementProperties.value.eventType = ''
+
         elementProperties.value.timerDefinition = ''
+        // Isolation fix: Ensure httpConfig is a fresh object to prevent leakage between elements
+        elementProperties.value.httpConfig = {
+          requestMethod: 'POST',
+          requestUrl: '',
+          requestHeaders: 'Content-Type: application/json',
+          requestBody: '',
+          handleExceptions: 'false',
+        }
         // selectedRoles is a computed property, so it will update automatically when candidateGroups changes
         // Do NOT assign to it here, as that would trigger the setter and overwrite the business object!
 
@@ -411,7 +525,32 @@ async function initModeler() {
         }
         // Service Task / Send Task - Implementation
         else if (bo.$type === 'bpmn:ServiceTask' || bo.$type === 'bpmn:SendTask') {
-          elementProperties.value.implementation = bo.implementation || bo.class || bo.delegateExpression || ''
+          if (bo.type === 'http') {
+            elementProperties.value.implementationType = 'http'
+            elementProperties.value.implementation = 'http'
+          }
+          else if (bo.delegateExpression) {
+            elementProperties.value.implementationType = 'expression'
+            elementProperties.value.implementation = bo.delegateExpression
+          }
+          else {
+            elementProperties.value.implementationType = 'http'
+            elementProperties.value.implementation = 'http'
+          }
+
+          // Always try to extract HTTP Fields if implementation mode IS http
+          if (elementProperties.value.implementationType === 'http') {
+            if (bo.extensionElements && bo.extensionElements.values) {
+              const fields = bo.extensionElements.values.filter((v: any) => v.$type === 'flowable:Field')
+              fields.forEach((f: any) => {
+                const name = f.name as keyof typeof elementProperties.value.httpConfig
+                if (elementProperties.value.httpConfig[name] !== undefined) {
+                  // Flowable can store in field.string or field.expression
+                  elementProperties.value.httpConfig[name] = f.string || f.expression || ''
+                }
+              })
+            }
+          }
         }
         // Sequence Flow - Condition Expression
         else if (bo.$type === 'bpmn:SequenceFlow') {
@@ -439,9 +578,18 @@ async function initModeler() {
         elementProperties.value.type = ''
         elementProperties.value.candidateGroups = ''
         elementProperties.value.implementation = ''
+        elementProperties.value.implementationType = 'http'
         elementProperties.value.conditionExpression = ''
         elementProperties.value.eventType = ''
         elementProperties.value.timerDefinition = ''
+        // Isolation fix: Ensure httpConfig is a fresh object to prevent leakage between elements
+        elementProperties.value.httpConfig = {
+          requestMethod: 'POST',
+          requestUrl: '',
+          requestHeaders: 'Content-Type: application/json',
+          requestBody: '',
+          handleExceptions: 'false',
+        }
         // selectedRoles.value = [] // Do not assign to computed
       }
     })
@@ -603,9 +751,34 @@ function updateNodeProperty(prop: string, value: string) {
       candidateGroups: value,
     })
   }
+  else if (prop === 'implementationType') {
+    // Switch implementation structure
+    if (value === 'http') {
+      modeling.updateModdleProperties(element, bo, {
+        type: 'http',
+        class: undefined,
+        delegateExpression: undefined,
+      })
+      elementProperties.value.implementation = 'http'
+    }
+    else {
+      modeling.updateModdleProperties(element, bo, {
+        type: undefined,
+        class: undefined,
+        delegateExpression: elementProperties.value.implementation || '${}',
+      })
+    }
+    elementProperties.value.implementationType = value
+  }
   else if (prop === 'implementation') {
-    // Service Task / Send Task
-    modeling.updateProperties(element, { implementation: value })
+    // Service Task / Send Task value update
+    if (elementProperties.value.implementationType === 'http') {
+      modeling.updateModdleProperties(element, bo, { type: 'http' })
+    }
+    else {
+      modeling.updateModdleProperties(element, bo, { delegateExpression: value })
+    }
+    elementProperties.value.implementation = value
   }
   else if (prop === 'conditionExpression') {
     // Sequence Flow 条件表达式
@@ -614,10 +787,70 @@ function updateNodeProperty(prop: string, value: string) {
     modeling.updateProperties(element, { conditionExpression })
   }
 
+  // Handle HTTP Config nested fields
+  if (prop.startsWith('httpConfig.')) {
+    const fieldName = prop.split('.')[1]
+    const moddle = modeler.value.get('moddle')
+
+    // Ensure extensionElements exists
+    if (!bo.extensionElements) {
+      bo.extensionElements = moddle.create('bpmn:ExtensionElements', { values: [] })
+    }
+
+    // Ensure values array exists
+    if (!bo.extensionElements.values) {
+      bo.extensionElements.values = []
+    }
+
+    // Find or create the field
+    let field = bo.extensionElements.values.find((v: any) => v.$type === 'flowable:Field' && v.name === fieldName)
+
+    if (!field) {
+      field = moddle.create('flowable:Field', { name: fieldName })
+      bo.extensionElements.values.push(field)
+    }
+
+    // For HTTP task fields, always use string. Flowable handles ${} interpolation inside field.string values.
+    // Setting field.expression would cause the entire value (like JSON) to be evaluated as a single UEL expression.
+    field.string = value
+    field.expression = undefined
+
+    // Update the property in our state
+    const config = elementProperties.value.httpConfig as any
+    config[fieldName] = value
+
+    // Notify modeler of changes
+    modeling.updateModdleProperties(element, bo, {
+      extensionElements: bo.extensionElements,
+    })
+  }
+
   // 更新本地状态
   if (prop in elementProperties.value) {
     (elementProperties.value as any)[prop] = value
   }
+}
+
+/**
+ * Reset HTTP config to internal notification defaults
+ */
+function resetToInternalNotification() {
+  const element = selectedElement.value
+  if (!element || (element.type !== 'bpmn:ServiceTask' && element.type !== 'bpmn:SendTask'))
+    return
+
+  const defaultUrl = 'http://backend:3008/api/internal/workflow/notification'
+  const defaultBody = JSON.stringify({
+    type: 'rejection',
+    recipient: '$' + '{initiatorEmail}',
+    processInstanceId: '$' + '{processInstanceId}',
+    reason: 'Approval rejected by $' + '{currentUser}',
+  }, null, 2)
+
+  updateNodeProperty('httpConfig.requestUrl', defaultUrl)
+  updateNodeProperty('httpConfig.requestMethod', 'POST')
+  updateNodeProperty('httpConfig.requestHeaders', 'Content-Type: application/json')
+  updateNodeProperty('httpConfig.requestBody', defaultBody)
 }
 
 async function handleSave() {
@@ -662,8 +895,9 @@ async function handleSave() {
     // modeling.updateProperties(element, { implementation: value })
     // This sets the 'implementation' attribute. Flowable might interpret this via custom handling or we might need to be specific.
     // For now, checks if 'implementation' or 'class' or 'delegateExpression' is present.
-    if (!bo.implementation && !bo.class && !bo.delegateExpression) {
-      toast.error(`Validation Failed: Service Task "${bo.name || task.id}" must have an Implementation`)
+    // Check if any implementation property is set (including Flowable's type="http")
+    if (!bo.type && !bo.implementation && !bo.class && !bo.delegateExpression) {
+      toast.error(`Validation Failed: Service Task "${bo.name || task.id}" must have an Implementation (HTTP or Expression)`)
       const selection = modeler.value.get('selection')
       selection.select(task)
       activeTab.value = 'element'
@@ -1008,18 +1242,116 @@ onBeforeUnmount(() => {
                   {{ selectedElement.type === 'bpmn:SendTask' ? '发送配置' : '服务配置' }}
                 </Label>
 
-                <div class="space-y-1.5">
-                  <Label for="implementation" class="text-[10px] text-muted-foreground">Implementation</Label>
-                  <Input
-                    id="implementation"
-                    v-model="elementProperties.implementation"
-                    class="h-8 text-xs bg-background font-mono"
-                    placeholder="e.g., com.example.EmailService"
-                    @input="updateNodeProperty('implementation', ($event.target as HTMLInputElement).value)"
-                  />
-                  <p class="text-[9px] text-muted-foreground">
-                    {{ selectedElement.type === 'bpmn:SendTask' ? '邮件/通知服务类名' : 'Java 类名或表达式' }}
-                  </p>
+                <div class="space-y-4">
+                  <div class="space-y-1.5">
+                    <Label class="text-[10px] text-muted-foreground">Type</Label>
+                    <Select
+                      v-model="elementProperties.implementationType"
+                      @update:model-value="updateNodeProperty('implementationType', $event)"
+                    >
+                      <SelectTrigger class="h-8 text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="http">
+                          HTTP Request (Webhook)
+                        </SelectItem>
+                        <SelectItem value="expression">
+                          Expression
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <!-- Expression Configuration -->
+                  <div v-if="elementProperties.implementationType === 'expression'" class="space-y-1.5">
+                    <Label for="implementation" class="text-[10px] text-muted-foreground">Expression</Label>
+                    <Input
+                      id="implementation"
+                      v-model="elementProperties.implementation"
+                      class="h-8 text-xs bg-background font-mono"
+                      placeholder="${approved == true}"
+                      @input="updateNodeProperty('implementation', ($event.target as HTMLInputElement).value)"
+                    />
+                    <p class="text-[9px] text-muted-foreground">
+                      BPMN Expression logic, e.g., ${result == true}
+                    </p>
+                  </div>
+
+                  <!-- HTTP Configuration -->
+                  <div v-else class="space-y-3">
+                    <div class="space-y-1.5">
+                      <div class="flex items-center justify-between">
+                        <Label class="text-[10px] text-muted-foreground">Request URL</Label>
+                        <Button
+                          variant="link"
+                          size="sm"
+                          class="h-4 p-0 text-[9px]"
+                          @click="resetToInternalNotification"
+                        >
+                          Use Internal System
+                        </Button>
+                      </div>
+                      <Input
+                        v-model="elementProperties.httpConfig.requestUrl"
+                        class="h-8 text-xs bg-background font-mono"
+                        placeholder="http://..."
+                        @input="updateNodeProperty('httpConfig.requestUrl', ($event.target as HTMLInputElement).value)"
+                      />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-2">
+                      <div class="space-y-1.5">
+                        <Label class="text-[10px] text-muted-foreground">Method</Label>
+                        <Select
+                          v-model="elementProperties.httpConfig.requestMethod"
+                          @update:model-value="updateNodeProperty('httpConfig.requestMethod', $event)"
+                        >
+                          <SelectTrigger class="h-8 text-xs">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="POST">
+                              POST
+                            </SelectItem>
+                            <SelectItem value="GET">
+                              GET
+                            </SelectItem>
+                            <SelectItem value="PUT">
+                              PUT
+                            </SelectItem>
+                            <SelectItem value="DELETE">
+                              DELETE
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div class="space-y-1.5">
+                        <Label class="text-[10px] text-muted-foreground">Headers (JSON)</Label>
+                        <Input
+                          v-model="elementProperties.httpConfig.requestHeaders"
+                          class="h-8 text-xs bg-background font-mono"
+                          @input="updateNodeProperty('httpConfig.requestHeaders', ($event.target as HTMLInputElement).value)"
+                        />
+                      </div>
+                    </div>
+
+                    <div class="space-y-1.5">
+                      <Label class="text-[10px] text-muted-foreground">Request Body (JSON)</Label>
+                      <Textarea
+                        v-model="elementProperties.httpConfig.requestBody"
+                        class="text-xs bg-background font-mono min-h-[80px]"
+                        placeholder="{ &quot;type&quot;: &quot;approval&quot;, ... }"
+                        @input="updateNodeProperty('httpConfig.requestBody', ($event.target as HTMLTextAreaElement).value)"
+                      />
+                    </div>
+
+                    <div class="p-2 bg-muted/50 rounded text-[9px] text-muted-foreground">
+                      <p>
+                        Allows Flowable to call backend APIs to trigger notifications or other logic.
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 

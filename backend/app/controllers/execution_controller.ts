@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import QueryTask from '#models/query_task'
+import Setting from '#models/setting'
 import logger from '@adonisjs/core/services/logger'
 import QueryExecutionService from '#services/query_execution_service'
 
@@ -33,7 +34,43 @@ export default class ExecutionController {
 
     // Use WorkflowRegistry to find matching workflow
     // If a workflow matches, it implies this is a high-risk operation requiring approval
-    const matchingWorkflow = await this.workflowRegistry.matchSQLToWorkflow(task.sqlTemplate)
+    // Check for explicit binding in System Settings
+    const bindingSetting = await Setting.findBy('key', 'workflow_bindings')
+    let boundWorkflowKey: string | undefined
+
+    if (bindingSetting && bindingSetting.value) {
+      try {
+        const bindings = JSON.parse(bindingSetting.value)
+        boundWorkflowKey = bindings.sql_approval
+      } catch (e) {
+        logger.warn({ error: e }, 'Failed to parse workflow_bindings setting')
+      }
+    }
+
+    let matchingWorkflow
+
+    if (boundWorkflowKey && boundWorkflowKey !== '__NONE__') {
+      // If bound to a specific key, strictly use the bound workflow
+      const workflowConfigs = await this.workflowRegistry.getRegisteredWorkflows()
+      const boundConfig = workflowConfigs.find(w => w.key === boundWorkflowKey)
+
+      // Only proceed if the bound workflow is active and valid
+      if (boundConfig && !boundConfig.suspended) {
+        matchingWorkflow = boundConfig
+      } else {
+        // Strict Mode: If bound workflow is missing/suspended, we DO NOT fall back.
+        // We log the error. The execution will proceed as "Low Risk" (no workflow)
+        // OR we could block it.
+        // Current requirement: "Auto-detect" is removed. "Unbound" means "No Workflow".
+        // So if configuration is broken, we default to No Workflow (safe-fail or fail-open? Usually fail-open for internal tools, but let's log strict warning).
+        logger.warn({ boundWorkflowKey }, 'Bound workflow not found or suspended. Execution proceeding without workflow.')
+      }
+    } else {
+      // If boundWorkflowKey is undefined (not set) or '__NONE__' (explicitly disabled)
+      // We do NOT fall back to auto-detection.
+      // Strict behavior: No binding = No workflow.
+      matchingWorkflow = undefined
+    }
     const isHighRisk = !!matchingWorkflow
 
     logger.info({ isHighRisk, workflowKey: matchingWorkflow?.key || 'None', sqlPreview: sql.substring(0, 50) }, 'ExecutionController: SQL Risk Analysis')
@@ -246,6 +283,20 @@ export default class ExecutionController {
   async checkApprovalStatus({ params, auth, response }: HttpContext) {
     const taskId = params.id
     const userEmail = auth.user?.email || 'unknown'
+
+    // Check binding first. If disabled, approval status is irrelevant (always IDLE/Allowed).
+    const bindingSetting = await Setting.findBy('key', 'workflow_bindings')
+    let boundWorkflowKey: string | undefined
+    if (bindingSetting && bindingSetting.value) {
+      try {
+        boundWorkflowKey = JSON.parse(bindingSetting.value).sql_approval
+      } catch {}
+    }
+
+    // Strict Binding Check: If unbound or explicitly disabled, return IDLE
+    if (!boundWorkflowKey || boundWorkflowKey === '__NONE__') {
+      return response.ok({ status: 'IDLE' })
+    }
 
     try {
       const result = await this.workflowService.findLatestProcessInstance(String(taskId), userEmail)

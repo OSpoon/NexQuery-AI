@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ArrowLeft, CodeXml, Eye, GitBranch, Pause, Play, Trash2 } from 'lucide-vue-next'
+import { ArrowLeft, Pause, Play, Trash2 } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import BpmnModeler from '@/components/workflow/BpmnModeler.vue'
 import api from '@/lib/api'
 
@@ -157,7 +155,7 @@ onMounted(fetchData)
     <!-- Header -->
     <div class="flex items-center justify-between px-6 py-4 border-b bg-background shrink-0">
       <div class="flex items-center gap-4">
-        <Button variant="ghost" size="icon" @click="router.back()">
+        <Button variant="ghost" size="icon" @click="router.push({ name: 'workflow' })">
           <ArrowLeft class="h-4 w-4" />
         </Button>
         <div>
@@ -169,13 +167,41 @@ onMounted(fetchData)
           </p>
         </div>
       </div>
-      <div v-if="definition" class="flex gap-2">
-        <Badge v-if="!isNewWorkflow" :variant="statusVariant">
-          {{ definition.suspended ? 'Suspended' : 'Active' }}
-        </Badge>
-        <Badge v-else variant="secondary">
-          New Workflow
-        </Badge>
+      <div v-if="definition" class="flex items-center gap-4">
+        <div class="flex items-center gap-2 pr-4 border-r">
+          <Badge v-if="!isNewWorkflow" :variant="statusVariant">
+            {{ definition.suspended ? 'Suspended' : 'Active' }}
+          </Badge>
+          <Badge v-else variant="secondary">
+            New Workflow
+          </Badge>
+        </div>
+
+        <div v-if="!isNewWorkflow" class="flex gap-2">
+          <Button
+            v-if="definition.suspended"
+            variant="outline"
+            size="sm"
+            @click="handleStateChange('activate')"
+          >
+            <Play class="mr-2 h-4 w-4" /> Activate
+          </Button>
+          <Button
+            v-else
+            variant="outline"
+            size="sm"
+            @click="handleStateChange('suspend')"
+          >
+            <Pause class="mr-2 h-4 w-4" /> Suspend
+          </Button>
+          <Button
+            variant="destructive"
+            size="sm"
+            @click="handleDelete"
+          >
+            <Trash2 class="mr-2 h-4 w-4" /> Delete
+          </Button>
+        </div>
       </div>
     </div>
 
@@ -184,141 +210,23 @@ onMounted(fetchData)
       <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
     </div>
 
-    <div v-else-if="definition" class="flex-1 overflow-hidden">
-      <Tabs default-value="modeler" class="h-full flex flex-col">
-        <div class="px-6 pt-4 border-b">
-          <TabsList>
-            <TabsTrigger value="modeler">
-              <Eye class="mr-2 h-4 w-4" /> Modeler
-            </TabsTrigger>
-            <TabsTrigger value="xml">
-              <CodeXml class="mr-2 h-4 w-4" /> XML Source
-            </TabsTrigger>
-            <TabsTrigger v-if="!isNewWorkflow" value="info">
-              <GitBranch class="mr-2 h-4 w-4" /> Info & Actions
-            </TabsTrigger>
-          </TabsList>
-        </div>
+    <div v-else-if="definition" class="flex-1 overflow-hidden relative">
+      <div v-if="isSaving" class="absolute inset-0 z-50 bg-background/50 backdrop-blur flex flex-col items-center justify-center">
+        <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4" />
+        <p class="text-sm font-medium">
+          Saving workflow...
+        </p>
+      </div>
 
-        <div class="flex-1 overflow-hidden">
-          <!-- Modeler Tab -->
-          <TabsContent value="modeler" class="h-full m-0 p-6">
-            <div v-if="isSaving" class="absolute inset-0 z-50 bg-background/50 backdrop-blur flex flex-col items-center justify-center">
-              <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full mb-4" />
-              <p class="text-sm font-medium">
-                Saving workflow...
-              </p>
-            </div>
-
-            <BpmnModeler
-              v-if="!xmlLoading && xml"
-              :initial-xml="xml"
-              :initial-name="definition.name || definition.key"
-              @save="handleSave"
-            />
-            <div v-else-if="xmlLoading" class="h-full flex items-center justify-center">
-              <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
-            </div>
-          </TabsContent>
-
-          <!-- XML Tab -->
-          <TabsContent value="xml" class="h-full m-0 p-6">
-            <div class="h-full bg-muted rounded-lg border p-4 overflow-auto">
-              <pre class="text-xs font-mono">{{ xml }}</pre>
-            </div>
-          </TabsContent>
-
-          <!-- Info & Actions Tab -->
-          <TabsContent value="info" class="h-full m-0 p-6 overflow-auto">
-            <div class="max-w-3xl mx-auto space-y-6">
-              <!-- Metadata Card -->
-              <Card>
-                <CardHeader>
-                  <CardTitle>Definition Metadata</CardTitle>
-                  <CardDescription>Basic information about this workflow definition</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                  <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <span class="text-muted-foreground">Definition ID:</span>
-                      <p class="font-mono text-xs mt-1">
-                        {{ definition.id }}
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-muted-foreground">Key:</span>
-                      <p class="font-medium mt-1">
-                        {{ definition.key }}
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-muted-foreground">Version:</span>
-                      <p class="font-medium mt-1">
-                        v{{ definition.version }}
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-muted-foreground">Deployment ID:</span>
-                      <p class="font-mono text-xs mt-1">
-                        {{ definition.deploymentId }}
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-muted-foreground">Category:</span>
-                      <p class="font-medium mt-1">
-                        {{ definition.category || 'N/A' }}
-                      </p>
-                    </div>
-                    <div>
-                      <span class="text-muted-foreground">Resource Name:</span>
-                      <p class="font-mono text-xs mt-1">
-                        {{ definition.resourceName }}
-                      </p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <!-- Lifecycle Actions Card -->
-              <Card>
-                <CardHeader>
-                  <CardTitle>Lifecycle Management</CardTitle>
-                  <CardDescription>Control the state and availability of this workflow</CardDescription>
-                </CardHeader>
-                <CardContent class="space-y-4">
-                  <div class="flex gap-2">
-                    <Button
-                      v-if="definition.suspended"
-                      variant="default"
-                      @click="handleStateChange('activate')"
-                    >
-                      <Play class="mr-2 h-4 w-4" /> Activate
-                    </Button>
-                    <Button
-                      v-else
-                      variant="secondary"
-                      @click="handleStateChange('suspend')"
-                    >
-                      <Pause class="mr-2 h-4 w-4" /> Suspend
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      @click="handleDelete"
-                    >
-                      <Trash2 class="mr-2 h-4 w-4" /> Delete Deployment
-                    </Button>
-                  </div>
-                  <div class="text-xs text-muted-foreground space-y-1">
-                    <p>• <strong>Suspend:</strong> Prevents new instances from being started</p>
-                    <p>• <strong>Activate:</strong> Re-enables the workflow for new instances</p>
-                    <p>• <strong>Delete:</strong> Permanently removes this deployment (cascade)</p>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </div>
-      </Tabs>
+      <BpmnModeler
+        v-if="!xmlLoading && xml"
+        :initial-xml="xml"
+        :initial-name="definition.name || definition.key"
+        @save="handleSave"
+      />
+      <div v-else-if="xmlLoading" class="h-full flex items-center justify-center">
+        <div class="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
+      </div>
     </div>
   </div>
 </template>

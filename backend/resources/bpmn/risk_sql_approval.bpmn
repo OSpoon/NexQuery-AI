@@ -9,70 +9,152 @@
   <process id="risk_sql_approval" name="高危 SQL 审批流程" isExecutable="true">
     <!-- 流程级别配置 -->
     <extensionElements>
-      <!-- Workflow Type -->
       <flowable:property name="workflowType" value="sql_approval" />
-      <!-- Trigger Keywords -->
       <flowable:property name="triggerKeywords" value="DELETE,UPDATE,DROP,TRUNCATE,ALTER,CREATE,RENAME,GRANT,REVOKE" />
-      <!-- Priority -->
       <flowable:property name="priority" value="high" />
-      <!-- Description -->
-      <flowable:property name="description" value="高危 SQL 操作需要经过 DBA、安全合规和管理层的三级审批" />
+      <flowable:property name="description" value="High-risk SQL operation approval with notifications" />
     </extensionElements>
 
-    <startEvent id="startEvent" name="开始" />
+    <startEvent id="startEvent" name="Start" />
     <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="techReview" />
     
-    <userTask id="techReview" name="技术审查 (DBA)" flowable:candidateGroups="dba,admin">
-      <documentation>DBA 审查 SQL 语句的技术合理性和性能影响</documentation>
+    <!-- Step 1: Technical Review -->
+    <userTask id="techReview" name="Technical Review (DBA)" flowable:candidateGroups="dba,admin">
+      <documentation>DBA reviews technical validity</documentation>
     </userTask>
-    <sequenceFlow id="flow2" sourceRef="techReview" targetRef="securityCheck" />
-    
-    <userTask id="securityCheck" name="安全合规审查" flowable:candidateGroups="admin">
-      <documentation>安全团队审查 SQL 操作的安全风险和合规性</documentation>
+    <sequenceFlow id="flow2" sourceRef="techReview" targetRef="gateway1" />
+
+    <!-- Gateway 1 -->
+    <exclusiveGateway id="gateway1" name="Approved?" />
+    <sequenceFlow id="flow3" sourceRef="gateway1" targetRef="securityCheck">
+      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowReject1" sourceRef="gateway1" targetRef="notifyRejection">
+      <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Step 2: Security Check -->
+    <userTask id="securityCheck" name="Security Review" flowable:candidateGroups="admin">
+      <documentation>Security team reviews compliance</documentation>
     </userTask>
-    <sequenceFlow id="flow3" sourceRef="securityCheck" targetRef="finalApproval" />
-    
-    <userTask id="finalApproval" name="管理层最终审批" flowable:candidateGroups="admin">
-      <documentation>管理层对高危操作进行最终审批</documentation>
+    <sequenceFlow id="flow4" sourceRef="securityCheck" targetRef="gateway2" />
+
+    <!-- Gateway 2 -->
+    <exclusiveGateway id="gateway2" name="Approved?" />
+    <sequenceFlow id="flow5" sourceRef="gateway2" targetRef="finalApproval">
+      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowReject2" sourceRef="gateway2" targetRef="notifyRejection">
+      <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Step 3: Final Approval -->
+    <userTask id="finalApproval" name="Management Approval" flowable:candidateGroups="admin">
+        <documentation>Final management sign-off</documentation>
     </userTask>
-    <sequenceFlow id="flow4" sourceRef="finalApproval" targetRef="endEvent" />
+    <sequenceFlow id="flow6" sourceRef="finalApproval" targetRef="gateway3" />
+
+    <!-- Gateway 3 -->
+    <exclusiveGateway id="gateway3" name="Approved?" />
+    <sequenceFlow id="flow7" sourceRef="gateway3" targetRef="notifyApproval">
+      <conditionExpression xsi:type="tFormalExpression">${approved == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flowReject3" sourceRef="gateway3" targetRef="notifyRejection">
+      <conditionExpression xsi:type="tFormalExpression">${approved == false}</conditionExpression>
+    </sequenceFlow>
+
+    <!-- Notification: Rejection -->
+    <serviceTask id="notifyRejection" name="Send Rejection Email" flowable:type="http">
+      <extensionElements>
+        <flowable:field name="requestMethod">
+          <flowable:string><![CDATA[POST]]></flowable:string>
+        </flowable:field>
+        <flowable:field name="requestUrl">
+          <flowable:expression><![CDATA[http://backend:3008/api/internal/workflow/notification?type=rejection&recipient=${initiator}&processInstanceId=${execution.processInstanceId}&reason=${lastComment}]]></flowable:expression>
+        </flowable:field>
+        <flowable:field name="requestHeaders">
+          <flowable:string><![CDATA[Content-Type: application/json]]></flowable:string>
+        </flowable:field>
+        <flowable:field name="requestBody">
+          <flowable:string><![CDATA[{}]]></flowable:string>
+        </flowable:field>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flowEndReject" sourceRef="notifyRejection" targetRef="endEvent" />
+
+    <!-- Notification: Approval -->
+    <serviceTask id="notifyApproval" name="Send Approval Email" flowable:type="http">
+      <extensionElements>
+        <flowable:field name="requestMethod">
+          <flowable:string><![CDATA[POST]]></flowable:string>
+        </flowable:field>
+        <flowable:field name="requestUrl">
+          <flowable:expression><![CDATA[http://backend:3008/api/internal/workflow/notification?type=approval&recipient=${initiator}&processInstanceId=${execution.processInstanceId}]]></flowable:expression>
+        </flowable:field>
+        <flowable:field name="requestHeaders">
+          <flowable:string><![CDATA[Content-Type: application/json]]></flowable:string>
+        </flowable:field>
+        <flowable:field name="requestBody">
+          <flowable:string><![CDATA[{}]]></flowable:string>
+        </flowable:field>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flowEndApprove" sourceRef="notifyApproval" targetRef="endEvent" />
     
-    <endEvent id="endEvent" name="结束" />
+    <endEvent id="endEvent" name="End" />
   </process>
   
   <bpmndi:BPMNDiagram id="BPMNDiagram_risk_sql_approval">
     <bpmndi:BPMNPlane bpmnElement="risk_sql_approval" id="BPMNPlane_risk_sql_approval">
-      <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent">
-        <omgdc:Bounds height="30.0" width="30.0" x="100.0" y="163.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="techReview" id="BPMNShape_techReview">
-        <omgdc:Bounds height="80.0" width="100.0" x="180.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="securityCheck" id="BPMNShape_securityCheck">
-        <omgdc:Bounds height="80.0" width="100.0" x="330.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="finalApproval" id="BPMNShape_finalApproval">
-        <omgdc:Bounds height="80.0" width="100.0" x="480.0" y="138.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent">
-        <omgdc:Bounds height="28.0" width="28.0" x="650.0" y="164.0" />
-      </bpmndi:BPMNShape>
-      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
-        <omgdi:waypoint x="130.0" y="178.0" />
-        <omgdi:waypoint x="180.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
-        <omgdi:waypoint x="280.0" y="178.0" />
-        <omgdi:waypoint x="330.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
-        <omgdi:waypoint x="430.0" y="178.0" />
-        <omgdi:waypoint x="480.0" y="178.0" />
-      </bpmndi:BPMNEdge>
-      <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
-        <omgdi:waypoint x="580.0" y="178.0" />
-        <omgdi:waypoint x="650.0" y="178.0" />
-      </bpmndi:BPMNEdge>
+        <!-- Start -->
+        <bpmndi:BPMNShape bpmnElement="startEvent" id="BPMNShape_startEvent"><omgdc:Bounds height="30.0" width="30.0" x="50.0" y="150.0" /></bpmndi:BPMNShape>
+        
+        <!-- Tech Review -->
+        <bpmndi:BPMNShape bpmnElement="techReview" id="BPMNShape_techReview"><omgdc:Bounds height="80.0" width="100.0" x="130.0" y="125.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1"><omgdi:waypoint x="80.0" y="165.0" /><omgdi:waypoint x="130.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Gateway 1 -->
+        <bpmndi:BPMNShape bpmnElement="gateway1" id="BPMNShape_gateway1"><omgdc:Bounds height="40.0" width="40.0" x="260.0" y="145.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2"><omgdi:waypoint x="230.0" y="165.0" /><omgdi:waypoint x="260.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Security Check -->
+        <bpmndi:BPMNShape bpmnElement="securityCheck" id="BPMNShape_securityCheck"><omgdc:Bounds height="80.0" width="100.0" x="350.0" y="125.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3"><omgdi:waypoint x="300.0" y="165.0" /><omgdi:waypoint x="350.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Gateway 2 -->
+        <bpmndi:BPMNShape bpmnElement="gateway2" id="BPMNShape_gateway2"><omgdc:Bounds height="40.0" width="40.0" x="480.0" y="145.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4"><omgdi:waypoint x="450.0" y="165.0" /><omgdi:waypoint x="480.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Final Approval -->
+        <bpmndi:BPMNShape bpmnElement="finalApproval" id="BPMNShape_finalApproval"><omgdc:Bounds height="80.0" width="100.0" x="570.0" y="125.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow5" id="BPMNEdge_flow5"><omgdi:waypoint x="520.0" y="165.0" /><omgdi:waypoint x="570.0" y="165.0" /></bpmndi:BPMNEdge>
+
+        <!-- Gateway 3 -->
+        <bpmndi:BPMNShape bpmnElement="gateway3" id="BPMNShape_gateway3"><omgdc:Bounds height="40.0" width="40.0" x="700.0" y="145.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow6" id="BPMNEdge_flow6"><omgdi:waypoint x="670.0" y="165.0" /><omgdi:waypoint x="700.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Notify Approval -->
+        <bpmndi:BPMNShape bpmnElement="notifyApproval" id="BPMNShape_notifyApproval"><omgdc:Bounds height="80.0" width="100.0" x="790.0" y="125.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flow7" id="BPMNEdge_flow7"><omgdi:waypoint x="740.0" y="165.0" /><omgdi:waypoint x="790.0" y="165.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Notify Rejection (Shared) Place it at bottom -->
+        <bpmndi:BPMNShape bpmnElement="notifyRejection" id="BPMNShape_notifyRejection"><omgdc:Bounds height="80.0" width="100.0" x="480.0" y="250.0" /></bpmndi:BPMNShape>
+        
+        <!-- End Event -->
+        <bpmndi:BPMNShape bpmnElement="endEvent" id="BPMNShape_endEvent"><omgdc:Bounds height="28.0" width="28.0" x="950.0" y="150.0" /></bpmndi:BPMNShape>
+        <bpmndi:BPMNEdge bpmnElement="flowEndApprove" id="BPMNEdge_flowEndApprove"><omgdi:waypoint x="890.0" y="165.0" /><omgdi:waypoint x="950.0" y="164.0" /></bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge bpmnElement="flowEndReject" id="BPMNEdge_flowEndReject"><omgdi:waypoint x="580.0" y="290.0" /><omgdi:waypoint x="964.0" y="290.0" /><omgdi:waypoint x="964.0" y="178.0" /></bpmndi:BPMNEdge>
+        
+        <!-- Reject Edges -->
+        <bpmndi:BPMNEdge bpmnElement="flowReject1" id="BPMNEdge_flowReject1">
+            <omgdi:waypoint x="280.0" y="185.0" /><omgdi:waypoint x="280.0" y="290.0" /><omgdi:waypoint x="480.0" y="290.0" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge bpmnElement="flowReject2" id="BPMNEdge_flowReject2">
+            <omgdi:waypoint x="500.0" y="185.0" /><omgdi:waypoint x="500.0" y="250.0" />
+        </bpmndi:BPMNEdge>
+        <bpmndi:BPMNEdge bpmnElement="flowReject3" id="BPMNEdge_flowReject3">
+             <omgdi:waypoint x="720.0" y="185.0" /><omgdi:waypoint x="720.0" y="290.0" /><omgdi:waypoint x="580.0" y="290.0" />
+        </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>
 </definitions>
