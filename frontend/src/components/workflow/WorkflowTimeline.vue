@@ -2,6 +2,7 @@
 import { format } from 'date-fns'
 import { Check, CheckCircle2, Circle, Clock, ShieldAlert, User as UserIcon, XCircle } from 'lucide-vue-next'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 
 const props = defineProps<{
@@ -11,6 +12,8 @@ const props = defineProps<{
   processInstance?: any
   taskSequence?: { name: string }[]
 }>()
+
+const { t } = useI18n()
 
 interface TimelineNode {
   id: string
@@ -36,12 +39,12 @@ const timeline = computed<TimelineNode[]>(() => {
     const processStartTime = props.processInstance?.startTime || props.historicTasks[0]?.startTime || props.activeTasks[0]?.createTime
     nodes.push({
       id: 'start-node',
-      name: '流程启动',
+      name: t('workflow.timeline.started'),
       status: 'completed',
       assignee: initiator,
       startTime: processStartTime,
       endTime: processStartTime,
-      comment: '提交审批请求',
+      comment: t('workflow.timeline.submit_request'),
       isInitiator: true,
     })
   }
@@ -228,7 +231,7 @@ function formatDuration(ms?: number) {
             </h4>
             <div v-if="node.assignee" class="flex items-center gap-1 text-xs text-muted-foreground mt-1">
               <UserIcon class="h-3 w-3" />
-              <span class="font-medium">{{ node.isInitiator ? '发起人:' : '审批人:' }}</span>
+              <span class="font-medium">{{ node.isInitiator ? t('workflow.timeline.initiator') : t('workflow.timeline.approver') }}</span>
               <span>{{ node.assignee }}</span>
             </div>
             <div v-if="node.comment" class="mt-4 p-3 bg-muted/50 rounded-md border border-dashed text-xs">
@@ -238,7 +241,7 @@ function formatDuration(ms?: number) {
               >
                 <ShieldAlert v-if="node.status === 'rejected'" class="h-3 w-3" />
                 <CheckCircle2 v-else class="h-3 w-3" />
-                {{ node.status === 'rejected' ? '拒绝原因:' : '审批备注:' }}
+                {{ node.status === 'rejected' ? t('workflow.timeline.rejection_reason') : t('workflow.timeline.approval_note') }}
               </div>
               <div class="text-muted-foreground italic whitespace-pre-wrap">
                 {{ node.comment }}
@@ -249,7 +252,8 @@ function formatDuration(ms?: number) {
             :variant="node.status === 'completed' ? 'default' : node.status === 'rejected' ? 'destructive' : node.status === 'active' ? 'secondary' : 'outline'"
             class="text-xs"
           >
-            {{ node.status === 'completed' ? '已通过' : node.status === 'rejected' ? '已拒绝' : node.status === 'active' ? '进行中' : '待处理' }}
+            >
+            {{ node.status === 'completed' ? t('workflow.timeline.status_approved') : node.status === 'rejected' ? t('workflow.timeline.status_rejected') : node.status === 'active' ? t('workflow.timeline.status_active') : t('workflow.timeline.status_pending') }}
           </Badge>
         </div>
 
@@ -270,7 +274,7 @@ function formatDuration(ms?: number) {
 
     <!-- Empty State -->
     <div v-if="timeline.length === 0" class="text-center py-8 text-muted-foreground text-sm">
-      暂无审批记录
+      {{ t('workflow.timeline.no_history') }}
     </div>
   </div>
 </template>

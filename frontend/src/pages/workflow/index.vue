@@ -21,10 +21,12 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import BpmnViewer from '@/components/workflow/BpmnViewer.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
 const router = useRouter()
 const { t } = useI18n()
+const { confirm } = useConfirm()
 
 const processDefinitions = ref<any[]>([])
 const tasks = ref<any[]>([])
@@ -100,6 +102,9 @@ async function fetchTasks() {
 }
 
 const selectedProcess = ref<any>(null)
+const isDiagramOpen = ref(false)
+const selectedDefXML = ref('')
+const isXMLOpen = ref(false)
 
 function openStartDialog(def: any) {
   selectedProcess.value = def
@@ -151,9 +156,13 @@ async function toggleState(def: any) {
 }
 
 async function deleteWorkflow(def: any) {
-  // eslint-disable-next-line no-alert
-  if (!confirm(`Are you sure you want to delete this deployment? This will remove all versions and tasks of ${def.key}.`))
+  if (!await confirm({
+    title: t('workflow.toast.delete_confirm_title') || 'Confirm Deletion',
+    description: t('workflow.confirm_delete', { key: def.key }),
+    variant: 'destructive',
+  })) {
     return
+  }
 
   try {
     await api.delete(`/workflow/deployments/${def.deploymentId}`)

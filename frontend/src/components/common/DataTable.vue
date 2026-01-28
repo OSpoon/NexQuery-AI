@@ -17,6 +17,7 @@ import { useLocalStorage } from '@vueuse/core'
 
 import { SlidersHorizontal } from 'lucide-vue-next'
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -45,6 +46,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   rowClick: [row: TData]
 }>()
+
+const { t } = useI18n()
 
 const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
@@ -103,7 +106,7 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
         <Input
           v-if="searchKey"
           class="max-w-sm"
-          :placeholder="`Filter ${searchKey.charAt(0).toUpperCase() + searchKey.slice(1)}...`"
+          :placeholder="t('common.filter_placeholder', { key: searchKey.charAt(0).toUpperCase() + searchKey.slice(1) })"
           :model-value="table.getColumn(searchKey)?.getFilterValue() as string"
           @update:model-value="table.getColumn(searchKey)?.setFilterValue($event)"
         />
@@ -112,7 +115,7 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
         <DropdownMenuTrigger as-child>
           <Button variant="outline" class="ml-auto">
             <SlidersHorizontal class="mr-2 h-4 w-4" />
-            View
+            {{ t('common.view') }}
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
@@ -158,7 +161,7 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
           <template v-else>
             <TableRow>
               <TableCell :colspan="columns.length" class="h-24 text-center">
-                {{ emptyMessage || 'No results.' }}
+                {{ emptyMessage || t('common.no_data') }}
               </TableCell>
             </TableRow>
           </template>
@@ -173,7 +176,7 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
           :disabled="!table.getCanPreviousPage()"
           @click="table.previousPage()"
         >
-          Previous
+          {{ t('common.previous') }}
         </Button>
         <Button
           variant="outline"
@@ -181,7 +184,7 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
           :disabled="!table.getCanNextPage()"
           @click="table.nextPage()"
         >
-          Next
+          {{ t('common.next') }}
         </Button>
       </div>
     </div>

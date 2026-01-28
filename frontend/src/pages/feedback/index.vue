@@ -3,7 +3,7 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import { useDark } from '@vueuse/core'
 import { Eye, GraduationCap, MessageSquare, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-vue-next'
 import { MarkdownRender } from 'markstream-vue'
-import { h, onMounted, ref } from 'vue'
+import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import AgentSteps from '@/components/AgentSteps.vue'
@@ -21,9 +21,11 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const isDark = useDark()
 
 interface FeedbackItem {
@@ -78,10 +80,10 @@ async function openDetail(item: FeedbackItem) {
   }
 }
 
-const columns: ColumnDef<FeedbackItem>[] = [
+const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
   {
     accessorKey: 'isHelpful',
-    header: 'Rating',
+    header: t('feedback.rating'),
     cell: ({ row }) => {
       const isHelpful = row.getValue('isHelpful')
       return h('div', { class: 'flex justify-center' }, [
@@ -93,21 +95,21 @@ const columns: ColumnDef<FeedbackItem>[] = [
   },
   {
     accessorKey: 'question',
-    header: 'Question',
+    header: t('feedback.question'),
     cell: ({ row }) => {
       const question = row.getValue('question') as string
       return h(
         'div',
         { class: 'max-w-[200px] truncate font-medium' },
         question === 'Unknown'
-          ? h('span', { class: 'text-muted-foreground italic' }, 'N/A (Greeting)')
+          ? h('span', { class: 'text-muted-foreground italic' }, t('feedback.na_greeting'))
           : question,
       )
     },
   },
   {
     accessorKey: 'generatedSql',
-    header: 'AI SQL',
+    header: t('feedback.ai_sql'),
     cell: ({ row }) =>
       h(
         'code',
@@ -117,7 +119,7 @@ const columns: ColumnDef<FeedbackItem>[] = [
   },
   {
     accessorKey: 'userCorrection',
-    header: 'User Correction',
+    header: t('feedback.user_correction'),
     cell: ({ row }) => {
       const correction = row.getValue('userCorrection') as string
       return correction
@@ -129,12 +131,12 @@ const columns: ColumnDef<FeedbackItem>[] = [
             },
             correction,
           )
-        : h('span', { class: 'text-muted-foreground italic' }, 'None')
+        : h('span', { class: 'text-muted-foreground italic' }, t('feedback.none'))
     },
   },
   {
     accessorKey: 'createdAt',
-    header: 'Date',
+    header: t('feedback.date'),
     cell: ({ row }) => {
       const date = row.getValue('createdAt') as string
       return date ? new Date(date).toLocaleString() : '-'
@@ -153,7 +155,7 @@ const columns: ColumnDef<FeedbackItem>[] = [
             class: 'h-8 gap-1',
             onClick: () => openDetail(item),
           },
-          () => [h(Eye, { class: 'h-3.5 w-3.5' }), 'View'],
+          () => [h(Eye, { class: 'h-3.5 w-3.5' }), t('feedback.view')],
         ),
         item.userCorrection
           ? h(
@@ -164,7 +166,7 @@ const columns: ColumnDef<FeedbackItem>[] = [
                 class: 'h-8 gap-1',
                 onClick: () => promoteToKnowledge(item),
               },
-              () => [h(GraduationCap, { class: 'h-3.5 w-3.5' }), 'Promote'],
+              () => [h(GraduationCap, { class: 'h-3.5 w-3.5' }), t('feedback.promote')],
             )
           : null,
         h(
@@ -180,7 +182,7 @@ const columns: ColumnDef<FeedbackItem>[] = [
       ])
     },
   },
-]
+])
 
 async function fetchFeedbacks() {
   loading.value = true
@@ -214,20 +216,24 @@ async function confirmPromotion() {
       exampleSql: promoteForm.value.exampleSql,
       status: 'pending',
     })
-    toast.success('Successfully promoted to Knowledge Base')
+    toast.success(t('feedback.toast.promote_success'))
     isPromoteOpen.value = false
     // Optionally delete feedback after promotion
     await deleteFeedback(promoteForm.value.sourceId!, true)
   }
   catch {
-    toast.error('Failed to promote feedback')
+    toast.error(t('feedback.toast.promote_failed'))
   }
 }
 
 async function deleteFeedback(id: number, silent = false) {
-  // eslint-disable-next-line no-alert
-  if (!silent && !confirm(t('common.confirm_delete')))
+  if (!silent && !await confirm({
+    title: t('common.confirm_delete'),
+    description: t('knowledge_base.confirm.desc'),
+    variant: 'destructive',
+  })) {
     return
+  }
   try {
     await api.delete(`/ai/feedback/${id}`)
     toast.success(t('common.success'))
@@ -247,10 +253,10 @@ onMounted(fetchFeedbacks)
       <div>
         <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
           <MessageSquare class="h-6 w-6 text-primary" />
-          AI Feedback Management
+          {{ t('feedback.title') }}
         </h2>
         <p class="text-muted-foreground text-sm">
-          Review user ratings and corrections to improve AI accuracy.
+          {{ t('feedback.desc') }}
         </p>
       </div>
     </div>
@@ -263,22 +269,22 @@ onMounted(fetchFeedbacks)
     <Dialog v-model:open="isPromoteOpen">
       <DialogContent class="sm:max-w-[800px]">
         <DialogHeader>
-          <DialogTitle>Promote to Knowledge Base</DialogTitle>
+          <DialogTitle>{{ t('feedback.promote_dialog.title') }}</DialogTitle>
           <DialogDescription>
-            Refine the keyword and SQL before saving to the knowledge base.
+            {{ t('feedback.promote_dialog.desc') }}
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
-            <Label>{{ t('common.keyword') }}</Label>
+            <Label>{{ t('knowledge_base.keyword') }}</Label>
             <Input v-model="promoteForm.keyword" />
           </div>
           <div class="grid gap-2">
-            <Label>{{ t('common.description') }}</Label>
+            <Label>{{ t('knowledge_base.description') }}</Label>
             <Input v-model="promoteForm.description" />
           </div>
           <div class="grid gap-2">
-            <Label>{{ t('common.sql_example') }}</Label>
+            <Label>{{ t('knowledge_base.example_sql') }}</Label>
             <SqlEditor v-model="promoteForm.exampleSql" class="h-64" />
           </div>
         </div>
@@ -298,15 +304,15 @@ onMounted(fetchFeedbacks)
       <DialogContent class="sm:max-w-[1000px] h-[85vh] flex flex-col p-0 gap-0">
         <DialogHeader class="p-6 pb-2">
           <DialogTitle class="flex items-center gap-2">
-            Feedback Details
+            {{ t('feedback.detail_dialog.title') }}
             <Badge :variant="selectedItem?.isHelpful ? 'default' : 'destructive'" class="ml-2">
               <ThumbsUp v-if="selectedItem?.isHelpful" class="h-3 w-3 mr-1" />
               <ThumbsDown v-else class="h-3 w-3 mr-1" />
-              {{ selectedItem?.isHelpful ? 'Helpful' : 'Needs Improvement' }}
+              {{ selectedItem?.isHelpful ? t('feedback.helpful') : t('feedback.needs_improvement') }}
             </Badge>
           </DialogTitle>
           <DialogDescription>
-            Full record of the AI interaction and user feedback.
+            {{ t('feedback.detail_dialog.desc') }}
           </DialogDescription>
         </DialogHeader>
 
@@ -314,11 +320,11 @@ onMounted(fetchFeedbacks)
           <div class="space-y-6">
             <!-- Question -->
             <div class="space-y-2">
-              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Original Question</Label>
+              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{ t('feedback.detail_dialog.original_question') }}</Label>
               <div class="p-3 bg-muted/50 rounded-lg text-sm border">
                 {{
                   selectedItem?.question === 'Unknown'
-                    ? 'N/A (General Greeting)'
+                    ? t('feedback.detail_dialog.na_greeting')
                     : selectedItem?.question
                 }}
               </div>
@@ -326,10 +332,10 @@ onMounted(fetchFeedbacks)
 
             <!-- Unified Interaction Flow -->
             <div class="space-y-3">
-              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">Interaction & AI Reasoning</Label>
+              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{ t('feedback.detail_dialog.interaction') }}</Label>
 
               <div v-if="loadingContext" class="flex items-center justify-center py-12">
-                <span class="text-sm text-muted-foreground italic animate-pulse">Retrieving conversation flow...</span>
+                <span class="text-sm text-muted-foreground italic animate-pulse">{{ t('feedback.detail_dialog.retrieving') }}</span>
               </div>
 
               <template v-else-if="contextMessages.length > 0">
@@ -380,13 +386,13 @@ onMounted(fetchFeedbacks)
                   v-if="selectedItem?.conversationId"
                   class="px-4 py-2 bg-amber-500/10 border border-amber-500/20 rounded text-[11px] text-amber-600 dark:text-amber-400 text-center italic"
                 >
-                  Original chat history was deleted. Showing captured response only.
+                  {{ t('feedback.detail_dialog.deleted_history') }}
                 </div>
                 <div
                   v-else
                   class="px-4 py-2 bg-muted/50 border rounded text-[11px] text-muted-foreground text-center italic"
                 >
-                  Captured Response (Historical Record)
+                  {{ t('feedback.detail_dialog.captured_response') }}
                 </div>
 
                 <div class="flex flex-col gap-1 mr-auto items-start max-w-[92%]">
@@ -397,7 +403,7 @@ onMounted(fetchFeedbacks)
                       :content="selectedItem.generatedSql"
                       :is-dark="isDark"
                     />
-                    <span v-else class="text-muted-foreground italic">No captured response.</span>
+                    <span v-else class="text-muted-foreground italic">{{ t('feedback.detail_dialog.no_captured') }}</span>
                   </div>
                 </div>
               </div>
@@ -405,7 +411,7 @@ onMounted(fetchFeedbacks)
 
             <!-- User Correction -->
             <div v-if="selectedItem?.userCorrection" class="space-y-2 pt-2 border-t">
-              <Label class="text-sm font-semibold text-primary uppercase tracking-wider">User Expected Result</Label>
+              <Label class="text-sm font-semibold text-primary uppercase tracking-wider">{{ t('feedback.detail_dialog.user_expected') }}</Label>
               <SqlEditor
                 v-model="selectedItem.userCorrection"
                 readonly

@@ -26,14 +26,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
+
 import { useDataSourceStore } from '@/stores/dataSource'
 
 import AdvancedConfigDialog from './components/AdvancedConfigDialog.vue'
-
 import DataSourceForm from './components/DataSourceForm.vue'
 
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const dataSourceStore = useDataSourceStore()
 
 const isDialogOpen = ref(false)
@@ -75,9 +77,13 @@ function openAdvancedDialog(ds: any) {
 }
 
 async function deleteDataSource(id: number) {
-  // eslint-disable-next-line no-alert
-  if (!confirm('Are you sure you want to delete this data source?'))
+  if (!await confirm({
+    title: t('data_sources.delete_confirm_title'),
+    description: t('data_sources.delete_confirm_desc'),
+    variant: 'destructive',
+  })) {
     return
+  }
 
   try {
     await api.delete(`/data-sources/${id}`)

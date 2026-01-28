@@ -310,26 +310,26 @@ onMounted(() => {
           <div class="flex items-center space-x-2">
             <Shield class="h-5 w-5 text-primary" />
             <div>
-              <CardTitle>Security Tools</CardTitle>
-              <CardDescription>Verify and decrypt encrypted payloads.</CardDescription>
+              <CardTitle>{{ t('security_tools.title') }}</CardTitle>
+              <CardDescription>{{ t('security_tools.desc') }}</CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="grid gap-2">
-            <Label>Encryption Helper (Decryption Test)</Label>
+            <Label>{{ t('security_tools.helper_title') }}</Label>
             <textarea
               v-model="testPayload"
               class="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
-              placeholder="Paste encrypted payload here (e.g. U2FsdGVk...)"
+              :placeholder="t('security_tools.helper_placeholder')"
             />
             <p class="text-[10px] text-muted-foreground">
-              Input can be the raw ciphertext or a JSON object containing a "data" field.
+              {{ t('security_tools.helper_hint') }}
             </p>
           </div>
 
           <div v-if="testPayload" class="grid gap-2">
-            <Label>Decrypted Result</Label>
+            <Label>{{ t('security_tools.decrypted_result') }}</Label>
             <div
               class="bg-muted p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
             >

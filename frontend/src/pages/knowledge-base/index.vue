@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
-import { h, onMounted, ref, watch } from 'vue'
+import { computed, h, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
@@ -19,7 +20,11 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
+import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
+
+const { confirm } = useConfirm()
+const { t } = useI18n()
 
 interface KnowledgeBaseItem {
   id: number
@@ -43,11 +48,11 @@ const formData = ref({
   status: 'approved',
 })
 
-const statusFilters = [
-  { label: 'Pending Review', value: 'pending' },
-  { label: 'Approved', value: 'approved' },
-  { label: 'Rejected', value: 'rejected' },
-]
+const statusFilters = computed(() => [
+  { label: t('knowledge_base.status_filter.pending'), value: 'pending' },
+  { label: t('knowledge_base.status_filter.approved'), value: 'approved' },
+  { label: t('knowledge_base.status_filter.rejected'), value: 'rejected' },
+])
 
 function openEditDialog(item: KnowledgeBaseItem) {
   isEditing.value = true
@@ -62,16 +67,20 @@ function openEditDialog(item: KnowledgeBaseItem) {
 }
 
 async function deleteItem(id: number) {
-  // eslint-disable-next-line no-alert
-  if (!confirm('Are you sure you want to delete this item?'))
+  if (!await confirm({
+    title: t('knowledge_base.confirm.title'),
+    description: t('knowledge_base.confirm.desc'),
+    variant: 'destructive',
+  })) {
     return
+  }
   try {
     await api.delete(`/knowledge-base/${id}`)
-    toast.success('Item deleted successfully')
+    toast.success(t('knowledge_base.toast.delete_success'))
     fetchItems()
   }
   catch {
-    toast.error('Failed to delete item')
+    toast.error(t('knowledge_base.toast.delete_failed'))
   }
 }
 
@@ -81,28 +90,28 @@ async function updateStatus(item: KnowledgeBaseItem, status: 'approved' | 'rejec
       ...item,
       status,
     })
-    toast.success(`Item ${status} successfully`)
+    toast.success(t('knowledge_base.toast.status_success', { status }))
     fetchItems()
   }
   catch {
-    toast.error('Failed to update status')
+    toast.error(t('knowledge_base.toast.status_failed'))
   }
 }
 
-const columns: ColumnDef<KnowledgeBaseItem>[] = [
+const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
   {
     accessorKey: 'keyword',
-    header: 'Keyword',
+    header: t('knowledge_base.keyword'),
     cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('keyword')),
   },
   {
     accessorKey: 'description',
-    header: 'Description',
+    header: t('knowledge_base.description'),
     cell: ({ row }) => h('div', { class: 'max-w-[300px] truncate' }, row.getValue('description')),
   },
   {
     accessorKey: 'exampleSql',
-    header: 'Example SQL',
+    header: t('knowledge_base.example_sql'),
     cell: ({ row }) => {
       const sql = row.getValue('exampleSql') as string
       return sql
@@ -119,7 +128,7 @@ const columns: ColumnDef<KnowledgeBaseItem>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: t('knowledge_base.status'),
     cell: ({ row }) => {
       const status = row.getValue('status') as string
       const variant
@@ -129,7 +138,7 @@ const columns: ColumnDef<KnowledgeBaseItem>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: t('knowledge_base.actions'),
     cell: ({ row }) => {
       const item = row.original
       const isPending = item.status === 'pending'
@@ -210,7 +219,7 @@ const columns: ColumnDef<KnowledgeBaseItem>[] = [
       return h('div', { class: 'flex items-center' }, actions)
     },
   },
-]
+])
 
 async function fetchItems() {
   loading.value = true
@@ -221,7 +230,7 @@ async function fetchItems() {
     items.value = res.data
   }
   catch {
-    toast.error('Failed to fetch knowledge base items')
+    toast.error(t('knowledge_base.toast.load_failed'))
   }
   finally {
     loading.value = false
@@ -244,17 +253,17 @@ async function handleSubmit() {
   try {
     if (isEditing.value) {
       await api.put(`/knowledge-base/${formData.value.id}`, formData.value)
-      toast.success('Item updated successfully')
+      toast.success(t('knowledge_base.toast.update_success'))
     }
     else {
       await api.post('/knowledge-base', formData.value)
-      toast.success('Item created successfully')
+      toast.success(t('knowledge_base.toast.create_success'))
     }
     dialogOpen.value = false
     fetchItems()
   }
   catch (error: any) {
-    toast.error(error.response?.data?.message || 'Operation failed')
+    toast.error(error.response?.data?.message || t('knowledge_base.toast.op_failed'))
   }
 }
 
@@ -270,16 +279,16 @@ onMounted(fetchItems)
     <div class="flex items-center justify-between space-y-2">
       <div>
         <h2 class="text-2xl font-bold tracking-tight">
-          Knowledge Base
+          {{ t('knowledge_base.title') }}
         </h2>
         <p class="text-muted-foreground">
-          Human-in-the-Loop: Review and manage AI-learned knowledge.
+          {{ t('knowledge_base.desc') }}
         </p>
       </div>
       <div class="flex items-center space-x-2">
         <Button @click="openCreateDialog">
           <Plus class="mr-2 h-4 w-4" />
-          Add Term
+          {{ t('knowledge_base.add_term') }}
         </Button>
       </div>
     </div>
@@ -299,36 +308,36 @@ onMounted(fetchItems)
     <Dialog :open="dialogOpen" @update:open="dialogOpen = $event">
       <DialogContent class="sm:max-w-[800px]">
         <DialogHeader>
-          <DialogTitle>{{ isEditing ? 'Edit Term' : 'Create Term' }}</DialogTitle>
+          <DialogTitle>{{ isEditing ? t('knowledge_base.dialog.edit_title') : t('knowledge_base.dialog.create_title') }}</DialogTitle>
           <DialogDescription>
-            Add a business term and its definition to help the AI understand your domain.
+            {{ t('knowledge_base.dialog.desc') }}
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
           <div class="grid gap-2">
-            <Label for="keyword"> Keyword </Label>
+            <Label for="keyword"> {{ t('knowledge_base.keyword') }} </Label>
             <Input
               id="keyword"
               v-model="formData.keyword"
-              placeholder="e.g. GMV"
+              :placeholder="t('knowledge_base.dialog.keyword_placeholder')"
             />
           </div>
           <div class="grid gap-2">
-            <Label for="description"> Description </Label>
+            <Label for="description"> {{ t('knowledge_base.description') }} </Label>
             <Textarea
               id="description"
               v-model="formData.description"
-              placeholder="Total value of merchandise sold..."
+              :placeholder="t('knowledge_base.dialog.desc_placeholder')"
             />
           </div>
           <div class="grid gap-2">
-            <Label for="exampleSql"> Example SQL </Label>
+            <Label for="exampleSql"> {{ t('knowledge_base.example_sql') }} </Label>
             <SqlEditor v-model="formData.exampleSql" class="h-64" />
           </div>
         </div>
         <DialogFooter>
           <Button type="submit" @click="handleSubmit">
-            Save
+            {{ t('knowledge_base.dialog.save') }}
           </Button>
         </DialogFooter>
       </DialogContent>

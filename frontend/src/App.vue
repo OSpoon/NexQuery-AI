@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import GlobalConfirmDialog from '@/components/common/GlobalConfirmDialog.vue'
 import GlobalWatermark from '@/components/common/GlobalWatermark.vue'
 import { Toaster } from '@/components/ui/sonner'
 import { useAuthStore } from '@/stores/auth'
@@ -20,5 +21,6 @@ onMounted(() => {
 <template>
   <GlobalWatermark />
   <RouterView />
+  <GlobalConfirmDialog />
   <Toaster />
 </template>

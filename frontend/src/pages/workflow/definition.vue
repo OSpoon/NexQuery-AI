@@ -9,11 +9,13 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import BpmnModeler from '@/components/workflow/BpmnModeler.vue'
+import { useConfirm } from '@/composables/useConfirm'
 import api from '@/lib/api'
 
 const route = useRoute()
 const router = useRouter()
 const { t } = useI18n()
+const { confirm } = useConfirm()
 const definitionId = route.params.id as string
 
 const loading = ref(true)
@@ -128,8 +130,11 @@ async function handleDelete() {
     return
   }
 
-  // eslint-disable-next-line no-alert
-  if (!confirm('Are you sure you want to delete this workflow? This action cannot be undone.')) {
+  if (!await confirm({
+    title: t('workflow.toast.delete_confirm_title') || 'Confirm Deletion',
+    description: 'Are you sure you want to delete this workflow? This action cannot be undone.',
+    variant: 'destructive',
+  })) {
     return
   }
 

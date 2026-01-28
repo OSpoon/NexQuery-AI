@@ -86,8 +86,8 @@ const lastPasswordChangeAtFormatted = computed(() => {
   if (!lastPasswordChangeAt.value) {
     return createdAt.value
       ? `${DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED)
-      } (Account Created)`
-      : 'Never'
+      } ${t('profile.account_created')}`
+      : t('profile.never')
   }
   return DateTime.fromISO(lastPasswordChangeAt.value).toLocaleString(DateTime.DATETIME_MED)
 })
@@ -95,7 +95,7 @@ const lastPasswordChangeAtFormatted = computed(() => {
 const expirationDateFormatted = computed(() => {
   const baseDate = lastPasswordChangeAt.value || createdAt.value
   if (!baseDate)
-    return 'Unknown'
+    return t('profile.unknown')
   return DateTime.fromISO(baseDate).plus({ days: 90 }).toLocaleString(DateTime.DATETIME_MED)
 })
 
@@ -118,7 +118,7 @@ async function startEnable2FA() {
     showEnableDialog.value = true
   }
   catch (e: any) {
-    toast.error(e.response?.data?.message || 'Failed to generate 2FA secret')
+    toast.error(e.response?.data?.message || t('profile.toast.gen_secret_failed'))
   }
   finally {
     isLoading.value = false
@@ -127,7 +127,7 @@ async function startEnable2FA() {
 
 async function confirmEnable2FA() {
   if (!enableCode.value) {
-    toast.error('Please enter the code')
+    toast.error(t('profile.toast.enter_code'))
     return
   }
 
@@ -142,14 +142,14 @@ async function confirmEnable2FA() {
     twoFactorEnabled.value = true
     showEnableDialog.value = false
     showRecoveryCodes.value = true // Show codes in a separate dialog or step
-    toast.success('Two-factor authentication enabled')
+    toast.success(t('profile.toast.2fa_enabled'))
 
     // Refresh user state immediately to unblock navigation
     await authStore.fetchPermissions()
     await authStore.fetchMenus()
   }
   catch (e: any) {
-    toast.error(e.response?.data?.message || 'Invalid code')
+    toast.error(e.response?.data?.message || t('profile.toast.invalid_code'))
   }
   finally {
     isLoading.value = false
@@ -158,7 +158,7 @@ async function confirmEnable2FA() {
 
 function handleDisableClick() {
   if (settingsStore.require2fa) {
-    toast.error('Two-factor authentication is mandatory and cannot be disabled.')
+    toast.error(t('profile.toast.2fa_mandatory'))
     return
   }
   showDisableDialog.value = true
@@ -166,7 +166,7 @@ function handleDisableClick() {
 
 async function confirmDisable2FA() {
   if (!disablePassword.value) {
-    toast.error('Please enter your password')
+    toast.error(t('profile.toast.enter_password'))
     return
   }
 
@@ -178,11 +178,11 @@ async function confirmDisable2FA() {
     twoFactorEnabled.value = false
     showDisableDialog.value = false
     disablePassword.value = ''
-    toast.success('Two-factor authentication disabled')
+    toast.success(t('profile.toast.2fa_disabled'))
     await authStore.fetchPermissions() // Refresh state
   }
   catch (e: any) {
-    toast.error(e.response?.data?.message || 'Incorrect password')
+    toast.error(e.response?.data?.message || t('profile.toast.incorrect_password'))
   }
   finally {
     isLoading.value = false
@@ -201,10 +201,10 @@ async function confirmUnbind() {
     await api.post('/auth/miniprogram/unbind')
     isWechatBound.value = false
     showUnbindDialog.value = false
-    toast.success('WeChat account unbound successfully')
+    toast.success(t('profile.toast.unbind_success'))
   }
   catch (e: any) {
-    toast.error(e.response?.data?.message || 'Unbind failed')
+    toast.error(e.response?.data?.message || t('profile.toast.unbind_failed'))
   }
   finally {
     isLoading.value = false
@@ -330,18 +330,18 @@ async function confirmUnbind() {
 
     <Card>
       <CardHeader>
-        <CardTitle>Third Party Binding</CardTitle>
-        <CardDescription>Manage your connected third-party accounts.</CardDescription>
+        <CardTitle>{{ t('third_party.title') }}</CardTitle>
+        <CardDescription>{{ t('third_party.desc') }}</CardDescription>
       </CardHeader>
       <CardContent class="space-y-6">
         <div class="flex items-center justify-between">
           <div class="space-y-0.5">
             <div class="font-medium">
-              WeChat (Mini Program)
+              {{ t('third_party.wechat_mp') }}
             </div>
             <div class="text-sm text-muted-foreground">
               {{
-                isWechatBound ? 'Bound to a WeChat account.' : 'Not bound to any WeChat account.'
+                isWechatBound ? t('third_party.bound_wechat') : t('third_party.unbound_wechat')
               }}
             </div>
           </div>
@@ -352,10 +352,10 @@ async function confirmUnbind() {
               :disabled="isLoading"
               @click="handleUnbindClick"
             >
-              Unbind
+              {{ t('third_party.unbind') }}
             </Button>
             <Button v-else variant="outline" disabled>
-              Unbound
+              {{ t('third_party.unbound') }}
             </Button>
           </div>
         </div>
@@ -462,10 +462,9 @@ async function confirmUnbind() {
     <Dialog v-model:open="showUnbindDialog">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Unbind WeChat Account</DialogTitle>
+          <DialogTitle>{{ t('third_party.dialog_unbind_title') }}</DialogTitle>
           <DialogDescription>
-            Are you sure you want to unbind your WeChat account? You will no longer be able to use
-            WeChat One-Click Login.
+            {{ t('third_party.dialog_unbind_desc') }}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -475,7 +474,7 @@ async function confirmUnbind() {
             }}
           </Button>
           <Button variant="destructive" :disabled="isLoading" @click="confirmUnbind">
-            Confirm Unbind
+            {{ t('third_party.unbind') }}
           </Button>
         </DialogFooter>
       </DialogContent>

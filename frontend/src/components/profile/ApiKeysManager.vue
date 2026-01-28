@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Check, Copy, Plus, Trash2 } from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
@@ -39,6 +40,7 @@ interface ApiKey {
   expiresAt: string | null
 }
 
+const { t } = useI18n()
 const keys = ref<ApiKey[]>([])
 const loading = ref(false)
 const dialogOpen = ref(false)
@@ -57,7 +59,7 @@ async function fetchKeys() {
     keys.value = data
   }
   catch {
-    toast.error('Failed to fetch API keys')
+    toast.error(t('api_keys.fetch_failed'))
   }
   finally {
     loading.value = false
@@ -83,10 +85,10 @@ async function createKey() {
     // Reset default
     expiration.value = '90d'
     fetchKeys()
-    toast.success('API Key created successfully')
+    toast.success(t('api_keys.create_success'))
   }
   catch {
-    toast.error('Failed to create API key')
+    toast.error(t('api_keys.create_failed'))
   }
   finally {
     creating.value = false
@@ -96,20 +98,18 @@ async function createKey() {
 async function revokeKey(id: number) {
   if (
     // eslint-disable-next-line no-alert
-    !confirm(
-      'Are you sure you want to revoke this key? Any scripts using it will stop working immediately.',
-    )
+    !confirm(t('api_keys.revoke_confirm'))
   ) {
     return
   }
 
   try {
     await api.delete(`/auth/keys/${id}`)
-    toast.success('API Key revoked')
+    toast.success(t('api_keys.revoke_success'))
     fetchKeys()
   }
   catch {
-    toast.error('Failed to revoke key')
+    toast.error(t('api_keys.revoke_failed'))
   }
 }
 
@@ -118,10 +118,10 @@ async function copyToken() {
     await navigator.clipboard.writeText(createdToken.value)
     copied.value = true
     setTimeout(() => (copied.value = false), 2000)
-    toast.success('Token copied to clipboard')
+    toast.success(t('api_keys.copy_success'))
   }
   catch {
-    toast.error('Failed to copy')
+    toast.error(t('api_keys.copy_failed'))
   }
 }
 
@@ -133,15 +133,15 @@ onMounted(fetchKeys)
     <div class="flex justify-between items-center">
       <div>
         <h3 class="text-lg font-medium">
-          API Keys
+          {{ t('api_keys.keys_card_title') }}
         </h3>
         <p class="text-sm text-muted-foreground">
-          Manage personal access tokens for external integrations.
+          {{ t('api_keys.keys_card_desc') }}
         </p>
       </div>
       <Button @click="dialogOpen = true">
         <Plus class="mr-2 h-4 w-4" />
-        Generate New Key
+        {{ t('api_keys.generate_new') }}
       </Button>
     </div>
 
@@ -149,19 +149,19 @@ onMounted(fetchKeys)
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Name</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead>Created</TableHead>
+            <TableHead>{{ t('data_sources.name') }}</TableHead>
+            <TableHead>{{ t('users.status') }}</TableHead>
+            <TableHead>{{ t('query_tasks.created_at') }}</TableHead>
             <TableHead>Last Used</TableHead>
             <TableHead class="text-right">
-              Actions
+              {{ t('common.actions') }}
             </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           <TableRow v-if="keys.length === 0">
             <TableCell colspan="5" class="text-center text-muted-foreground py-8">
-              No API keys found.
+              {{ t('api_keys.no_keys') }}
             </TableCell>
           </TableRow>
           <TableRow v-for="key in keys" :key="key.id">
@@ -170,12 +170,12 @@ onMounted(fetchKeys)
             </TableCell>
             <TableCell>
               <Badge variant="outline" class="bg-green-500/10 text-green-600 border-green-200">
-                Active
+                {{ t('users.active') }}
               </Badge>
             </TableCell>
             <TableCell>{{ new Date(key.createdAt).toLocaleDateString() }}</TableCell>
             <TableCell>
-              {{ key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : 'Never' }}
+              {{ key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : t('profile.never') || 'Never' }}
             </TableCell>
             <TableCell class="text-right">
               <Button
@@ -185,7 +185,7 @@ onMounted(fetchKeys)
                 @click="revokeKey(key.id)"
               >
                 <Trash2 class="h-4 w-4" />
-                <span class="sr-only">Revoke</span>
+                <span class="sr-only">{{ t('api_keys.revoke') }}</span>
               </Button>
             </TableCell>
           </TableRow>
@@ -197,46 +197,46 @@ onMounted(fetchKeys)
     <Dialog v-model:open="dialogOpen">
       <DialogContent class="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Generate New API Key</DialogTitle>
+          <DialogTitle>{{ t('api_keys.dialog_create_title') }}</DialogTitle>
           <DialogDescription>
-            Give your key a name to identify it later (e.g., "CICD Pipeline", "Reporting Script").
+            {{ t('api_keys.dialog_create_desc') }}
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <Input id="name" v-model="newKeyName" placeholder="Key Name" @keyup.enter="createKey" />
+          <Input id="name" v-model="newKeyName" :placeholder="t('api_keys.key_name_placeholder')" @keyup.enter="createKey" />
 
           <div class="grid gap-2">
-            <Label for="expiration">Expiration</Label>
+            <Label for="expiration">{{ t('api_keys.expiration') }}</Label>
             <Select v-model="expiration">
               <SelectTrigger>
-                <SelectValue placeholder="Select validity period" />
+                <SelectValue :placeholder="t('api_keys.select_validity')" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="30d">
-                  30 Days
+                  {{ t('api_keys.days', { count: 30 }) }}
                 </SelectItem>
                 <SelectItem value="90d">
-                  90 Days
+                  {{ t('api_keys.days', { count: 90 }) }}
                 </SelectItem>
                 <SelectItem value="180d">
-                  180 Days (6 Months)
+                  {{ t('api_keys.days', { count: 180 }) }}
                 </SelectItem>
                 <SelectItem value="365d">
-                  365 Days (1 Year)
+                  {{ t('api_keys.days', { count: 365 }) }}
                 </SelectItem>
               </SelectContent>
             </Select>
             <p class="text-[0.8rem] text-muted-foreground">
-              Keys will automatically stop working after expiration.
+              {{ t('api_keys.expiration_hint') }}
             </p>
           </div>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="dialogOpen = false">
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button type="submit" :disabled="!newKeyName || creating" @click="createKey">
-            {{ creating ? 'Generating...' : 'Generate Key' }}
+            {{ creating ? t('api_keys.generating') : t('api_keys.generate_new') }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -246,9 +246,9 @@ onMounted(fetchKeys)
     <Dialog v-model:open="tokenDialogOpen">
       <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>API Key Generated</DialogTitle>
+          <DialogTitle>{{ t('api_keys.dialog_token_title') }}</DialogTitle>
           <DialogDescription class="text-destructive font-semibold">
-            Make sure to copy your API key now. You won't be able to see it again!
+            {{ t('api_keys.dialog_token_desc') }}
           </DialogDescription>
         </DialogHeader>
         <div class="py-4">
@@ -266,13 +266,13 @@ onMounted(fetchKeys)
             >
               <Check v-if="copied" class="h-4 w-4 mr-1 text-green-600" />
               <Copy v-else class="h-4 w-4 mr-1" />
-              {{ copied ? 'Copied' : 'Copy' }}
+              {{ copied ? t('api_keys.copied') : t('api_keys.copy') }}
             </Button>
           </div>
         </div>
         <DialogFooter>
           <Button @click="tokenDialogOpen = false">
-            Done
+            {{ t('api_keys.done') }}
           </Button>
         </DialogFooter>
       </DialogContent>

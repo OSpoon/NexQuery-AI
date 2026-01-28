@@ -565,7 +565,7 @@ onMounted(fetchDataSources)
           class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20"
         >
           <p class="text-sm text-muted-foreground">
-            请先选择数据源以开始编辑
+            {{ t('query_tasks.select_datasource_hint') }}
           </p>
         </div>
       </TabsContent>

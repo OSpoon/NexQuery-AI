@@ -175,6 +175,7 @@ declare module 'vue' {
     FormItem: typeof import('./components/ui/form/FormItem.vue')['default']
     FormLabel: typeof import('./components/ui/form/FormLabel.vue')['default']
     FormMessage: typeof import('./components/ui/form/FormMessage.vue')['default']
+    GlobalConfirmDialog: typeof import('./components/common/GlobalConfirmDialog.vue')['default']
     GlobalWatermark: typeof import('./components/common/GlobalWatermark.vue')['default']
     HoverCard: typeof import('./components/ui/hover-card/HoverCard.vue')['default']
     HoverCardContent: typeof import('./components/ui/hover-card/HoverCardContent.vue')['default']

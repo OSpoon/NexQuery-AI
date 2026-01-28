@@ -44,6 +44,7 @@ const elementProperties = ref({
   eventType: '', // Events
   timerDefinition: '', // Timer Events
 })
+const activeTab = ref('element')
 const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
 const selectedRoles = computed({
   get: () => {
@@ -180,6 +181,7 @@ async function initModeler() {
   try {
     // Custom palette provider to show only commonly used elements
     const customPaletteProvider = function (
+      this: any,
       palette: any,
       create: any,
       elementFactory: any,
@@ -450,7 +452,7 @@ async function initModeler() {
     await modeler.value.importXML(xmlToImport)
 
     // Extract process configuration from XML
-    extractProcessConfig(xmlToImport)
+    extractProcessConfig()
 
     // Zoom to fit after a short delay to ensure rendering is complete
     await new Promise(resolve => setTimeout(resolve, 100))
@@ -799,6 +801,8 @@ function handleFileImport(event: Event) {
     return
 
   const file = input.files[0]
+  if (!file)
+    return
   const reader = new FileReader()
 
   loading.value = true
@@ -907,7 +911,7 @@ onBeforeUnmount(() => {
 
       <!-- Property Panel (Side) with Tabs -->
       <div class="absolute top-4 right-4 bottom-12 w-80 bg-background/95 backdrop-blur border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
-        <Tabs default-value="element" class="flex-1 flex flex-col h-full min-h-0">
+        <Tabs v-model="activeTab" class="flex-1 flex flex-col h-full min-h-0">
           <TabsList class="w-full grid grid-cols-2 rounded-none border-b shrink-0">
             <TabsTrigger value="element" class="text-xs">
               Element
