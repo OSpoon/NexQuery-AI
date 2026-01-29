@@ -5,6 +5,7 @@ import { ArrowLeft, Database, Download, Eye, Loader2, Play, RotateCcw, ShieldAle
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -284,76 +285,62 @@ onMounted(fetchTask)
 
       <!-- Approval Alert -->
       <div v-if="approvalStatus !== 'idle'" class="flex-none">
-        <div v-if="approvalStatus === 'pending'" class="bg-blue-500/10 text-blue-500 border border-blue-500/20 rounded-lg p-4 flex items-center gap-3">
-          <Loader2 class="h-5 w-5 animate-spin" />
-          <div>
-            <p class="font-medium">
-              Waiting for Approval
-            </p>
-            <p class="text-sm opacity-90">
-              This is a high-risk operation. Administrator approval is required before execution.
-            </p>
-            <div class="mt-4">
+        <Alert v-if="approvalStatus === 'pending'" variant="default" class="border-blue-200 bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200 dark:border-blue-800">
+          <Loader2 class="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
+          <AlertTitle>Waiting for Approval</AlertTitle>
+          <AlertDescription class="mt-2 flex items-center justify-between">
+            <span>This is a high-risk operation. Administrator approval is required before execution.</span>
+            <Button
+              variant="outline"
+              size="sm"
+              class="ml-4 h-7 bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40 border-blue-200 dark:border-blue-800"
+              @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
+            >
+              <Eye class="mr-2 h-3.5 w-3.5" />
+              View Progress
+            </Button>
+          </AlertDescription>
+        </Alert>
+
+        <Alert v-else-if="approvalStatus === 'approved'" variant="default" class="border-green-200 bg-green-50 text-green-900 dark:bg-green-950/30 dark:text-green-200 dark:border-green-800">
+          <ShieldCheck class="h-4 w-4 text-green-600 dark:text-green-400" />
+          <AlertTitle>Approval Granted</AlertTitle>
+          <AlertDescription class="mt-2 flex items-center justify-between">
+            <span>You can now execute this query. One-time use permission.</span>
+            <Button
+              variant="outline"
+              size="sm"
+              class="ml-4 h-7 bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40 border-green-200 dark:border-green-800"
+              @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
+            >
+              <Eye class="mr-2 h-3.5 w-3.5" />
+              Audit Log
+            </Button>
+          </AlertDescription>
+        </Alert>
+
+        <Alert v-else-if="approvalStatus === 'rejected'" variant="destructive">
+          <ShieldAlert class="h-4 w-4" />
+          <AlertTitle>Request Rejected</AlertTitle>
+          <AlertDescription class="mt-2 flex items-center justify-between gap-4">
+            <span>The administrator denied this request. Please contact support if you believe this is an error.</span>
+            <div class="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                class="bg-blue-500/10 border-blue-500/20 hover:bg-blue-500/20 text-blue-600 dark:text-blue-400"
+                class="h-7 bg-background/50"
                 @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
               >
-                <Eye class="mr-2 h-4 w-4" />
-                View Approval Progress
+                <Eye class="mr-2 h-3.5 w-3.5" />
+                Details
+              </Button>
+              <Button variant="outline" size="sm" class="h-7 bg-background/50" @click="resetApproval">
+                <RotateCcw class="mr-2 h-3.5 w-3.5" />
+                Retry
               </Button>
             </div>
-          </div>
-        </div>
-        <div v-else-if="approvalStatus === 'approved'" class="bg-green-500/10 text-green-500 border border-green-500/20 rounded-lg p-4 flex items-center gap-3">
-          <ShieldCheck class="h-5 w-5" />
-          <div>
-            <p class="font-medium">
-              Approval Granted
-            </p>
-            <p class="text-sm opacity-90">
-              You can now execute this query. One-time use permission.
-            </p>
-            <div class="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                class="bg-green-500/10 border-green-500/20 hover:bg-green-500/20 text-green-600 dark:text-green-400"
-                @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
-              >
-                <Eye class="mr-2 h-4 w-4" />
-                View Audit Log
-              </Button>
-            </div>
-          </div>
-        </div>
-        <div v-else-if="approvalStatus === 'rejected'" class="bg-red-500/10 text-red-500 border border-red-500/20 rounded-lg p-4 flex items-center gap-3">
-          <ShieldAlert class="h-5 w-5" />
-          <div>
-            <p class="font-medium">
-              Request Rejected
-            </p>
-            <p class="text-sm opacity-90">
-              The administrator denied this request. Please contact support if you believe this is an error.
-            </p>
-            <div class="mt-4">
-              <Button
-                variant="outline"
-                size="sm"
-                class="bg-red-500/10 border-red-500/20 hover:bg-red-500/20 text-red-600"
-                @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
-              >
-                <Eye class="mr-2 h-4 w-4" />
-                View Rejection Reason
-              </Button>
-            </div>
-          </div>
-          <Button variant="outline" size="sm" class="ml-auto border-red-500/30 hover:bg-red-500/10 hover:text-red-600 text-red-500" @click="resetApproval">
-            <RotateCcw class="mr-2 h-4 w-4" />
-            Retry
-          </Button>
-        </div>
+          </AlertDescription>
+        </Alert>
       </div>
 
       <!-- Bottom: Results -->

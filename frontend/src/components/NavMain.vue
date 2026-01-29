@@ -36,7 +36,11 @@ const route = useRoute()
 function isItemActive(item: NavItem) {
   if (item.url === '#' || item.url.startsWith('#'))
     return false
-  return route.path === item.url || route.path.startsWith(item.url)
+  // For root path '/', use exact match
+  if (item.url === '/')
+    return route.path === '/'
+  // For other paths, use startsWith logic
+  return route.path === item.url || route.path.startsWith(`${item.url}/`)
 }
 </script>
 

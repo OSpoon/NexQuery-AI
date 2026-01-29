@@ -22,16 +22,59 @@ defineOptions({
 const route = useRoute()
 const { t } = useI18n()
 
+// Helper to translate route name to readable title
+function getRouteTitle(name: string): string {
+  const keyMap: Record<string, string> = {
+    'home': 'sidebar.dashboard',
+    'dashboard': 'sidebar.dashboard',
+    'profile': 'sidebar.profile',
+    'data-sources': 'sidebar.data_sources',
+    'knowledge-base': 'sidebar.knowledge_base',
+    'query-tasks': 'sidebar.query_tasks',
+    'query-run': 'sidebar.query_run', // Needs key or fallback
+    'history': 'sidebar.history',
+    'admin-users': 'sidebar.admin.users',
+    'admin-roles': 'sidebar.admin.roles',
+    'admin-menus': 'sidebar.admin.menus',
+    'admin-api-keys': 'sidebar.admin.api_keys',
+    'admin-settings': 'sidebar.admin.settings',
+    'ai-feedback': 'sidebar.ai_feedback',
+    // Workflow
+    'workflow-tasks': 'sidebar.workflow.my_tasks',
+    'process-management': 'sidebar.workflow.process_management',
+    'workflow-history': 'sidebar.workflow.history',
+    'workflow-detail': 'workflow.detail_page',
+    'workflow-definition': 'workflow.definition_page',
+    'workflow-history-detail': 'workflow.history_detail',
+  }
+
+  const key = keyMap[name]
+  if (key && t(key) !== key) {
+    return t(key)
+  }
+
+  // Fallbacks for missing keys or dynamic routes
+  if (name === 'workflow-definition')
+    return t('workflow.create_new') // Roughly
+
+  // Default to capitalizing the name if no translation found
+  return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
 // Generate breadcrumbs based on route
 const breadcrumbs = computed(() => {
   const path = route.path
   if (path === '/') {
     return [{ label: t('sidebar.dashboard'), href: '/' }]
   }
-  // Can be dynamically generated based on actual routes
+
+  // If we are deep in workflow, we might want intermediate crumbs?
+  // For now, keep it simple: Dashboard > Current Page Name
+  const currentTitle = getRouteTitle(route.name as string || '')
+
   return [
     { label: t('sidebar.dashboard'), href: '/' },
-    { label: (route.name as string) || 'Page', href: path },
+    { label: currentTitle, href: path },
   ]
 })
 </script>

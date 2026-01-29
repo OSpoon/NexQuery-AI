@@ -125,6 +125,7 @@ export default class extends BaseSeeder {
         icon: 'LayoutDashboard',
         permission: PERMISSIONS.VIEW_DASHBOARD,
         sortOrder: 10,
+        parentId: null,
       },
       {
         title: 'Query Tasks',
@@ -132,6 +133,7 @@ export default class extends BaseSeeder {
         icon: 'Terminal',
         permission: PERMISSIONS.MANAGE_TASKS,
         sortOrder: 20,
+        parentId: null,
       },
       {
         title: 'Data Sources',
@@ -139,13 +141,15 @@ export default class extends BaseSeeder {
         icon: 'Database',
         permission: PERMISSIONS.MANAGE_DATA_SOURCES,
         sortOrder: 30,
+        parentId: null,
       },
       {
         title: 'History',
         path: '/history',
         icon: 'History',
         permission: PERMISSIONS.VIEW_HISTORY,
-        sortOrder: 40,
+        sortOrder: 25,
+        parentId: null,
       },
       {
         title: 'Knowledge Base',
@@ -153,6 +157,7 @@ export default class extends BaseSeeder {
         icon: 'Book',
         permission: PERMISSIONS.MANAGE_KNOWLEDGE_BASE,
         sortOrder: 50,
+        parentId: null,
       },
       {
         title: 'AI Feedback',
@@ -160,18 +165,55 @@ export default class extends BaseSeeder {
         icon: 'MessageSquare',
         permission: PERMISSIONS.MANAGE_AI_FEEDBACK,
         sortOrder: 60,
-      },
-      {
-        title: 'Workflow',
-        path: '/workflow',
-        icon: 'GitPullRequest',
-        permission: PERMISSIONS.WORKFLOW_INITIATE,
-        sortOrder: 70,
+        parentId: null,
       },
     ]
 
     for (const m of mainMenus) {
+      // Logic to sync: check by path.
+      // If we are "moving" items, we need to ensure their parentId is updated correctly later.
+      // For now, just create/update.
       await Menu.updateOrCreate({ path: m.path }, m)
+    }
+
+    // Workflow Group
+    const workflowGroup = await Menu.updateOrCreate(
+      { path: '#workflow-group' },
+      {
+        title: 'Workflow Center',
+        path: '#workflow-group',
+        icon: 'Workflow',
+        permission: PERMISSIONS.WORKFLOW_INITIATE,
+        sortOrder: 40, // Between Platform and Admin
+      },
+    )
+
+    const workflowItems = [
+      {
+        title: 'My Tasks',
+        path: '/workflow/tasks',
+        icon: 'ListTodo',
+        permission: PERMISSIONS.WORKFLOW_INITIATE,
+        sortOrder: 1,
+      },
+      {
+        title: 'Process Management',
+        path: '/workflow/definitions',
+        icon: 'GitPullRequest',
+        permission: PERMISSIONS.WORKFLOW_INITIATE,
+        sortOrder: 2,
+      },
+      {
+        title: 'Workflow History',
+        path: '/workflow/instance-history',
+        icon: 'History',
+        permission: PERMISSIONS.VIEW_HISTORY,
+        sortOrder: 3,
+      },
+    ]
+
+    for (const item of workflowItems) {
+      await Menu.updateOrCreate({ path: item.path }, { ...item, parentId: workflowGroup.id })
     }
 
     // Administration Group
@@ -206,21 +248,21 @@ export default class extends BaseSeeder {
         path: '/admin/roles',
         icon: 'Shield',
         permission: PERMISSIONS.MANAGE_ROLES,
-        sortOrder: 92,
+        sortOrder: 93,
       },
       {
         title: 'Menus',
         path: '/admin/menus',
         icon: 'Menu',
         permission: PERMISSIONS.MANAGE_MENUS,
-        sortOrder: 93,
+        sortOrder: 94,
       },
       {
         title: 'Settings',
         path: '/admin/settings',
         icon: 'Settings',
         permission: PERMISSIONS.MANAGE_SETTINGS,
-        sortOrder: 94,
+        sortOrder: 95,
       },
     ]
 

@@ -104,21 +104,19 @@ const onSubmit = handleSubmit((values) => {
         :variant="approvalStatus === 'rejected' ? 'destructive' : 'default'"
       >
         <template v-if="isExecuting">
-          <Play class="mr-2 h-4 w-4 animate-spin" /> <!-- Loader2 not imported, reusing Play or using text -->
+          <Play class="mr-2 h-4 w-4 animate-spin" />
           Running...
         </template>
         <template v-else-if="approvalStatus === 'pending'">
-          Waiting for Approval...
-        </template>
-        <template v-else-if="approvalStatus === 'approved'">
-          Execute (Approved)
+          <Play class="mr-2 h-4 w-4 opacity-50" />
+          Approval Pending
         </template>
         <template v-else-if="approvalStatus === 'rejected'">
           Request Rejected
         </template>
         <template v-else>
           <Play class="mr-2 h-4 w-4" />
-          Execute
+          Execute {{ approvalStatus === 'approved' ? '(Approved)' : '' }}
         </template>
       </Button>
     </div>

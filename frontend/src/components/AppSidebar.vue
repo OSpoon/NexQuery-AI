@@ -56,18 +56,16 @@ const navData = computed(() => {
 
   // If 2FA is required but not enabled, hide all navigation
   if (authStore.user && !authStore.user.twoFactorEnabled && settingsStore.require2fa) {
-    return {
-      navMain: [],
-      admin: [],
-    }
+    return []
   }
 
   // Transform backend menu structure to frontend sidebar structure
   // Separate into 'navMain' (Platform) and others if needed.
   // For now, we put everything in navMain or split by top-level "Administration"
 
-  const platformMenus = []
-  const adminMenus = []
+  // Dynamic Grouping Logic
+  const groups: { title: string, items: any[] }[] = []
+  const defaultGroupItems: any[] = []
 
   // Helper to translate menu title
   const translateTitle = (title: string) => {
@@ -79,7 +77,7 @@ const navData = computed(() => {
       'Data Sources': 'sidebar.data_sources',
       'Query Tasks': 'sidebar.query_tasks',
       'History': 'sidebar.history',
-      'Administration': 'sidebar.admin.title',
+      'Administration': 'sidebar.admin.title', // Legacy mapping
       'Users': 'sidebar.admin.users',
       'Roles': 'sidebar.admin.roles',
       'Menus': 'sidebar.admin.menus',
@@ -87,54 +85,50 @@ const navData = computed(() => {
       'Knowledge Base': 'sidebar.knowledge_base',
       'AI Intelligence': 'sidebar.ai_intelligence',
       'AI Feedback': 'sidebar.ai_feedback',
+      'Workflow Config': 'Workflow Config',
+      'Workflow Center': 'sidebar.workflow.center',
+      'My Tasks': 'sidebar.workflow.my_tasks',
+      'Process Management': 'sidebar.workflow.process_management',
+      'Workflow History': 'sidebar.workflow.history',
     }
     const key = keyMap[title]
+    // If translation exists, use it. Otherwise use title as-is (allow user-defined strings)
     return key ? t(key) : title
   }
 
-  for (const menu of menus) {
-    const item = {
-      title: translateTitle(menu.title),
-      url: menu.path,
-      icon: getIcon(menu.icon),
-      items: menu.children?.map(child => ({
-        title: translateTitle(child.title),
-        url: child.path,
-        icon: getIcon(child.icon),
-        // Recursive children if needed, but Sidebar usually supports 1-2 levels only in this template
-      })),
-    }
+  // Recursive mapper
+  const mapMenuToItem = (menu: any): any => ({
+    title: translateTitle(menu.title),
+    url: menu.path,
+    icon: getIcon(menu.icon),
+    items: menu.children?.map(mapMenuToItem),
+  })
 
-    if (menu.title === 'Administration') {
-      adminMenus.push(item)
+  // Grouping Strategy:
+  // 1. Root items WITH children -> Distinct Group
+  // 2. Root items WITHOUT children -> Default Group (Platform)
+
+  for (const menu of menus) {
+    if (menu.children && menu.children.length > 0) {
+      groups.push({
+        title: translateTitle(menu.title),
+        items: menu.children.map(mapMenuToItem),
+      })
     }
     else {
-      platformMenus.push(item)
+      defaultGroupItems.push(mapMenuToItem(menu))
     }
   }
 
-  // Inject Knowledge Base manually (MVP) - REMOVED, now in database
-
-  // If Administration is a single item with children, we might want to extract children to be the group
-  // The current sidebar template supports groups titles?
-  // NavMain takes 'items' and 'title'.
-
-  let adminItems: any[] = []
-  if (adminMenus.length > 0) {
-    const mainAdminMenu = adminMenus[0]
-    // Assuming 'Administration' is a parent node and its children are the visible items
-    if (mainAdminMenu?.items && mainAdminMenu.items.length > 0) {
-      adminItems = mainAdminMenu.items
-    }
-    else if (mainAdminMenu) {
-      adminItems = [mainAdminMenu]
-    }
+  // Place default group at the top (if it has items)
+  if (defaultGroupItems.length > 0) {
+    groups.unshift({
+      title: t('sidebar.platform'),
+      items: defaultGroupItems,
+    })
   }
 
-  return {
-    navMain: platformMenus,
-    admin: adminItems,
-  }
+  return groups
 })
 </script>
 
@@ -160,11 +154,11 @@ const navData = computed(() => {
       </SidebarMenu>
     </SidebarHeader>
     <SidebarContent>
-      <NavMain :items="navData.navMain" :title="t('sidebar.platform')" />
       <NavMain
-        v-if="navData.admin.length > 0"
-        :items="navData.admin"
-        :title="t('sidebar.admin.title')"
+        v-for="(group, idx) in navData"
+        :key="idx"
+        :items="group.items"
+        :title="group.title"
       />
     </SidebarContent>
     <SidebarFooter>

@@ -132,8 +132,22 @@ const router = createRouter({
         },
         {
           path: 'workflow',
-          name: 'workflow',
-          component: () => import('@/pages/workflow/index.vue'),
+          redirect: '/workflow/tasks',
+        },
+        {
+          path: 'workflow/tasks',
+          name: 'workflow-tasks',
+          component: () => import('@/pages/workflow/MyTasks.vue'),
+        },
+        {
+          path: 'workflow/definitions',
+          name: 'process-management',
+          component: () => import('@/pages/workflow/ProcessManagement.vue'),
+        },
+        {
+          path: 'workflow/instance-history',
+          name: 'workflow-history',
+          component: () => import('@/pages/workflow/HistoryRecord.vue'),
         },
         {
           path: 'workflow/instances/:id',

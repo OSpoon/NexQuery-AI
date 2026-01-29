@@ -48,8 +48,9 @@
     "platform": "平台功能",
     "profile": "个人中心",
     "settings": "系统设置",
-    "data_sources": "数据源管理",
+    "data_sources": "数据源",
     "query_tasks": "查询任务",
+    "query_run": "执行查询",
     "history": "执行历史",
     "admin": {
       "title": "系统管理",
@@ -60,7 +61,13 @@
     },
     "knowledge_base": "知识库",
     "ai_intelligence": "AI 智能",
-    "ai_feedback": "AI 反馈"
+    "ai_feedback": "AI 反馈",
+    "workflow": {
+      "center": "工作流中心",
+      "my_tasks": "我的任务",
+      "process_management": "流程管理",
+      "history": "历史记录"
+    }
   },
   "profile": {
     "title": "个人中心 & 设置",
@@ -341,6 +348,9 @@
       "history": "历史记录"
     },
     "create_new": "创建新工作流",
+    "detail_page": "流程详情",
+    "history_detail": "审计日志",
+    "definition_page": "流程设计",
     "view_details": "查看详情",
     "start_process": "发起流程",
     "activate": "激活",
