@@ -325,6 +325,27 @@ export default class WorkflowController {
   /**
    * 从 BPMN XML 提取任务序列(使用 fast-xml-parser)
    */
+  /**
+   * SSE Stream for real-time notifications
+   */
+  async notifications({ response, auth }: HttpContext) {
+    const user = auth.user!
+    const { SseService } = await import('#services/sse_service').then(m => ({ SseService: m.default }))
+
+    response.response.writeHead(200, {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache',
+      'Connection': 'keep-alive',
+      'Access-Control-Allow-Origin': '*',
+    })
+
+    // Send initial ping
+    response.response.write('event: connected\ndata: "connected"\n\n')
+
+    // Register connection
+    SseService.addConnection(user.email, response)
+  }
+
   private async extractTaskSequence(xml: string): Promise<Array<{ name: string }>> {
     try {
       // 动态导入 XMLParser

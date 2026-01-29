@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { QueryTask } from '@nexquery/shared'
+import { useEventBus } from '@vueuse/core'
 import { ArrowLeft, Database, Download, Eye, Loader2, Play, RotateCcw, ShieldAlert, ShieldCheck } from 'lucide-vue-next'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -14,6 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+
 import api, { cryptoService } from '@/lib/api'
 
 import { useSettingsStore } from '@/stores/settings'
@@ -34,6 +36,15 @@ const approvalStatus = ref<'idle' | 'pending' | 'approved' | 'rejected'>('idle')
 const workflowProcessId = ref<string | null>(null)
 const approvalComment = ref<string | null>(null)
 let pollTimer: any = null
+
+// Event Bus for Real-time Updates
+const bus = useEventBus<string>('workflow-event')
+const unsubscribe = bus.on((_event) => {
+  if (approvalStatus.value === 'pending' && workflowProcessId.value) {
+    // If we are waiting for approval and receive ANY workflow event, check status immediately
+    checkApprovalStatus()
+  }
+})
 
 const isArrayResult = computed(() => {
   return Array.isArray(results.value)
@@ -169,37 +180,30 @@ function startPolling() {
   if (pollTimer)
     clearInterval(pollTimer)
 
+  // Reduced frequency (10s) since we have SSE
   pollTimer = setInterval(async () => {
     if (!workflowProcessId.value)
       return
 
+    // Only poll if pending
+    if (approvalStatus.value !== 'pending') {
+      clearInterval(pollTimer)
+      return
+    }
+
     try {
-      const { data } = await api.get(`/workflow/process-instances/${workflowProcessId.value}`)
-      // Check if completed
-      if (data.endTime) {
-        // Check variables for 'approved'
-        const approvedVar = data.variables?.find((v: any) => v.name === 'approved')
-        if (approvedVar && approvedVar.value === true) {
-          approvalStatus.value = 'approved'
-          approvalComment.value = data.variables?.find((v: any) => v.name === 'comment')?.value || null
-          toast.success('Approval granted! logic unlocked.')
-        }
-        else {
-          approvalStatus.value = 'rejected'
-          toast.error('Request was rejected by administrator.')
-        }
-        clearInterval(pollTimer)
-      }
+      await checkApprovalStatus()
     }
     catch (e) {
       console.error('Polling failed', e)
     }
-  }, 2000)
+  }, 10000)
 }
 
 onBeforeUnmount(() => {
   if (pollTimer)
     clearInterval(pollTimer)
+  unsubscribe()
 })
 function downloadResults() {
   if (!results.value || results.value.length === 0)

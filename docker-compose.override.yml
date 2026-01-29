@@ -36,7 +36,7 @@ services:
     environment:
       NODE_ENV: development
       SMTP_HOST: mailcatcher
-      CI: "true"
+      CI: 'true'
     volumes:
       - ./backend:/app/backend
       - ./packages/shared:/app/packages/shared
@@ -52,7 +52,7 @@ services:
       target: build # Use the build stage which has node and pnpm
     environment:
       VITE_API_URL: http://backend:3008
-      CI: "true"
+      CI: 'true'
     ports:
       - '${VITE_PORT:-3000}:3000'
     volumes:

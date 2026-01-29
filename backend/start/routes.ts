@@ -39,6 +39,14 @@ router.get('/docs', async () => {
   return AutoSwagger.default.ui('/swagger', swagger)
 })
 
+// Unencrypted Streams (SSE)
+router
+  .group(() => {
+    router.get('workflow/notifications', [WorkflowController, 'notifications'])
+  })
+  .prefix('api')
+  .use(middleware.auth())
+
 router
   .group(() => {
     router.get('health', [HealthChecksController, 'handle'])
