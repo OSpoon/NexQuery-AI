@@ -3,6 +3,8 @@ import QueryTask from '#models/query_task'
 import Setting from '#models/setting'
 import logger from '@adonisjs/core/services/logger'
 import QueryExecutionService from '#services/query_execution_service'
+import WorkflowVerifier from '#services/workflow_verifier'
+import { WORKFLOW_CONSTANTS } from '#constants/workflow'
 
 import WorkflowService from '#services/workflow_service'
 import WorkflowRegistry from '#services/workflow_registry'
@@ -12,11 +14,13 @@ export default class ExecutionController {
   private executionService: QueryExecutionService
   private workflowService: WorkflowService
   private workflowRegistry: WorkflowRegistry
+  private verifier: WorkflowVerifier
 
   constructor() {
     this.executionService = new QueryExecutionService()
     this.workflowService = new WorkflowService()
     this.workflowRegistry = new WorkflowRegistry()
+    this.verifier = new WorkflowVerifier()
   }
 
   /**
@@ -77,72 +81,24 @@ export default class ExecutionController {
 
     const processInstanceId = request.input('processInstanceId')
 
-    let proc: any = null
     let approvalComment: string | null = null
 
     if (isHighRisk) {
       if (processInstanceId) {
-        // 1. Verify Process Exists & Is Completed & Is Approved
-        proc = await this.workflowService.getHistoricProcessInstance(processInstanceId)
-        if (!proc) {
-          return response.badRequest({ message: 'Invalid approval token' })
-        }
-        if (!proc.endTime) {
-          return response.badRequest({ message: 'Approval process is still running' })
-        }
+        try {
+          const verification = await this.verifier.verifyApproval({
+            processInstanceId,
+            taskId: task.id,
+            dataSourceId: task.dataSourceId,
+            sqlTemplate: task.sqlTemplate,
+            requestParams: inputParams,
+            userEmail: auth.user?.email || 'unknown',
+            taskUpdatedAt: task.updatedAt,
+          })
 
-        const approved = this.getVar(proc, 'approved')
-        if (approved !== true) {
-          return response.badRequest({ message: 'Request was rejected by administrator' })
-        }
-
-        approvalComment = this.getVar(proc, 'comment') || null
-
-        // 2. Strict Mode: Verify metadata matches the approved context
-        const approvedTaskId = this.getVar(proc, 'taskId')
-        const approvedInitiator = this.getVar(proc, 'initiator')
-        const approvedSql = this.getVar(proc, 'sqlQuery')
-
-        if (approvedTaskId && approvedTaskId !== String(task.id)) {
-          return response.badRequest({ message: 'Token belongs to a different task' })
-        }
-        if (approvedInitiator && approvedInitiator !== (auth.user?.email || 'unknown')) {
-          return response.badRequest({ message: 'Token belongs to a different requestor' })
-        }
-        if (approvedSql && approvedSql !== task.sqlTemplate) {
-          return response.badRequest({ message: 'The SQL template has been modified since approval. Please request re-approval.' })
-        }
-
-        const approvedDsId = this.getVar(proc, 'dataSourceId')
-        if (approvedDsId && approvedDsId !== String(task.dataSourceId)) {
-          return response.badRequest({ message: 'The target DataSource has changed since approval. Please request a new approval.' })
-        }
-
-        // 2.5 Strict Mode: Verify Task hasn't been modified AT ALL after process started
-        // This closes the "change and change back" loophole.
-        if (proc.startTime) {
-          const { DateTime } = await import('luxon')
-          const procStartTime = DateTime.fromISO(proc.startTime)
-          // Allow 1 second buffer for potential clock skew/processing time
-          if (task.updatedAt.toMillis() > procStartTime.toMillis() + 1000) {
-            return response.badRequest({ message: 'The task definition was modified after the approval request was initiated. Please request a new approval.' })
-          }
-        }
-
-        // 3. Strict Mode: Verify Parameters match the approved ones
-        const approvedParams = this.getVar(proc, 'requestParams')
-        if (approvedParams) {
-          const currentParams = JSON.stringify(inputParams)
-          if (approvedParams !== currentParams) {
-            return response.badRequest({ message: 'Parameters have changed since approval. Please request approval again.' })
-          }
-        }
-
-        // 3. Strict Mode: Verify Token hasn't been used yet
-        const QueryLog = await import('#models/query_log').then(m => m.default)
-        const existingLog = await QueryLog.query().where('processInstanceId', processInstanceId).first()
-        if (existingLog) {
-          return response.badRequest({ message: 'This approval token has already been used. Please request a new approval.' })
+          approvalComment = verification.comment
+        } catch (error) {
+          return response.badRequest({ message: error.message })
         }
       } else {
         // Start Approval Workflow using WorkflowRegistry
@@ -242,7 +198,7 @@ export default class ExecutionController {
           logger.info({ resultId: result?.id, resultRaw: result }, 'ExecutionController: startProcessInstance result')
           return response.accepted({
             message: `High Risk SQL detected. Approval workflow "${workflow.name}" started.`,
-            status: 'PENDING_APPROVAL',
+            status: WORKFLOW_CONSTANTS.STATUS.PENDING,
             processInstanceId: result.id,
             workflowName: workflow.name,
           })
@@ -295,7 +251,7 @@ export default class ExecutionController {
 
     // Strict Binding Check: If unbound or explicitly disabled, return IDLE
     if (!boundWorkflowKey || boundWorkflowKey === '__NONE__') {
-      return response.ok({ status: 'IDLE' })
+      return response.ok({ status: WORKFLOW_CONSTANTS.STATUS.IDLE })
     }
 
     try {
@@ -303,52 +259,38 @@ export default class ExecutionController {
 
       if (!result || !result.data || result.data.length === 0) {
         logger.info({ taskId, userEmail }, 'ExecutionController: checkApprovalStatus - No process instance found, returning IDLE')
-        return response.ok({ status: 'IDLE' })
+        return response.ok({ status: WORKFLOW_CONSTANTS.STATUS.IDLE })
       }
 
       const proc = result.data[0]
       const processInstanceId = proc.id
       logger.info({ taskId, userEmail, processInstanceId, rawProc: proc }, 'ExecutionController: Mapping processInstanceId from history')
 
+      // 1. Fetch Task for verification
+      const currentTask = await QueryTask.findOrFail(taskId)
+
+      try {
+        await this.verifier.verifyContext(
+          proc,
+          taskId,
+          currentTask.dataSourceId,
+          currentTask.sqlTemplate,
+          userEmail,
+        )
+        await this.verifier.verifyTimeIntegrity(proc, currentTask.updatedAt)
+      } catch (e) {
+        logger.info({ taskId, error: e.message }, 'ExecutionController: checkApprovalStatus - Verification mismatch, returning IDLE')
+        return response.ok({ status: WORKFLOW_CONSTANTS.STATUS.IDLE })
+      }
+
       // 1. Check if Pending
       if (!proc.endTime) {
         return response.ok({
-          status: 'PENDING_APPROVAL',
+          status: WORKFLOW_CONSTANTS.STATUS.PENDING,
           processInstanceId,
         })
       }
       logger.info({ taskId, userEmail, processInstanceId, status: 'PENDING_APPROVAL' }, 'ExecutionController: checkApprovalStatus PENDING response')
-
-      // 1.5 Strict Identity & Task check during polling/status-check
-      const approvedTaskId = this.getVar(proc, 'taskId')
-      const approvedInitiator = this.getVar(proc, 'initiator')
-      const approvedSql = this.getVar(proc, 'sqlQuery')
-
-      if (approvedTaskId !== String(taskId)) {
-        return response.ok({ status: 'IDLE' }) // Different task -> ignore
-      }
-      if (approvedInitiator !== userEmail) {
-        return response.ok({ status: 'IDLE' }) // Different user -> ignore
-      }
-      if (approvedSql !== (await QueryTask.findOrFail(taskId)).sqlTemplate) {
-        return response.ok({ status: 'IDLE' }) // Template changed -> invalidate
-      }
-
-      const approvedDsId = this.getVar(proc, 'dataSourceId')
-      const currentTask = await QueryTask.findOrFail(taskId)
-      if (approvedDsId && approvedDsId !== String(currentTask.dataSourceId)) {
-        return response.ok({ status: 'IDLE' }) // DataSource changed
-      }
-
-      // 1.6 Timestamp check for staleness
-      if (proc.startTime) {
-        const { DateTime } = await import('luxon')
-        const procStartTime = DateTime.fromISO(proc.startTime)
-        const currentTask = await QueryTask.findOrFail(taskId)
-        if (currentTask.updatedAt.toMillis() > procStartTime.toMillis() + 1000) {
-          return response.ok({ status: 'IDLE' })
-        }
-      }
 
       // 2. Check Result (Approved or Rejected)
       const approved = this.getVar(proc, 'approved')
@@ -359,12 +301,12 @@ export default class ExecutionController {
 
         if (existingLog) {
           // Already used -> IDLE
-          return response.ok({ status: 'IDLE' })
+          return response.ok({ status: WORKFLOW_CONSTANTS.STATUS.IDLE })
         }
 
         // Approved and Unused
         const approvedResponse = {
-          status: 'APPROVED',
+          status: WORKFLOW_CONSTANTS.STATUS.APPROVED,
           processInstanceId,
           comment: this.getVar(proc, 'comment'),
         }
@@ -374,7 +316,7 @@ export default class ExecutionController {
 
       // Rejected or other state
       const rejectedResponse = {
-        status: 'REJECTED',
+        status: WORKFLOW_CONSTANTS.STATUS.REJECTED,
         processInstanceId,
       }
       logger.info({ taskId, userEmail, rejectedResponse }, 'ExecutionController: checkApprovalStatus REJECTED response')

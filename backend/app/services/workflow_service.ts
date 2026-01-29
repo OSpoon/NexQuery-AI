@@ -2,14 +2,16 @@ import { Buffer } from 'node:buffer'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 
+import { WORKFLOW_CONSTANTS } from '#constants/workflow'
+
 export default class WorkflowService {
   private baseUrl: string
   private authHeader: string
 
   constructor() {
-    this.baseUrl = env.get('FLOWABLE_HOST') || 'http://localhost:8080'
-    const user = env.get('FLOWABLE_USER') || 'admin'
-    const password = env.get('FLOWABLE_PASSWORD') || 'test'
+    this.baseUrl = env.get('FLOWABLE_HOST') || WORKFLOW_CONSTANTS.API.DEFAULTS.HOST
+    const user = env.get('FLOWABLE_USER') || WORKFLOW_CONSTANTS.API.DEFAULTS.USER
+    const password = env.get('FLOWABLE_PASSWORD') || WORKFLOW_CONSTANTS.API.DEFAULTS.PASSWORD
     // Basic Auth
     this.authHeader = `Basic ${Buffer.from(`${user}:${password}`).toString('base64')}`
   }
@@ -84,14 +86,14 @@ export default class WorkflowService {
 
   async getProcessDefinitions() {
     // /flowable-ui/process-api/repository/process-definitions?latest=true
-    return this.request('/flowable-ui/process-api/repository/process-definitions?latest=true&sort=name')
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_DEFINITIONS}?latest=true&sort=name`)
   }
 
   /**
    * Get specific process definition details
    */
   async getProcessDefinition(processDefinitionKey: string) {
-    const result = await this.request(`/flowable-ui/process-api/repository/process-definitions?key=${processDefinitionKey}&latest=true`)
+    const result = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_DEFINITIONS}?key=${processDefinitionKey}&latest=true`)
     return result?.data?.[0] || null
   }
 
@@ -100,7 +102,7 @@ export default class WorkflowService {
    */
   async getProcessDefinitionById(processDefinitionId: string) {
     const encodedId = encodeURIComponent(processDefinitionId)
-    return this.request(`/flowable-ui/process-api/repository/process-definitions/${encodedId}`)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_DEFINITIONS}/${encodedId}`)
   }
 
   /**
@@ -109,7 +111,7 @@ export default class WorkflowService {
   async getProcessDefinitionXML(processDefinitionId: string) {
     // This returns the XML content
     const encodedId = encodeURIComponent(processDefinitionId)
-    const response = await this.requestRaw(`/flowable-ui/process-api/repository/process-definitions/${encodedId}/resourcedata`)
+    const response = await this.requestRaw(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_DEFINITIONS}/${encodedId}/resourcedata`)
     return response.text()
   }
 
@@ -119,14 +121,14 @@ export default class WorkflowService {
   async getProcessDefinitionImage(processDefinitionId: string) {
     // This returns image/png
     const encodedId = encodeURIComponent(processDefinitionId)
-    return this.requestRaw(`/flowable-ui/process-api/repository/process-definitions/${encodedId}/image`)
+    return this.requestRaw(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_DEFINITIONS}/${encodedId}/image`)
   }
 
   /**
    * Get running process instances by process definition ID
    */
   async getProcessInstancesByDefinitionId(processDefinitionId: string) {
-    const result = await this.request('/flowable-ui/process-api/query/process-instances', 'POST', {
+    const result = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.QUERY_PROCESS_INSTANCES}`, 'POST', {
       processDefinitionId,
     })
     return result
@@ -136,7 +138,7 @@ export default class WorkflowService {
    * Delete a deployment (and its definitions)
    */
   async deleteDeployment(deploymentId: string) {
-    return this.request(`/flowable-ui/process-api/repository/deployments/${deploymentId}?cascade=true`, 'DELETE')
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.DEPLOYMENTS}/${deploymentId}?cascade=true`, 'DELETE')
   }
 
   /**
@@ -151,7 +153,7 @@ export default class WorkflowService {
     }
 
     // Start the process
-    const instance = await this.request('/flowable-ui/process-api/runtime/process-instances', 'POST', payload)
+    const instance = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_INSTANCES}`, 'POST', payload)
     logger.info({ processInstanceId: instance?.id, raw: instance }, 'WorkflowService: startProcessInstance result')
 
     // If initiator provided, add as a participant (Standard Identity Link)
@@ -174,7 +176,7 @@ export default class WorkflowService {
    */
   async deleteProcessInstance(processInstanceId: string, reason: string = 'Rejected') {
     // /flowable-ui/process-api/runtime/process-instances/{processInstanceId}
-    return this.request(`/flowable-ui/process-api/runtime/process-instances/${processInstanceId}?deleteReason=${encodeURIComponent(reason)}`, 'DELETE')
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_INSTANCES}/${processInstanceId}?deleteReason=${encodeURIComponent(reason)}`, 'DELETE')
   }
 
   /**
@@ -187,7 +189,7 @@ export default class WorkflowService {
       type, // e.g. 'participant', 'candidate'
     }
     logger.info({ processInstanceId, payload }, 'WorkflowService: Outgoing Identity Link Request')
-    return this.request(`/flowable-ui/process-api/runtime/process-instances/${processInstanceId}/identitylinks`, 'POST', payload)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.PROCESS_INSTANCES}/${processInstanceId}/identitylinks`, 'POST', payload)
   }
 
   /**
@@ -212,23 +214,23 @@ export default class WorkflowService {
       payload.candidateGroupIn = groupIds
     }
 
-    return this.request('/flowable-ui/process-api/query/tasks', 'POST', payload)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.QUERY_TASKS}`, 'POST', payload)
   }
 
   async getTasksByProcessInstanceId(processInstanceId: string) {
     // /flowable-ui/process-api/runtime/tasks?processInstanceId=xxx
-    return this.request(`/flowable-ui/process-api/runtime/tasks?processInstanceId=${processInstanceId}`)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.TASKS}?processInstanceId=${processInstanceId}`)
   }
 
   async getTask(taskId: string) {
-    return this.request(`/flowable-ui/process-api/runtime/tasks/${taskId}`)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.TASKS}/${taskId}`)
   }
 
   /**
    * Update a Task (e.g. set assignee)
    */
   async updateTask(taskId: string, payload: { assignee?: string, owner?: string, name?: string, description?: string }) {
-    return this.request(`/flowable-ui/process-api/runtime/tasks/${taskId}`, 'PUT', payload)
+    return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.TASKS}/${taskId}`, 'PUT', payload)
   }
 
   /**
@@ -236,7 +238,7 @@ export default class WorkflowService {
    */
   async getHistoricTasksByProcessInstanceId(processInstanceId: string) {
     return this.request(
-      `/flowable-ui/process-api/query/historic-task-instances`,
+      `${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.QUERY_HISTORIC_TASK_INSTANCES}`,
       'POST',
       {
         processInstanceId,
@@ -270,13 +272,13 @@ export default class WorkflowService {
 
     // 3. Prepare variables
     const variables: any[] = [
-      { name: 'approved', value: approved },
-      { name: 'lastComment', value: comment || 'No comment' },
-      { name: 'approver', value: operatorEmail },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.APPROVED, value: approved },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.LAST_COMMENT, value: comment || 'No comment' },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.APPROVER, value: operatorEmail },
       // Set local outcome to prevent status leakage in multi-step flows
-      { name: 'taskOutcome', value: approved ? 'approved' : 'rejected', scope: 'local' },
-      { name: 'comment', value: comment || 'No comment', scope: 'local' },
-      { name: 'approver', value: operatorEmail, scope: 'local' },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.TASK_OUTCOME, value: approved ? 'approved' : 'rejected', scope: 'local' },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.COMMENT, value: comment || 'No comment', scope: 'local' },
+      { name: WORKFLOW_CONSTANTS.VARIABLES.APPROVER, value: operatorEmail, scope: 'local' },
     ]
 
     if (additionalVariables) {
@@ -294,7 +296,7 @@ export default class WorkflowService {
 
     // 5. Submit completion
     const payload = { action: 'complete', variables }
-    const result = await this.request(`/flowable-ui/process-api/runtime/tasks/${taskId}`, 'POST', payload)
+    const result = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.TASKS}/${taskId}`, 'POST', payload)
 
     // 6. Process flow is now handled by BPMN gateways
     if (!approved) {
@@ -419,7 +421,7 @@ export default class WorkflowService {
    */
   async checkConnection() {
     try {
-      await this.request('/flowable-ui/process-api/identity/users')
+      await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_USERS}`)
       return true
     } catch (e) {
       return false
@@ -432,7 +434,7 @@ export default class WorkflowService {
   async syncGroup(groupId: string, name: string) {
     try {
       // Check if group exists
-      const groups = await this.request(`/flowable-ui/process-api/identity/groups?id=${groupId}`)
+      const groups = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_GROUPS}?id=${groupId}`)
       if (groups && groups.data && groups.data.length > 0) {
         return groups.data[0]
       }
@@ -443,7 +445,7 @@ export default class WorkflowService {
         name,
         type: 'security-role',
       }
-      return this.request('/flowable-ui/process-api/identity/groups', 'POST', payload)
+      return this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_GROUPS}`, 'POST', payload)
     } catch (error) {
       logger.warn({ groupId, error: error.message }, 'Failed to sync group to Flowable')
     }
@@ -455,7 +457,7 @@ export default class WorkflowService {
   async syncUser(userId: string, fullName: string, roleSlugs: string[]) {
     try {
       // 1. Ensure user exists
-      const users = await this.request(`/flowable-ui/process-api/identity/users?id=${userId}`)
+      const users = await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_USERS}?id=${userId}`)
       if (!users || !users.data || users.data.length === 0) {
         const payload = {
           id: userId,
@@ -464,7 +466,7 @@ export default class WorkflowService {
           email: userId,
           password: 'external-managed', // Passwords are managed by NexQuery
         }
-        await this.request('/flowable-ui/process-api/identity/users', 'POST', payload)
+        await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_USERS}`, 'POST', payload)
       }
 
       // 2. Clear and sync group memberships
@@ -476,7 +478,7 @@ export default class WorkflowService {
           await this.syncGroup(role, role)
 
           const membershipPayload = { userId, groupId: role }
-          await this.request(`/flowable-ui/process-api/identity/groups/${role}/members`, 'POST', membershipPayload)
+          await this.request(`${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.IDENTITY_GROUPS}/${role}/members`, 'POST', membershipPayload)
         } catch (e) {
           // Might already be a member
         }
@@ -507,7 +509,7 @@ export default class WorkflowService {
         + `${xmlContent}\r\n`
         + `--${boundary}--`
 
-    const url = `${this.baseUrl}/flowable-ui/process-api/repository/deployments`
+    const url = `${this.baseUrl}${WORKFLOW_CONSTANTS.API.BASE_PATH}${WORKFLOW_CONSTANTS.API.ENDPOINTS.DEPLOYMENTS}`
 
     // Basic Auth
     const options: RequestInit = {
