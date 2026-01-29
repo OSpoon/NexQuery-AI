@@ -4,6 +4,7 @@ FROM node:22-alpine AS build
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
 ENV NPM_CONFIG_REGISTRY="https://registry.npmmirror.com"
+ENV COREPACK_NPM_REGISTRY="https://registry.npmmirror.com"
 RUN corepack enable
 
 WORKDIR /app
