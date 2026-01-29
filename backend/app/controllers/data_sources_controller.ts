@@ -38,6 +38,11 @@ export default class DataSourcesController {
       isActive: success,
     })
 
+    // Auto-sync schema in background if connection is successful
+    if (success) {
+      this.syncSchemaInBackground(dataSource.id)
+    }
+
     return response.created(dataSource)
   }
 
@@ -82,6 +87,11 @@ export default class DataSourcesController {
     dataSource.isActive = success
 
     await dataSource.save()
+
+    // Auto-sync schema in background if connection is successful
+    if (success) {
+      this.syncSchemaInBackground(dataSource.id)
+    }
 
     return response.ok(dataSource)
   }
@@ -229,6 +239,20 @@ export default class DataSourcesController {
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to fetch schema')
       return response.internalServerError({ message: `Failed to fetch schema: ${error.message}` })
+    }
+  }
+
+  /**
+   * Helper to run schema sync in the background
+   */
+  private async syncSchemaInBackground(dataSourceId: number) {
+    try {
+      const { default: SchemaSyncService } = await import('#services/schema_sync_service')
+      const service = new SchemaSyncService()
+      await service.syncDataSource(dataSourceId)
+      logger.info({ dataSourceId }, 'Auto-sync schema completed')
+    } catch (error: any) {
+      logger.error({ error: error.message, dataSourceId }, 'Auto-sync schema failed')
     }
   }
 

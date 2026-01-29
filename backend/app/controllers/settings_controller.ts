@@ -55,6 +55,9 @@ export default class SettingsController {
   async updateMany({ request, response, auth }: HttpContext) {
     const { settings } = request.all() // Array of { key, value }
     const currentUser = auth.user!
+    if (!currentUser.isAdmin) {
+      return response.forbidden({ message: 'You do not have permission to perform this action' })
+    }
 
     const encryptionKey = env.get('API_ENCRYPTION_KEY')
     const crypto = encryptionKey ? new CryptoService(encryptionKey) : null

@@ -104,7 +104,7 @@ export default class AiController {
     }
 
     const user = auth.getUserOrFail()
-    const { question, dbType, dataSourceId, history, conversationId } = request.all()
+    const { question, dbType, dataSourceId, conversationId } = request.all()
 
     // Handle Conversation Persistence
     let conversation: AiConversation
@@ -146,10 +146,21 @@ export default class AiController {
       const langChainService = new LangChainService()
       const dsId = dataSourceId ? Number(dataSourceId) : conversation.dataSourceId || undefined
 
+      // Fetch history from DB instead of relying on client-side payload
+      const messages = await AiMessage.query()
+        .where('conversation_id', conversation.id)
+        .orderBy('created_at', 'asc')
+
+      const dbHistory = messages.map(m => ({
+        role: m.role,
+        content: m.content,
+        agentSteps: m.agentSteps, // Pass agentSteps for hydration
+      }))
+
       const stream = langChainService.naturalLanguageToSqlStream(question, {
         dbType,
         dataSourceId: dsId,
-        history,
+        history: dbHistory,
       })
 
       let fullAssistantContent = ''

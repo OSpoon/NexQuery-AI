@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import { Check, Pencil, Plus, Trash2, X } from 'lucide-vue-next'
-import { computed, h, onMounted, ref, watch } from 'vue'
+import { Pencil, Plus, Trash2 } from 'lucide-vue-next'
+import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,7 +17,6 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 
@@ -37,7 +35,6 @@ const items = ref<KnowledgeBaseItem[]>([])
 const loading = ref(false)
 const dialogOpen = ref(false)
 const isEditing = ref(false)
-const currentTab = ref('pending') // default to pending for review workflow
 const formData = ref({
   id: 0,
   keyword: '',
@@ -45,12 +42,6 @@ const formData = ref({
   exampleSql: '',
   status: 'approved',
 })
-
-const statusFilters = computed(() => [
-  { label: t('knowledge_base.status_filter.pending'), value: 'pending' },
-  { label: t('knowledge_base.status_filter.approved'), value: 'approved' },
-  { label: t('knowledge_base.status_filter.rejected'), value: 'rejected' },
-])
 
 function openEditDialog(item: KnowledgeBaseItem) {
   isEditing.value = true
@@ -76,20 +67,6 @@ async function deleteItem(id: number) {
   }
   catch {
     toast.error(t('knowledge_base.toast.delete_failed'))
-  }
-}
-
-async function updateStatus(item: KnowledgeBaseItem, status: 'approved' | 'rejected') {
-  try {
-    await api.put(`/knowledge-base/${item.id}`, {
-      ...item,
-      status,
-    })
-    toast.success(t('knowledge_base.toast.status_success', { status }))
-    fetchItems()
-  }
-  catch {
-    toast.error(t('knowledge_base.toast.status_failed'))
   }
 }
 
@@ -122,83 +99,22 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
     },
   },
   {
-    accessorKey: 'status',
-    header: t('knowledge_base.status'),
-    cell: ({ row }) => {
-      const status = row.getValue('status') as string
-      const variant
-        = status === 'approved' ? 'default' : status === 'rejected' ? 'destructive' : 'secondary'
-      return h(Badge, { variant }, () => status)
-    },
-  },
-  {
     id: 'actions',
     header: t('knowledge_base.actions'),
     cell: ({ row }) => {
       const item = row.original
-      const isPending = item.status === 'pending'
 
-      const actions = []
-
-      if (isPending) {
-        // Allow Edit for Pending items too (Edit -> Approve flow)
-        actions.push(
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class: 'h-8 w-8 mr-1',
-              onClick: () => openEditDialog(item),
-              title: 'Edit Content',
-            },
-            () => h(Pencil, { class: 'h-4 w-4' }),
-          ),
-        )
-
-        actions.push(
-          h(
-            Button,
-            {
-              variant: 'outline',
-              size: 'icon',
-              class: 'h-8 w-8 text-green-600 border-green-200 hover:bg-green-50 mr-1',
-              onClick: () => updateStatus(item, 'approved'),
-              title: 'Approve',
-            },
-            () => h(Check, { class: 'h-4 w-4' }),
-          ),
-        )
-        actions.push(
-          h(
-            Button,
-            {
-              variant: 'outline',
-              size: 'icon',
-              class: 'h-8 w-8 text-red-600 border-red-200 hover:bg-red-50 mr-2',
-              onClick: () => updateStatus(item, 'rejected'),
-              title: 'Reject',
-            },
-            () => h(X, { class: 'h-4 w-4' }),
-          ),
-        )
-      }
-      else {
-        actions.push(
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class: 'h-8 w-8',
-              onClick: () => openEditDialog(item),
-            },
-            () => h(Pencil, { class: 'h-4 w-4' }),
-          ),
-        )
-      }
-
-      actions.push(
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(
+          Button,
+          {
+            variant: 'ghost',
+            size: 'icon',
+            class: 'h-8 w-8',
+            onClick: () => openEditDialog(item),
+          },
+          () => h(Pencil, { class: 'h-4 w-4' }),
+        ),
         h(
           Button,
           {
@@ -209,9 +125,7 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
           },
           () => h(Trash2, { class: 'h-4 w-4' }),
         ),
-      )
-
-      return h('div', { class: 'flex items-center' }, actions)
+      ])
     },
   },
 ])
@@ -219,9 +133,7 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
 async function fetchItems() {
   loading.value = true
   try {
-    const res = await api.get('/knowledge-base', {
-      params: { status: currentTab.value },
-    })
+    const res = await api.get('/knowledge-base')
     items.value = res.data
   }
   catch {
@@ -262,10 +174,6 @@ async function handleSubmit() {
   }
 }
 
-watch(currentTab, () => {
-  fetchItems()
-})
-
 onMounted(fetchItems)
 </script>
 
@@ -289,14 +197,6 @@ onMounted(fetchItems)
     </div>
 
     <div class="flex-1 space-y-4">
-      <Tabs v-model="currentTab" class="w-[400px]">
-        <TabsList>
-          <TabsTrigger v-for="tab in statusFilters" :key="tab.value" :value="tab.value">
-            {{ tab.label }}
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
       <DataTable :columns="columns" :data="items" :loading="loading" />
     </div>
 

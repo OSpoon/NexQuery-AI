@@ -505,7 +505,7 @@
   },
   "knowledge_base": {
     "title": "知识库",
-    "desc": "Human-in-the-Loop：审核并管理 AI 学习到的知识。",
+    "desc": "Human-in-the-Loop：管理 AI 学习到的知识并提升回答准确性。",
     "add_term": "添加术语",
     "keyword": "关键词",
     "description": "描述",
@@ -573,7 +573,9 @@
     "toast": {
       "promote_success": "成功采纳至知识库",
       "promote_failed": "采纳反馈失败"
-    }
+    },
+    "adopted": "已采纳",
+    "pending": "待处理"
   },
   "third_party": {
     "title": "第三方绑定",

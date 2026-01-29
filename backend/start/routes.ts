@@ -21,6 +21,7 @@ const ApiKeysController = () => import('#controllers/api_keys_controller')
 const KnowledgeBasesController = () => import('#controllers/knowledge_bases_controller')
 const WorkflowController = () => import('#controllers/workflow_controller')
 const WebhookController = () => import('#controllers/webhook_controller')
+const AiFeedbacksController = () => import('#controllers/ai_feedbacks_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
 const PasswordResetsController = () => import('#controllers/password_resets_controller')
@@ -132,9 +133,10 @@ router
         // AI Feedback
         router
           .group(() => {
-            router.get('feedback', '#controllers/ai_feedbacks_controller.index')
-            router.post('feedback', '#controllers/ai_feedbacks_controller.store')
-            router.delete('feedback/:id', '#controllers/ai_feedbacks_controller.destroy')
+            router.get('feedback', [AiFeedbacksController, 'index'])
+            router.post('feedback', [AiFeedbacksController, 'store'])
+            router.post('feedback/:id/adopt', [AiFeedbacksController, 'adopt'])
+            router.delete('feedback/:id', [AiFeedbacksController, 'destroy'])
           })
           .prefix('ai')
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_AI_FEEDBACK }))

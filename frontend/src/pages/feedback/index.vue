@@ -33,6 +33,7 @@ interface FeedbackItem {
   generatedSql: string
   isHelpful: boolean
   userCorrection: string | null
+  isAdopted: boolean
   createdAt: string
 }
 
@@ -133,6 +134,16 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
     },
   },
   {
+    accessorKey: 'isAdopted',
+    header: t('knowledge_base.status'),
+    cell: ({ row }) => {
+      const isAdopted = row.getValue('isAdopted') as boolean
+      return isAdopted
+        ? h(Badge, { variant: 'default' }, () => t('feedback.adopted'))
+        : h(Badge, { variant: 'secondary' }, () => t('feedback.pending'))
+    },
+  },
+  {
     accessorKey: 'createdAt',
     header: t('feedback.date'),
     cell: ({ row }) => {
@@ -155,7 +166,7 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
           },
           () => [h(Eye, { class: 'h-3.5 w-3.5' }), t('feedback.view')],
         ),
-        item.userCorrection
+        item.userCorrection && !item.isAdopted
           ? h(
               Button,
               {
@@ -208,16 +219,19 @@ function promoteToKnowledge(item: FeedbackItem) {
 
 async function confirmPromotion() {
   try {
-    await api.post('/knowledge-base', {
+    const res = await api.post('/knowledge-base', {
       keyword: promoteForm.value.keyword,
       description: promoteForm.value.description,
       exampleSql: promoteForm.value.exampleSql,
-      status: 'pending',
+      status: 'approved',
     })
-    toast.success(t('feedback.toast.promote_success'))
-    isPromoteOpen.value = false
-    // Optionally delete feedback after promotion
-    await deleteFeedback(promoteForm.value.sourceId!, true)
+    if (res.status === 201 || res.status === 200) {
+      toast.success(t('feedback.toast.promote_success'))
+      isPromoteOpen.value = false
+      // Mark as adopted instead of deleting
+      await api.post(`/ai/feedback/${promoteForm.value.sourceId}/adopt`)
+      fetchFeedbacks()
+    }
   }
   catch {
     toast.error(t('feedback.toast.promote_failed'))

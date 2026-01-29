@@ -19,6 +19,9 @@ export default class RolesController {
   async store({ request, response, auth }: HttpContext) {
     const { name, slug, description, permissionIds } = request.all()
     const currentUser = auth.user!
+    if (!currentUser.isAdmin) {
+      return response.forbidden({ message: 'You do not have permission to perform this action' })
+    }
 
     const role = await Role.create({ name, slug, description })
 
@@ -49,7 +52,6 @@ export default class RolesController {
     const role = await Role.query().where('id', params.id).preload('permissions').firstOrFail()
     return response.ok({
       ...role.toJSON(),
-      permissions: role.permissions.map(p => p.toJSON()),
     })
   }
 
@@ -57,6 +59,9 @@ export default class RolesController {
     const role = await Role.findOrFail(params.id)
     const { name, slug, description, permissionIds } = request.all()
     const currentUser = auth.user!
+    if (!currentUser.isAdmin) {
+      return response.forbidden({ message: 'You do not have permission to perform this action' })
+    }
 
     const previousData = role.toJSON()
 
@@ -92,6 +97,9 @@ export default class RolesController {
   async destroy({ params, response, request, auth }: HttpContext) {
     const role = await Role.findOrFail(params.id)
     const currentUser = auth.user!
+    if (!currentUser.isAdmin) {
+      return response.forbidden({ message: 'You do not have permission to perform this action' })
+    }
 
     await role.delete()
 

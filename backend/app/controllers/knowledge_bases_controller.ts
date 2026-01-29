@@ -4,22 +4,13 @@ import EmbeddingService from '#services/embedding_service'
 import VectorStoreService from '#services/vector_store_service'
 
 export default class KnowledgeBasesController {
-  public async index({ request, response }: HttpContext) {
-    const status = request.input('status')
-    const query = KnowledgeBase.query().orderBy('created_at', 'desc')
-
-    if (status) {
-      query.where('status', status)
-    }
-
-    const items = await query.exec()
+  public async index({ response }: HttpContext) {
+    const items = await KnowledgeBase.query().orderBy('created_at', 'desc').exec()
     return response.json(items)
   }
 
   public async store({ request, response, auth }: HttpContext) {
-    const user = auth.user!
-    // RBAC: Check admin role
-    if (!(await this.checkAdminRole(user))) {
+    if (!auth.user!.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
@@ -45,11 +36,11 @@ export default class KnowledgeBasesController {
       description: data.description,
       exampleSql: data.exampleSql,
       embedding,
-      status: request.input('status', 'pending'),
+      status: 'approved',
     })
 
     // Sync to Qdrant immediately if approved
-    if (item.embedding && item.embedding.length > 0) {
+    if (item.status === 'approved' && item.embedding && item.embedding.length > 0) {
       try {
         const vectorStore = new VectorStoreService()
         await vectorStore.upsertKnowledge(
@@ -57,6 +48,7 @@ export default class KnowledgeBasesController {
           item.description,
           item.exampleSql,
           item.embedding,
+          item.status,
         )
       } catch (e) {
         console.error('Failed to sync manual knowledge to Qdrant', e)
@@ -67,9 +59,7 @@ export default class KnowledgeBasesController {
   }
 
   public async update({ params, request, response, auth }: HttpContext) {
-    const user = auth.user!
-    // RBAC: Check admin role
-    if (!(await this.checkAdminRole(user))) {
+    if (!auth.user!.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
@@ -102,13 +92,11 @@ export default class KnowledgeBasesController {
       }
     }
 
-    const oldStatus = item.status
-
     item.merge({
       keyword: data.keyword,
       description: data.description,
       exampleSql: data.exampleSql,
-      status: data.status,
+      status: 'approved',
       embedding,
     })
     await item.save()
@@ -120,32 +108,26 @@ export default class KnowledgeBasesController {
       await vectorStore.deleteKnowledge(oldKeyword)
     }
 
-    // Sync logic:
-    // If Status is APPROVED -> Push to Qdrant
-    // If Status changed FROM APPROVED TO (PENDING/REJECTED) -> Delete from Qdrant
-    if (item.status === 'approved' && item.embedding && item.embedding.length > 0) {
+    // Sync logic: Always Push to Qdrant (all entries are approved)
+    if (item.embedding && item.embedding.length > 0) {
       try {
         await vectorStore.upsertKnowledge(
           item.keyword,
           item.description,
           item.exampleSql,
           item.embedding,
+          item.status,
         )
       } catch (e) {
         console.error('Failed to sync updated knowledge to Qdrant', e)
       }
-    } else if (oldStatus === 'approved' && item.status !== 'approved') {
-      // Was approved, now rejected/pending -> Remove from Vector Store
-      await vectorStore.deleteKnowledge(item.keyword)
     }
 
     return response.json(item)
   }
 
   public async destroy({ params, response, auth }: HttpContext) {
-    const user = auth.user!
-    // RBAC: Check admin role
-    if (!(await this.checkAdminRole(user))) {
+    if (!auth.user!.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
@@ -158,13 +140,5 @@ export default class KnowledgeBasesController {
     await vectorStore.deleteKnowledge(keyword)
 
     return response.json({ message: 'Deleted successfully' })
-  }
-
-  private async checkAdminRole(user: any): Promise<boolean> {
-    // Check if user has admin role
-    // Since roles are loaded async, we use the method on User model or load manually
-    await user.load('roles')
-    const roles = user.roles as any[]
-    return roles.some((r: any) => r.slug === 'admin')
   }
 }

@@ -91,6 +91,7 @@ export default class VectorStoreService {
     description: string,
     exampleSql: string | null | undefined,
     vector: number[],
+    status: string = 'approved',
   ) {
     await this.ensureCollection(VectorStoreService.KNOWLEDGE_COLLECTION, vector.length)
 
@@ -107,6 +108,7 @@ export default class VectorStoreService {
             keyword,
             description,
             exampleSql: exampleSql || '',
+            status,
           },
         },
       ],
@@ -150,23 +152,11 @@ export default class VectorStoreService {
   public async searchKnowledge(
     queryVector: number[],
     limit: number = 5,
-    status?: 'approved' | 'pending',
   ) {
     try {
-      const filter: any = { must: [] }
-      if (status) {
-        filter.must.push({
-          key: 'status',
-          match: {
-            value: status,
-          },
-        })
-      }
-
       const results = await this.client.search(VectorStoreService.KNOWLEDGE_COLLECTION, {
         vector: queryVector,
         limit,
-        filter: filter.must.length > 0 ? filter : undefined,
       })
       return results
     } catch (e: any) {

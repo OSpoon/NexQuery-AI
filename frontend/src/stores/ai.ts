@@ -19,10 +19,6 @@ export interface ChatMessage {
   prompt?: string // For assistant messages, stores the question that triggered it
   feedback?: 'up' | 'down' | null
   agentSteps?: AgentStep[]
-  visualization?: {
-    recommendation: 'table' | 'bar' | 'line' | 'pie' | 'number'
-    config: any | null
-  }
   clarification?: {
     question: string
     options: string[]
@@ -229,9 +225,6 @@ export const useAiStore = defineStore('ai', () => {
                 // New Event: This is the Final Answer.
                 // Append this to the main chat bubble.
                 activeMessage.content += data.content
-                if (data.visualization) {
-                  activeMessage.visualization = data.visualization
-                }
               }
               else if (data.type === 'tool_start') {
                 activeMessage.agentSteps.push({

@@ -22,7 +22,7 @@ export default class KnowledgeBase extends BaseModel {
   declare embedding: number[] | null
 
   @column()
-  declare status: 'pending' | 'approved' | 'rejected'
+  declare status: 'approved' // Simplified to only use 'approved' effectively
 
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime

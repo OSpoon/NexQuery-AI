@@ -86,7 +86,7 @@ export default class LangChainService {
         return ''
 
       // Search Knowledge Base via Vector Store - Only retrieve Approved items
-      const results = await vectorStore.searchKnowledge(questionEmbedding, 5, 'approved')
+      const results = await vectorStore.searchKnowledge(questionEmbedding, 5)
 
       if (results.length === 0) {
         return ''
@@ -128,18 +128,32 @@ export default class LangChainService {
   /**
    * Learn from a successful interaction
    */
-  public async learnInteraction(question: string, sql: string) {
+  public async learnInteraction(question: string, sql: string, description?: string) {
     try {
       const embeddingService = new EmbeddingService()
-      const embedding = await embeddingService.generate(question)
+      const desc = description || 'Auto-learned from successful execution'
+      const embedding = await embeddingService.generate(`${question}: ${desc}`)
 
-      await KnowledgeBase.create({
+      const item = await KnowledgeBase.create({
         keyword: question,
-        description: 'Auto-learned from successful execution',
+        description: desc,
         exampleSql: sql,
         embedding,
-        status: 'pending',
+        status: 'approved',
       })
+
+      // Sync to Qdrant immediately
+      if (item.embedding && item.embedding.length > 0) {
+        const vectorStore = new VectorStoreService()
+        await vectorStore.upsertKnowledge(
+          item.keyword,
+          item.description,
+          item.exampleSql,
+          item.embedding,
+          item.status,
+        )
+      }
+      return item
     } catch (e) {
       logger.error({ error: e }, 'Failed to learn interaction')
     }
@@ -206,7 +220,7 @@ ${recommendedTablesText || '暂无推荐，请自行搜索。'}
    - **严禁**提交未经验证的 SQL。
    - 如果验证失败，该工具会提示具体错误。**你必须读取错误提示，修正 SQL，并再次进行验证，直到验证通过**。
    - 不要轻易放弃，请尝试多次修正。
-5. **提交结果与可视化 (Submit & Visualize)**:
+5. **提交结果 (Submit Result)**:
    - 只有当 SQL 通过验证 (validate_sql 返回 Valid)，且你确信无误后，**必须**调用 tool \`submit_sql_solution\` 提交。
    - **重要**: 请根据数据特征推荐合适的图表。例如：
      - **趋势分析** (如: 每日订单数) -> 推荐 \`line\`。
@@ -234,8 +248,43 @@ Database Type: ${dbType}
       if (m.role === 'user') {
         messages.push(new HumanMessage(m.content))
       } else if (m.role === 'assistant') {
-        // Hydrate history (simplified)
-        messages.push(new AIMessage(m.content || 'Continuing...'))
+        const toolCalls: any[] = []
+        const toolMessages: ToolMessage[] = []
+
+        if (m.agentSteps && Array.isArray(m.agentSteps)) {
+          for (const step of m.agentSteps) {
+            if (step.type === 'tool') {
+              toolCalls.push({
+                id: step.toolId,
+                name: step.toolName,
+                args: step.toolInput,
+                type: 'tool_call',
+              })
+
+              if (step.status === 'done' || step.toolOutput) {
+                toolMessages.push(
+                  new ToolMessage({
+                    content: step.toolOutput || '',
+                    tool_call_id: step.toolId,
+                    name: step.toolName,
+                  }),
+                )
+              }
+            }
+          }
+        }
+
+        messages.push(
+          new AIMessage({
+            content: m.content || '',
+            tool_calls: toolCalls.length > 0 ? toolCalls : undefined,
+          }),
+        )
+
+        // Append tool messages immediately after the AI message that called them
+        if (toolMessages.length > 0) {
+          messages.push(...toolMessages)
+        }
       }
     }
     messages.push(new HumanMessage(question))
@@ -298,10 +347,6 @@ Database Type: ${dbType}
           yield JSON.stringify({
             type: 'response',
             content: finalOutput,
-            visualization: {
-              recommendation: args.chart_recommendation || 'table',
-              config: args.chart_config || null,
-            },
           })
           return // EXIT LOOP
         }

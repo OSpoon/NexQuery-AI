@@ -1,20 +1,13 @@
 <script setup lang="ts">
 import { useDark } from '@vueuse/core'
 import {
-  BarChart2,
   Bot,
-  Hash,
   HelpCircle,
   History,
-  LineChart,
-  Loader2,
   MessageCircle,
-  PieChart,
-  PlayCircle,
   Plus,
   Send,
   Sparkles,
-  Table,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -25,9 +18,7 @@ import { MarkdownRender } from 'markstream-vue'
 import { nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import AiChart from '@/components/shared/AiChart.vue'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
-import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -153,36 +144,6 @@ function handleSend() {
 const isCorrectionOpen = ref(false)
 const correctionText = ref('')
 const activeFeedbackMsg = ref<any>(null)
-const previewData = ref<Record<number, any[]>>({})
-const loadingPreview = ref<Record<number, boolean>>({})
-
-async function handlePreview(msg: any, index: number) {
-  if (loadingPreview.value[index])
-    return
-
-  const sqlMatch = msg.content.match(/```sql\n?([\s\S]*?)```/)
-  const sql = sqlMatch ? sqlMatch[1] : msg.content
-
-  if (!sql || !store.dataSourceId) {
-    toast.error('Unable to execute: SQL or Data Source missing')
-    return
-  }
-
-  loadingPreview.value[index] = true
-  try {
-    const res = await api.post('/ai/preview', {
-      dataSourceId: store.dataSourceId,
-      sql,
-    })
-    previewData.value[index] = res.data.data
-  }
-  catch (error: any) {
-    toast.error(error.response?.data?.message || 'Failed to fetch preview data')
-  }
-  finally {
-    loadingPreview.value[index] = false
-  }
-}
 
 async function handleFeedback(msg: any, helpful: boolean) {
   // Toggle logic: If clicking the same feedback, "cancel" it
@@ -398,55 +359,7 @@ function selectOption(option: string) {
                     :steps="msg.agentSteps"
                   />
 
-                  <!-- Visualization Badge -->
-                  <div v-if="msg.visualization" class="mb-2 flex items-center gap-1.5">
-                    <Badge
-                      variant="outline"
-                      class="bg-primary/10 text-primary border-primary/20 flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
-                    >
-                      <BarChart2
-                        v-if="msg.visualization.recommendation === 'bar'"
-                        class="h-3 w-3"
-                      />
-                      <LineChart
-                        v-else-if="msg.visualization.recommendation === 'line'"
-                        class="h-3 w-3"
-                      />
-                      <PieChart
-                        v-else-if="msg.visualization.recommendation === 'pie'"
-                        class="h-3 w-3"
-                      />
-                      <Hash
-                        v-else-if="msg.visualization.recommendation === 'number'"
-                        class="h-3 w-3"
-                      />
-                      <Table v-else class="h-3 w-3" />
-                      Recommended: {{ msg.visualization.recommendation }}
-                    </Badge>
-                    <Button
-                      v-if="!previewData[index]"
-                      variant="outline"
-                      size="sm"
-                      class="h-6 px-2 text-[10px] gap-1 hover:bg-primary/10 border-primary/20 text-primary"
-                      :disabled="loadingPreview[index]"
-                      @click="handlePreview(msg, index)"
-                    >
-                      <Loader2 v-if="loadingPreview[index]" class="h-3 w-3 animate-spin" />
-                      <PlayCircle v-else class="h-3 w-3" />
-                      {{ loadingPreview[index] ? 'Running...' : 'Execute & Visualize' }}
-                    </Button>
-                  </div>
-
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
-
-                  <!-- Chart Preview -->
-                  <div v-if="previewData[index]" class="mt-4">
-                    <AiChart
-                      :data="previewData[index]"
-                      :type="msg.visualization?.recommendation || 'table'"
-                      :config="msg.visualization?.config || {}"
-                    />
-                  </div>
 
                   <!-- Clarification Request -->
                   <div

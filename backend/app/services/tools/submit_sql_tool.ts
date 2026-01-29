@@ -12,17 +12,6 @@ export class SubmitSqlTool extends StructuredTool {
     risk_level: z
       .enum(['safe', 'modification'])
       .describe('Set to \'modification\' if the query changes data (UPDATE/DELETE/INSERT).'),
-    chart_recommendation: z
-      .enum(['table', 'bar', 'line', 'pie', 'number'])
-      .optional()
-      .describe('Optional: Recommend a chart type for the data results.'),
-    chart_config: z
-      .object({
-        x: z.string().describe('Column name to use for X axis or categories.'),
-        y: z.string().describe('Column name(s) to use for Y axis or values.'),
-      })
-      .optional()
-      .describe('Optional: Configuration for the recommended chart.'),
   })
 
   // This tool is a signal, not a functional tool. The loop intercepts it.

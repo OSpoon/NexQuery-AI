@@ -20,6 +20,9 @@ export default class AiFeedback extends BaseModel {
   @column()
   declare userCorrection: string | null
 
+  @column()
+  declare isAdopted: boolean
+
   @column.dateTime({ autoCreate: true })
   declare createdAt: DateTime
 

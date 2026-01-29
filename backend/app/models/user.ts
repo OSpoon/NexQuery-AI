@@ -81,6 +81,15 @@ export default class User extends UserBase {
     return false
   }
 
+  /**
+   * Check if user has admin role
+   */
+  get isAdmin(): boolean {
+    if (!this.roles || !Array.isArray(this.roles))
+      return false
+    return this.roles.some(r => r.slug === 'admin')
+  }
+
   @column.dateTime()
   declare lastPasswordChangeAt: DateTime | null
 
