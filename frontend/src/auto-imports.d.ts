@@ -549,7 +549,6 @@ declare module 'vue' {
     readonly useMutationObserver: UnwrapRef<typeof import('@vueuse/core')['useMutationObserver']>
     readonly useNavigatorLanguage: UnwrapRef<typeof import('@vueuse/core')['useNavigatorLanguage']>
     readonly useNetwork: UnwrapRef<typeof import('@vueuse/core')['useNetwork']>
-    readonly useNotificationStream: UnwrapRef<typeof import('./composables/useNotificationStream')['useNotificationStream']>
     readonly useNow: UnwrapRef<typeof import('@vueuse/core')['useNow']>
     readonly useObjectUrl: UnwrapRef<typeof import('@vueuse/core')['useObjectUrl']>
     readonly useOffsetPagination: UnwrapRef<typeof import('@vueuse/core')['useOffsetPagination']>
