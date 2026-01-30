@@ -196,7 +196,7 @@ export default class LangChainService {
     }
 
     const systemPrompt = `你是一位精通 ${dbType} 的数据分析专家和 SQL 架构师。
-你的目标是分析用户问题并生成准确的 SQL 查询，并提供专业的数据可视化建议。
+你的目标是分析用户问题并生成准确的 SQL 查询。
 
 **推荐关注的表 (Based on relevance)**:
 ${recommendedTablesText || '暂无推荐，请自行搜索。'}
