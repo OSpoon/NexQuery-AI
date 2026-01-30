@@ -57,7 +57,8 @@
       "users": "用户管理",
       "roles": "角色权限",
       "menus": "菜单管理",
-      "api_keys": "API 密钥"
+      "api_keys": "API 密钥",
+      "settings": "系统设置"
     },
     "knowledge_base": "知识库",
     "ai_intelligence": "AI 智能",
@@ -332,7 +333,9 @@
       "ai_chat_model": "对话模型",
       "ai_chat_model_desc": "默认的分析与 SQL 生成模型 (如 glm-4.5-flash)。",
       "ai_embedding_model": "嵌入模型",
-      "ai_embedding_model_desc": "用于知识库检索的向量化模型 (如 embedding-3)。"
+      "ai_embedding_model_desc": "用于文本嵌入的模型名称（如 embedding-3）",
+      "ai_timeout_sec": "AI 请求超时时间",
+      "ai_timeout_sec_desc": "AI 模型响应的最大等待时间，单位秒（默认 600秒）"
     }
   },
   "api_keys": {

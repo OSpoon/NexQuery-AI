@@ -41,6 +41,9 @@ export default class LangChainService {
     const chatModelSetting = await Setting.findBy('key', 'ai_chat_model')
     const chatModel = chatModelSetting?.value || 'glm-4.5-flash'
 
+    const timeoutSetting = await Setting.findBy('key', 'ai_timeout_sec')
+    const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
+
     // Initialize Langfuse Callback Handler
     const langfuseHandler = new CallbackHandler({
       publicKey: env.get('LANGFUSE_PUBLIC_KEY'),
@@ -53,6 +56,7 @@ export default class LangChainService {
       configuration: { baseURL: LangChainService.API_BASE_URL },
       modelName: chatModel,
       temperature: 0.1,
+      timeout: timeoutMs,
       streaming: true,
       callbacks: [langfuseHandler],
     })

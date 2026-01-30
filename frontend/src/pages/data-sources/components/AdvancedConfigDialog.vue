@@ -3,6 +3,7 @@ import type { DataSource } from '@nexquery/shared'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -48,6 +49,7 @@ interface FieldConfig {
   alias: string
   enums: EnumItem[]
   masking: MaskingConfig
+  isAuto?: boolean
 }
 
 interface TableConfig {
@@ -90,6 +92,7 @@ function initAdvancedConfig() {
                 replace: f.masking.replace || '',
               }
             : { type: 'none', rule: '', replace: '' },
+          isAuto: f.isAuto || false,
         })),
       }))
     }
@@ -283,26 +286,35 @@ async function saveConfig() {
                   :key="fIndex"
                   class="space-y-2 p-2 bg-background rounded border"
                 >
-                  <div class="grid grid-cols-2 gap-2">
-                    <div>
-                      <Label class="text-xs">{{ t('data_sources.original_field') }}</Label>
-                      <Input v-model="field.name" placeholder="status" class="h-7 text-sm" />
+                  <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2 h-4">
+                        <Label class="text-xs">{{ t('data_sources.original_field') }}</Label>
+                        <Badge
+                          v-if="field.isAuto"
+                          variant="secondary"
+                          class="text-[9px] px-1 h-3 bg-primary/10 text-primary border-primary/20 shrink-0"
+                        >
+                          AI Discovered
+                        </Badge>
+                      </div>
+                      <Input v-model="field.name" placeholder="status" class="h-8 text-sm" />
                     </div>
-                    <div>
-                      <Label class="text-xs">{{ t('data_sources.display_alias') }}</Label>
-                      <div class="flex gap-1">
-                        <Input v-model="field.alias" placeholder="Status" class="h-7 text-sm" />
+
+                    <div class="space-y-1">
+                      <div class="flex items-center justify-between h-4">
+                        <Label class="text-xs">{{ t('data_sources.display_alias') }}</Label>
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon"
-                          class="h-7 w-7 text-destructive shrink-0"
+                          class="h-4 w-4 text-destructive hover:bg-destructive/10 -mr-1"
                           @click="removeFieldConfig(tIndex, fIndex)"
                         >
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
-                            width="14"
-                            height="14"
+                            width="12"
+                            height="12"
                             viewBox="0 0 24 24"
                             fill="none"
                             stroke="currentColor"
@@ -316,6 +328,7 @@ async function saveConfig() {
                           </svg>
                         </Button>
                       </div>
+                      <Input v-model="field.alias" placeholder="Status" class="h-8 text-sm" />
                     </div>
                   </div>
 

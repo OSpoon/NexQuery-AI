@@ -19,6 +19,7 @@ const AiController = () => import('#controllers/ai_controller')
 const ScheduledQueriesController = () => import('#controllers/scheduled_queries_controller')
 const ApiKeysController = () => import('#controllers/api_keys_controller')
 const AiFeedbacksController = () => import('#controllers/ai_feedbacks_controller')
+const NotificationsController = () => import('#controllers/notifications_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
 const PasswordResetsController = () => import('#controllers/password_resets_controller')
@@ -167,3 +168,7 @@ router
   })
   .prefix('api')
   .use(middleware.encrypt())
+
+// SSE Notifications (Manual auth in controller to support EventSource)
+// We keep it outside the group to bypass the group-level encrypt and auth middleware
+router.get('/api/notifications/stream', [NotificationsController, 'stream'])

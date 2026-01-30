@@ -56,7 +56,8 @@
       "users": "Users",
       "roles": "Roles",
       "menus": "Menus",
-      "api_keys": "API Keys"
+      "api_keys": "API Keys",
+      "settings": "System Settings"
     },
     "knowledge_base": "Knowledge Base",
     "ai_intelligence": "AI Intelligence",
@@ -331,7 +332,9 @@
       "ai_chat_model": "AI Chat Model",
       "ai_chat_model_desc": "Default model for analysis and SQL generation (e.g., glm-4.5-flash).",
       "ai_embedding_model": "AI Embedding Model",
-      "ai_embedding_model_desc": "Default model for vector search and knowledge base (e.g., embedding-3)."
+      "ai_embedding_model_desc": "Model name for text embeddings (e.g. embedding-3)",
+      "ai_timeout_sec": "AI Request Timeout",
+      "ai_timeout_sec_desc": "Maximum duration in seconds for AI models to respond (Default: 600s)"
     }
   },
   "api_keys": {

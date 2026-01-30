@@ -6,6 +6,8 @@ import mysql from 'mysql2/promise'
 import pg from 'pg'
 import logger from '@adonisjs/core/services/logger'
 import DbHelper from '#services/db_helper'
+import PiiDiscoveryService from '#services/pii_discovery_service'
+import NotificationService from '#services/notification_service'
 
 export default class DataSourcesController {
   /**
@@ -152,18 +154,19 @@ export default class DataSourcesController {
   /**
    * Sync schema to vector store
    */
-  async syncSchema({ params, response }: HttpContext) {
+  async syncSchema({ params, response, auth }: HttpContext) {
     const dataSourceId = params.id
     try {
       const { default: SchemaSyncService } = await import('#services/schema_sync_service')
       const service = new SchemaSyncService()
 
-      // Run in background properly (fire and forget vs await?)
-      // For now, await it so user knows it finished. For huge DBs, this should be a job.
-      // But for < 500 tables, it takes maybe 10-30s.
+      // 1. List all tables
       await service.syncDataSource(Number(dataSourceId))
 
-      return response.ok({ message: 'Schema sync completed successfully' })
+      // Trigger PII Discovery in background to avoid hanging the UI
+      this.runPiiDiscovery(Number(dataSourceId), auth.user?.id)
+
+      return response.ok({ message: 'Schema sync started, PII discovery will run in the background' })
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to sync schema')
       return response.internalServerError({ message: `Failed to sync schema: ${error.message}` })
@@ -176,70 +179,73 @@ export default class DataSourcesController {
   async getSchema({ params, response }: HttpContext) {
     const dataSourceId = params.id
     try {
-      const ds = await DataSource.findOrFail(dataSourceId)
-      if (ds.type === 'api') {
-        return response.ok([])
-      }
-
-      const { client, dbType } = await DbHelper.getConnection(dataSourceId)
-
-      let rows: any[] = []
-
-      if (dbType === 'mysql') {
-        const [result] = await client.rawQuery(`
-          SELECT 
-            TABLE_NAME as tableName, 
-            COLUMN_NAME as columnName,
-            DATA_TYPE as dataType,
-            COLUMN_COMMENT as columnComment
-          FROM INFORMATION_SCHEMA.COLUMNS 
-          WHERE TABLE_SCHEMA = DATABASE()
-          ORDER BY TABLE_NAME, ORDINAL_POSITION
-        `)
-        rows = result as any[]
-      } else if (dbType === 'postgresql') {
-        const result = await client.rawQuery(`
-          SELECT 
-            table_name as "tableName", 
-            column_name as "columnName",
-            data_type as "dataType",
-            (
-                SELECT description 
-                FROM pg_description 
-                WHERE objoid = (quote_ident(table_schema) || '.' || quote_ident(table_name))::regclass 
-                AND objsubid = ordinal_position
-            ) as "columnComment"
-          FROM information_schema.columns 
-          WHERE table_schema = 'public'
-          ORDER BY table_name, ordinal_position
-        `)
-        rows = result.rows
-      }
-
-      const tableMap = new Map<string, Array<{ name: string, type: string, comment: string }>>()
-      for (const row of rows) {
-        const tableName = row.tableName
-        const col = {
-          name: row.columnName,
-          type: row.dataType,
-          comment: row.columnComment || '',
-        }
-        if (!tableMap.has(tableName)) {
-          tableMap.set(tableName, [])
-        }
-        tableMap.get(tableName)?.push(col)
-      }
-
-      const schema = Array.from(tableMap.entries()).map(([name, columns]) => ({
-        name,
-        columns,
-      }))
-
+      const schema = await this.getPhysicalSchema(dataSourceId)
       return response.ok(schema)
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to fetch schema')
       return response.internalServerError({ message: `Failed to fetch schema: ${error.message}` })
     }
+  }
+
+  private async getPhysicalSchema(dataSourceId: number) {
+    const ds = await DataSource.findOrFail(dataSourceId)
+    if (ds.type === 'api') {
+      return []
+    }
+
+    const { client, dbType } = await DbHelper.getConnection(dataSourceId)
+
+    let rows: any[] = []
+
+    if (dbType === 'mysql') {
+      const [result] = await client.rawQuery(`
+        SELECT 
+          TABLE_NAME as tableName, 
+          COLUMN_NAME as columnName,
+          DATA_TYPE as dataType,
+          COLUMN_COMMENT as columnComment
+        FROM INFORMATION_SCHEMA.COLUMNS 
+        WHERE TABLE_SCHEMA = DATABASE()
+        ORDER BY TABLE_NAME, ORDINAL_POSITION
+      `)
+      rows = result as any[]
+    } else if (dbType === 'postgresql') {
+      const result = await client.rawQuery(`
+        SELECT 
+          table_name as "tableName", 
+          column_name as "columnName",
+          data_type as "dataType",
+          (
+              SELECT description 
+              FROM pg_description 
+              WHERE objoid = (quote_ident(table_schema) || '.' || quote_ident(table_name))::regclass 
+              AND objsubid = ordinal_position
+          ) as "columnComment"
+        FROM information_schema.columns 
+        WHERE table_schema = 'public'
+        ORDER BY table_name, ordinal_position
+      `)
+      rows = result.rows
+    }
+
+    const tableMap = new Map<string, Array<{ name: string, type: string, comment: string }>>()
+    for (const row of rows) {
+      const tableName = row.tableName
+      const col = {
+        name: row.columnName,
+        type: row.dataType,
+        comment: row.columnComment || '',
+      }
+      if (!tableMap.has(tableName)) {
+        tableMap.set(tableName, [])
+      }
+      tableMap.get(tableName)?.push(col)
+    }
+
+    return Array.from(tableMap.entries()).map(([name, columns]) => ({
+      name,
+      columns,
+    }))
   }
 
   /**
@@ -251,6 +257,9 @@ export default class DataSourcesController {
       const service = new SchemaSyncService()
       await service.syncDataSource(dataSourceId)
       logger.info({ dataSourceId }, 'Auto-sync schema completed')
+
+      // Trigger PII Discovery in background as well
+      this.runPiiDiscovery(dataSourceId)
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Auto-sync schema failed')
     }
@@ -300,5 +309,75 @@ export default class DataSourcesController {
     }
 
     return { success: false, message: 'Unsupported driver or missing type' }
+  }
+
+  /**
+   * Run PII Discovery for a data source and update its advanced_config
+   */
+  private async runPiiDiscovery(dataSourceId: number, userId?: number) {
+    try {
+      if (userId) {
+        NotificationService.push(userId, 'PII Discovery', 'Starting automated sensitive data scan...', 'info')
+      }
+      const ds = await DataSource.findOrFail(dataSourceId)
+      if (ds.type === 'api') {
+        return
+      }
+
+      const schema = await this.getPhysicalSchema(dataSourceId)
+
+      const discoveryService = new PiiDiscoveryService()
+      const piiConfig = await discoveryService.discover(schema)
+
+      if (piiConfig.length > 0) {
+        // ... (existing logic)
+        // Merge with existing advanced_config
+        const currentConfig = ds.config || {}
+        const advancedConfig = (currentConfig.advanced_config || []).map((t: any) => ({
+          table: t.table || t.tableName, // compatibility
+          fields: t.fields || [],
+        }))
+
+        for (const tableRule of piiConfig) {
+          let existingTable = advancedConfig.find((t: any) => t.table === tableRule.table)
+          if (!existingTable) {
+            existingTable = { table: tableRule.table, fields: [] }
+            advancedConfig.push(existingTable)
+          }
+
+          // Merge fields
+          for (const field of tableRule.fields) {
+            const existingField = existingTable.fields.find((f: any) => f.name === field.name)
+            if (existingField) {
+              // Only update if no manual masking is set or if it's 'none'
+              if (!existingField.masking || existingField.masking.type === 'none') {
+                existingField.masking = field.masking
+                existingField.isAuto = true
+              }
+            } else {
+              existingTable.fields.push({ ...field, isAuto: true })
+            }
+          }
+        }
+
+        ds.config = {
+          ...currentConfig,
+          advanced_config: advancedConfig,
+        }
+        await ds.save()
+        logger.info({ dataSourceId, tablesDiscovered: piiConfig.length }, 'PII discovery applied to advanced_config')
+
+        if (userId) {
+          NotificationService.push(userId, 'PII Discovery Success', `Successfully identified PII in ${piiConfig.length} tables for ${ds.name}`, 'success')
+        }
+      } else if (userId) {
+        NotificationService.push(userId, 'PII Discovery Complete', `No new sensitive data identified for ${ds.name}`, 'info')
+      }
+    } catch (error: any) {
+      logger.error({ error: error.message, dataSourceId }, 'PII discovery failed')
+      if (userId) {
+        NotificationService.push(userId, 'PII Discovery Failed', `Failed to scan ${dataSourceId}: ${error.message}`, 'error')
+      }
+    }
   }
 }

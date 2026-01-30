@@ -2,9 +2,13 @@
 import { onMounted } from 'vue'
 import GlobalWatermark from '@/components/common/GlobalWatermark.vue'
 import { Toaster } from '@/components/ui/sonner'
+import { useNotificationStream } from '@/hooks/useNotificationStream'
 
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
+
+// Listen for notifications
+useNotificationStream()
 
 // Initialize auth state on app mount
 onMounted(() => {

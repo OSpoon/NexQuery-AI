@@ -13,7 +13,8 @@ export default class ApiEncryptionMiddleware {
     }
 
     // Skip encryption for streaming endpoints entirely
-    if (request.url().includes('/ai/chat/stream')) {
+    const url = request.url()
+    if (url.includes('/ai/chat/stream') || url.includes('/notifications/stream')) {
       return await next()
     }
 

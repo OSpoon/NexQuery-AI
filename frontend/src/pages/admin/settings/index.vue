@@ -60,6 +60,11 @@ const settings = ref([
     value: 'embedding-3',
     group: 'ai',
   },
+  {
+    key: 'ai_timeout_sec',
+    value: '600',
+    group: 'ai',
+  },
 ])
 
 const testPayload = ref('')

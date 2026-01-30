@@ -239,11 +239,24 @@ export default class extends BaseSeeder {
       { key: 'glm_api_key', value: '', type: 'string', group: 'ai' },
       { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'ai' },
       { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
+      { key: 'ai_timeout_sec', value: '600', type: 'number', group: 'ai', label: 'AI Request Timeout', description: 'Maximum duration in seconds for AI models to respond.' },
       { key: 'workflow_bindings', value: '{}', type: 'string', group: 'workflow' },
     ]
 
     for (const s of defaultSettings) {
-      await Setting.updateOrCreate({ key: s.key }, s)
+      const existing = await Setting.findBy('key', s.key)
+      if (existing) {
+        // Only update metadata, preserve user-configured 'value'
+        existing.merge({
+          type: s.type,
+          group: s.group,
+          label: s.label || existing.label,
+          description: s.description || existing.description,
+        })
+        await existing.save()
+      } else {
+        await Setting.create(s)
+      }
     }
 
     // 7. Seed Knowledge Base (Consolidated from knowledge_seeder.ts)
