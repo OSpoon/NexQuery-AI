@@ -69,7 +69,6 @@ export default class extends BaseSeeder {
       permissions[PERMISSIONS.VIEW_HISTORY],
       permissions[PERMISSIONS.MANAGE_KNOWLEDGE_BASE],
       permissions[PERMISSIONS.MANAGE_AI_FEEDBACK],
-      permissions[PERMISSIONS.WORKFLOW_INITIATE],
     ]
     await developerRole.related('permissions').sync(getIds(devPerms))
 
@@ -176,46 +175,6 @@ export default class extends BaseSeeder {
       await Menu.updateOrCreate({ path: m.path }, m)
     }
 
-    // Workflow Group
-    const workflowGroup = await Menu.updateOrCreate(
-      { path: '#workflow-group' },
-      {
-        title: 'Workflow Center',
-        path: '#workflow-group',
-        icon: 'Workflow',
-        permission: PERMISSIONS.WORKFLOW_INITIATE,
-        sortOrder: 40, // Between Platform and Admin
-      },
-    )
-
-    const workflowItems = [
-      {
-        title: 'My Tasks',
-        path: '/workflow/tasks',
-        icon: 'ListTodo',
-        permission: PERMISSIONS.WORKFLOW_INITIATE,
-        sortOrder: 1,
-      },
-      {
-        title: 'Process Management',
-        path: '/workflow/definitions',
-        icon: 'GitPullRequest',
-        permission: PERMISSIONS.WORKFLOW_INITIATE,
-        sortOrder: 2,
-      },
-      {
-        title: 'Workflow History',
-        path: '/workflow/instance-history',
-        icon: 'History',
-        permission: PERMISSIONS.VIEW_HISTORY,
-        sortOrder: 3,
-      },
-    ]
-
-    for (const item of workflowItems) {
-      await Menu.updateOrCreate({ path: item.path }, { ...item, parentId: workflowGroup.id })
-    }
-
     // Administration Group
     const adminGroup = await Menu.updateOrCreate(
       { path: '#admin-group' }, // Use a stable path internal identifier
@@ -272,16 +231,19 @@ export default class extends BaseSeeder {
 
     // 6. Default Settings
     const defaultSettings = [
-      { key: 'platform_name', value: 'NexQuery AI', type: 'string', group: 'general' },
-      { key: 'allow_export', value: 'true', type: 'boolean', group: 'general' },
-      { key: 'query_timeout_ms', value: '30000', type: 'number', group: 'general' },
-      { key: 'glm_api_key', value: '', type: 'string', group: 'integration' },
-      { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'integration' },
-      { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'integration', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
+      { key: 'platform_name', value: 'NexQuery AI', type: 'string', group: 'platform' },
+      { key: 'require_2fa', value: 'true', type: 'boolean', group: 'security' },
+      { key: 'allow_export', value: 'true', type: 'boolean', group: 'security' },
+      { key: 'show_watermark', value: 'true', type: 'boolean', group: 'security' },
+      { key: 'query_timeout_ms', value: '30000', type: 'number', group: 'engine' },
+      { key: 'glm_api_key', value: '', type: 'string', group: 'ai' },
+      { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'ai' },
+      { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
+      { key: 'workflow_bindings', value: '{}', type: 'string', group: 'workflow' },
     ]
 
     for (const s of defaultSettings) {
-      await Setting.firstOrCreate({ key: s.key }, s)
+      await Setting.updateOrCreate({ key: s.key }, s)
     }
 
     // 7. Seed Knowledge Base (Consolidated from knowledge_seeder.ts)

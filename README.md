@@ -26,7 +26,8 @@
 -   **自动化可视化**: AI 自动根据数据特征推荐并标识最佳图表方案（Bar, Line, Pie 等）。
 -   **智能优化**: AI 自动分析 SQL 性能，提供索引建议和重写方案。
 -   **思维链 (Mind Chain)**: 透明展示 AI 的思考过程、知识库检索结果和工具调用详情，拒绝“黑盒”。
--   **闭环自进化 (Closed-Loop)**: 通过“用户反馈 -> 修正提炼 -> 知识库审计 -> RAG 增强”实现系统准确性的持续闭环进化。
+-   **闭环自进化 (Closed-Loop)**: 通过“用户反馈 -> 修正提炼 (AI Feedback Adoption) -> 知识库审计 -> RAG 增强”实现系统准确性的持续闭环进化。
+-   **SSE 实时推送**: 集成服务端事件发送 (SSE)，实现系统状态与实时通知的毫秒级触达。
 -   **安全校验**: 内置 [`ValidateSqlTool`](backend/app/services/tools/validate_sql_tool.ts) 进行语法检查与危险命令 (`DROP`, `TRUNCATE`) 拦截。
 
 ### 🔌 多数据源支持
@@ -41,19 +42,13 @@
 -   **敏感数据加密**: 数据库连接串与 API Key 使用 [`CryptoService`](packages/shared/src/utils/crypto.ts) 进行 AES-256 加密存储。
 -   **安全审计**: 完整的查询历史记录与操作日志。
 
-### 🔄 审批流控 (Workflow Governance)
-集成 **Flowable** 引擎，实现 SQL 操作的全生命周期治理。
--   **高危拦截**: 基于关键词 (`DELETE`, `DROP` 等) 自动识别并重定向至审批流。
--   **可视化建模**: 内置 BPMN 2.0 拖拽式建模器，快速定义多级审批与自动化分流。
--   **动态通知**: 审批状态实时触达，支持通过 Webhook 联动外部告警系统。
--   **执行屏障**: 未经授权的高危变更无法触达数据库，确保生产环境绝对安全。
-
 ### ⚙️ 自动化与推送
 -   **定时任务**: 基于 [`SchedulerService`](backend/app/services/scheduler_service.ts) 支持 Cron 表达式或一次性定时执行查询任务。
 -   **多渠道触达**:
+    *   **SSE/Web**: 站内实时推送审批进度与系统事件。
     *   **Email**: 定时将查询结果 (CSV) 发送到指定邮箱列表。
     *   **IM 推送**: 支持 Webhook 对接 **企业微信、钉钉、飞书**，将数据实时推送到工作群。
--   **Schema 管理**: [`SchemaSyncService`](backend/app/services/schema_sync_service.ts) 自动同步数据库元数据。
+-   **Schema 管理**: [`SchemaSyncService`](backend/app/services/schema_sync_service.ts) 支持连接后自动同步模式，确保 AI 知识库始终处于最新状态。
 
 ## 🛠️ 技术栈
 
@@ -65,7 +60,6 @@
     -   核心配置: [`adonisrc.ts`](backend/adonisrc.ts)
 -   **Shared**: [`packages/shared`](packages/shared) (前后端统一加密与类型定义)
 -   **AI Engine**: LangChain, ZhipuGLM (GLM-4)
--   **Workflow Engine**: Flowable (BPMN 2.0)
 
 ## 📖 文档指南
 

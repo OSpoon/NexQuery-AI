@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CryptoService } from '@nexquery/shared'
-import { Cpu, Database, Globe, Save, Shield, Workflow } from 'lucide-vue-next'
+import { Cpu, Database, Globe, Save, Shield } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -8,16 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+
 import { Switch } from '@/components/ui/switch'
 import api from '@/lib/api'
-import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
@@ -29,48 +22,43 @@ const settings = ref([
   {
     key: 'platform_name',
     value: 'NexQuery AI',
-    group: 'general',
+    group: 'platform',
   },
   {
     key: 'require_2fa',
     value: 'true',
-    group: 'general',
-  },
-  {
-    key: 'system_timezone',
-    value: '', // Will be filled by backend
-    group: 'general',
-  },
-  {
-    key: 'query_timeout_ms',
-    value: '30000',
-    group: 'execution',
+    group: 'security',
   },
   {
     key: 'allow_export',
     value: 'true',
-    group: 'general',
+    group: 'security',
+  },
+  {
+    key: 'show_watermark',
+    value: 'true',
+    group: 'security',
+  },
+  {
+    key: 'query_timeout_ms',
+    value: '30000',
+    group: 'engine',
   },
   {
     key: 'glm_api_key',
     value: '',
-    group: 'integration',
+    group: 'ai',
     type: 'password',
   },
   {
     key: 'ai_chat_model',
     value: 'glm-4.5-flash',
-    group: 'integration',
+    group: 'ai',
   },
   {
     key: 'ai_embedding_model',
     value: 'embedding-3',
-    group: 'integration',
-  },
-  {
-    key: 'workflow_bindings',
-    value: '{}',
-    group: 'hidden', // not shown in generic loop
+    group: 'ai',
   },
 ])
 
@@ -80,7 +68,6 @@ const decryptedResult = computed(() => {
     return ''
   try {
     const trimmed = testPayload.value.trim()
-    // Support nested data: { data: '...' }
     let cipher = trimmed
     if (trimmed.startsWith('{')) {
       try {
@@ -104,10 +91,6 @@ const decryptedResult = computed(() => {
 const loading = ref(true)
 const saving = ref(false)
 const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
-const activeWorkflows = ref<{ key: string, name: string, version: number }[]>([])
-const workflowBindings = ref<Record<string, string>>({
-  sql_approval: '__NONE__',
-})
 
 async function fetchRoles() {
   try {
@@ -119,40 +102,14 @@ async function fetchRoles() {
   }
 }
 
-async function fetchWorkflows() {
-  try {
-    // Only fetch definitions, users bind by Key
-    const response = await api.get('/workflow/definitions')
-    if (response.data && response.data.data) {
-      // De-duplicate by key, keeping latest version usually helps but here we want LIST of keys
-      // Actually /workflow/definitions returns specific procDefs.
-      // We want distinct keys.
-      // Let's assume the API returns list of Defs.
-      // We'll filter unique keys.
-      const seen = new Set()
-      activeWorkflows.value = response.data.data.filter((w: any) => {
-        if (seen.has(w.key))
-          return false
-        seen.add(w.key)
-        return true
-      }).map((w: any) => ({ key: w.key, name: w.name }))
-    }
-  }
-  catch (e) {
-    console.error('Failed to fetch workflows', e)
-  }
-}
-
 async function fetchSettings() {
   loading.value = true
   try {
     const response = await api.get('/settings')
     if (response.data && response.data.length > 0) {
-      // Merge fetched settings with our local definitions for labels/descriptions
       response.data.forEach((s: any) => {
         const existing = settings.value.find(local => local.key === s.key)
         if (existing) {
-          // Decrypt if necessary
           if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
             try {
               const decrypted = cryptoService.decrypt(s.value)
@@ -166,32 +123,9 @@ async function fetchSettings() {
           else {
             existing.value = String(s.value)
           }
-
-          // Special handling for workflow_bindings
-          if (s.key === 'workflow_bindings') {
-            try {
-              const parsed = JSON.parse(s.value || '{}')
-              // If parsed value has a real key, use it. If empty/missing, default to __NONE__
-              if (parsed.sql_approval) {
-                workflowBindings.value = { ...workflowBindings.value, ...parsed }
-              }
-              // If empty in DB, keep default __NONE__
-            }
-            catch {}
-          }
         }
         else {
-          settings.value.push(s)
-          // Also handle if it's workflow_bindings but not in our init list (though we added it)
-          if (s.key === 'workflow_bindings') {
-            try {
-              const parsed = JSON.parse(s.value || '{}')
-              if (parsed.sql_approval) {
-                workflowBindings.value = { ...workflowBindings.value, ...parsed }
-              }
-            }
-            catch {}
-          }
+          settings.value.push({ ...s, group: s.group || 'other' })
         }
       })
     }
@@ -207,27 +141,6 @@ async function fetchSettings() {
 async function saveSettings() {
   saving.value = true
   try {
-    // Sync workflow bindings to settings array
-    const bindingSetting = settings.value.find(s => s.key === 'workflow_bindings')
-    // Clone logic: if __NONE__, we can save it as __NONE__ or empty string.
-    // Let's save as __NONE__ to be explicit in DB too, or convert.
-    // If backend logic checks if(boundWorkflowKey) -> __NONE__ is true-ish string.
-    // Backend: const boundConfig = workflowConfigs.find(w => w.key === boundWorkflowKey)
-    // If boundWorkflowKey is "__NONE__", find returns undefined -> fallback to auto-detect.
-    // This is DESIRED behavior for "None (Auto-detect)".
-
-    if (bindingSetting) {
-      bindingSetting.value = JSON.stringify(workflowBindings.value)
-    }
-    else {
-      settings.value.push({
-        key: 'workflow_bindings',
-        value: JSON.stringify(workflowBindings.value),
-        group: 'hidden',
-      })
-    }
-
-    // Process settings before saving (encrypt sensitive fields)
     const settingsToSave = settings.value.map((s) => {
       if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
         return {
@@ -240,7 +153,6 @@ async function saveSettings() {
 
     await api.patch('/settings', { settings: settingsToSave })
 
-    // Refresh global store immediately
     const settingsStore = useSettingsStore()
     await settingsStore.fetchSettings()
 
@@ -254,93 +166,54 @@ async function saveSettings() {
   }
 }
 
-const _authStore = useAuthStore()
-
 onMounted(() => {
   fetchSettings()
   fetchRoles()
-  fetchWorkflows()
 })
 </script>
 
 <template>
   <div class="container p-6 mx-auto max-w-4xl space-y-6">
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center mb-8">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">
+        <h2 class="text-3xl font-bold tracking-tight">
           {{ t('settings.title') }}
-        </h1>
+        </h2>
         <p class="text-muted-foreground">
           {{ t('settings.desc') }}
         </p>
       </div>
-      <Button :disabled="saving" @click="saveSettings">
-        <Save class="mr-2 h-4 w-4" /> {{ saving ? t('settings.saving') : t('settings.save') }}
+      <Button :disabled="saving" size="lg" class="shadow-md" @click="saveSettings">
+        <Save class="mr-2 h-4 w-4" /> {{ saving ? t('common.saving') : t('common.save') }}
       </Button>
     </div>
 
-    <div class="space-y-6">
-      <Card>
-        <CardHeader>
-          <div class="flex items-center space-x-2">
-            <Globe class="h-5 w-5 text-primary" />
-            <div>
-              <CardTitle>{{ t('settings.general') }}</CardTitle>
-              <CardDescription>{{ t('settings.general_desc') }}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4">
-          <div
-            v-for="s in settings.filter((s) => s.group === 'general')"
-            :key="s.key"
-            class="grid gap-2"
-          >
-            <div
-              v-if="['allow_export', 'require_2fa', 'show_watermark'].includes(s.key)"
-              class="flex items-center justify-between py-2"
-            >
-              <div class="space-y-0.5">
-                <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-                <p class="text-xs text-muted-foreground">
-                  {{ t(`settings.keys.${s.key}_desc`) }}
-                </p>
-              </div>
-              <Switch
-                :id="s.key"
-                :model-value="s.value === 'true'"
-                @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
-              />
-            </div>
-            <div v-else class="grid gap-2">
-              <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-              <Input :id="s.key" v-model="s.value" />
-              <p class="text-xs text-muted-foreground">
-                {{ t(`settings.keys.${s.key}_desc`) }}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div v-if="loading" class="flex items-center justify-center py-20">
+      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+    </div>
 
-      <Card>
+    <div v-else class="space-y-6">
+      <!-- 1. Platform Settings -->
+      <Card class="shadow-sm">
         <CardHeader>
-          <div class="flex items-center space-x-2">
-            <Database class="h-5 w-5 text-primary" />
+          <div class="flex items-center space-x-3 text-primary">
+            <Globe class="h-5 w-5" />
             <div>
-              <CardTitle>{{ t('settings.execution') }}</CardTitle>
-              <CardDescription>{{ t('settings.execution_desc') }}</CardDescription>
+              <CardTitle class="text-lg">
+                {{ t('settings.platform') }}
+              </CardTitle>
+              <CardDescription>{{ t('settings.platform_desc') }}</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent class="space-y-4">
+        <CardContent class="space-y-4 pt-0">
           <div
-            v-for="s in settings.filter((s) => s.group === 'execution')"
+            v-for="s in settings.filter((s) => s.group === 'platform')"
             :key="s.key"
             class="grid gap-2"
           >
             <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-            <Input :id="s.key" v-model="s.value" type="number" />
+            <Input :id="s.key" v-model="s.value" class="bg-background" />
             <p class="text-xs text-muted-foreground">
               {{ t(`settings.keys.${s.key}_desc`) }}
             </p>
@@ -348,56 +221,91 @@ onMounted(() => {
         </CardContent>
       </Card>
 
-      <Card>
+      <!-- 2. Security & Privacy -->
+      <Card class="shadow-sm">
         <CardHeader>
-          <div class="flex items-center space-x-2">
-            <Workflow class="h-5 w-5 text-primary" />
+          <div class="flex items-center space-x-3 text-primary">
+            <Shield class="h-5 w-5" />
             <div>
-              <CardTitle>Workflow Bindings</CardTitle>
-              <CardDescription>Bind specific logic to workflows to ensure stability.</CardDescription>
+              <CardTitle class="text-lg">
+                {{ t('settings.security') }}
+              </CardTitle>
+              <CardDescription>{{ t('settings.security_desc') }}</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="grid gap-2">
-            <div class="flex flex-col space-y-1">
-              <Label>High Risk SQL Approval</Label>
-              <span class="text-xs text-muted-foreground">Select the workflow to trigger for high-risk SQL execution.</span>
+        <CardContent class="grid gap-6 pt-0">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'security')"
+            :key="s.key"
+            class="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-transparent hover:border-border transition-colors"
+          >
+            <div class="space-y-0.5">
+              <Label :for="s.key" class="text-base cursor-pointer">
+                {{ t(`settings.keys.${s.key}`) }}
+              </Label>
+              <p class="text-xs text-muted-foreground max-w-[400px]">
+                {{ t(`settings.keys.${s.key}_desc`) }}
+              </p>
             </div>
-            <Select v-model="workflowBindings.sql_approval">
-              <SelectTrigger class="w-full">
-                <SelectValue placeholder="Select a workflow..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="__NONE__">
-                  None (Disabled)
-                </SelectItem>
-                <SelectItem
-                  v-for="wf in activeWorkflows"
-                  :key="wf.key"
-                  :value="wf.key"
-                >
-                  {{ wf.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
+            <Switch
+              :id="s.key"
+              :model-value="s.value === 'true'"
+              @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
+            />
           </div>
         </CardContent>
       </Card>
 
-      <Card>
+      <!-- 3. Engine Settings -->
+      <Card class="shadow-sm">
         <CardHeader>
-          <div class="flex items-center space-x-2">
-            <Cpu class="h-5 w-5 text-primary" />
+          <div class="flex items-center space-x-3 text-primary">
+            <Database class="h-5 w-5" />
             <div>
-              <CardTitle>{{ t('settings.integration') }}</CardTitle>
-              <CardDescription>{{ t('settings.integration_desc') }}</CardDescription>
+              <CardTitle class="text-lg">
+                {{ t('settings.engine') }}
+              </CardTitle>
+              <CardDescription>{{ t('settings.engine_desc') }}</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent class="space-y-4">
+        <CardContent class="grid gap-6 pt-0">
           <div
-            v-for="s in settings.filter((s) => s.group === 'integration')"
+            v-for="s in settings.filter((s) => s.group === 'engine')"
+            :key="s.key"
+            class="grid gap-2"
+          >
+            <div class="flex justify-between items-center">
+              <Label :for="s.key" class="text-base">{{ t(`settings.keys.${s.key}`) }}</Label>
+              <div class="flex items-center space-x-2 w-32">
+                <Input :id="s.key" v-model="s.value" type="number" class="text-right" />
+                <span class="text-xs text-muted-foreground">ms</span>
+              </div>
+            </div>
+            <p class="text-xs text-muted-foreground">
+              {{ t(`settings.keys.${s.key}_desc`) }}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- 4. AI Intelligence -->
+      <Card class="shadow-sm">
+        <CardHeader>
+          <div class="flex items-center space-x-3 text-primary">
+            <Cpu class="h-5 w-5" />
+            <div>
+              <CardTitle class="text-lg">
+                {{ t('settings.ai') }}
+              </CardTitle>
+              <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent class="grid gap-6 pt-0">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'ai')"
             :key="s.key"
             class="grid gap-2"
           >
@@ -414,6 +322,7 @@ onMounted(() => {
               :id="s.key"
               v-model="s.value"
               :type="s.type || 'text'"
+              class="bg-background"
               :class="{
                 'border-destructive/50 focus-visible:ring-destructive':
                   s.key === 'glm_api_key' && !s.value,
@@ -426,33 +335,33 @@ onMounted(() => {
         </CardContent>
       </Card>
 
-      <Card>
+      <!-- Security Tools (Helper) -->
+      <Card class="shadow-sm">
         <CardHeader>
-          <div class="flex items-center space-x-2">
-            <Shield class="h-5 w-5 text-primary" />
+          <div class="flex items-center space-x-3 text-muted-foreground">
+            <Shield class="h-5 w-5" />
             <div>
-              <CardTitle>{{ t('security_tools.title') }}</CardTitle>
+              <CardTitle class="text-base">
+                {{ t('security_tools.title') }}
+              </CardTitle>
               <CardDescription>{{ t('security_tools.desc') }}</CardDescription>
             </div>
           </div>
         </CardHeader>
-        <CardContent class="space-y-4">
+        <CardContent class="space-y-4 pt-0">
           <div class="grid gap-2">
-            <Label>{{ t('security_tools.helper_title') }}</Label>
+            <Label class="text-xs">{{ t('security_tools.helper_title') }}</Label>
             <textarea
               v-model="testPayload"
-              class="flex min-h-[100px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+              class="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
               :placeholder="t('security_tools.helper_placeholder')"
             />
-            <p class="text-[10px] text-muted-foreground">
-              {{ t('security_tools.helper_hint') }}
-            </p>
           </div>
 
           <div v-if="testPayload" class="grid gap-2">
-            <Label>{{ t('security_tools.decrypted_result') }}</Label>
+            <Label class="text-xs">{{ t('security_tools.decrypted_result') }}</Label>
             <div
-              class="bg-muted p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
+              class="bg-background p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
             >
               {{ decryptedResult }}
             </div>

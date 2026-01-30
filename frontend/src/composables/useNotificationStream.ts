@@ -1,7 +1,5 @@
-import { useEventBus } from '@vueuse/core'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
-// Use the configured axios instance just for config, but we use fetch here
 import { useAuthStore } from '@/stores/auth'
 
 export function useNotificationStream() {
@@ -18,9 +16,8 @@ export function useNotificationStream() {
 
     controller = new AbortController()
 
-    // We use fetch instead of EventSource to support Bearer Token
-    const url = '/api/workflow/notifications' // Relative to base not supported by fetch automatically if proxied?
-    // Actually Vite proxy works for fetch too if relative.
+    // Fixed path for centralized notifications (e.g. general system broadcast)
+    const url = '/api/notifications/stream'
 
     try {
       const response = await fetch(url, {
@@ -65,36 +62,10 @@ export function useNotificationStream() {
             try {
               const data = JSON.parse(dataStr)
 
-              // Handle Events
+              // Handle General Notifications
               if (eventName === 'notification') {
                 toast(data.subject, {
                   description: data.body,
-                })
-              }
-              else if (eventName === 'workflow_approved') {
-                // Broadcast event
-                const bus = useEventBus<string>('workflow-event')
-                bus.emit('approved')
-
-                toast.success('Workflow Approved', {
-                  description: `Process ${data.processInstanceId}`,
-                  action: {
-                    label: 'View',
-                    onClick: () => window.location.href = `/workflow/history/${data.processInstanceId}`,
-                  },
-                })
-              }
-              else if (eventName === 'workflow_rejected') {
-                // Broadcast event
-                const bus = useEventBus<string>('workflow-event')
-                bus.emit('rejected')
-
-                toast.error('Workflow Rejected', {
-                  description: `Reason: ${data.reason}`,
-                  action: {
-                    label: 'View',
-                    onClick: () => window.location.href = `/workflow/history/${data.processInstanceId}`,
-                  },
                 })
               }
             }
@@ -108,8 +79,6 @@ export function useNotificationStream() {
     catch (error: any) {
       if (error.name !== 'AbortError') {
         console.error('SSE connection lost', error)
-        // Auto-reconnect logic could go here (with backoff)
-        // For now, simpliest: set flag false
       }
     }
     finally {

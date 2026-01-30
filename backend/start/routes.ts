@@ -18,9 +18,6 @@ const TwoFactorAuthController = () => import('#controllers/two_factor_auth_contr
 const AiController = () => import('#controllers/ai_controller')
 const ScheduledQueriesController = () => import('#controllers/scheduled_queries_controller')
 const ApiKeysController = () => import('#controllers/api_keys_controller')
-const KnowledgeBasesController = () => import('#controllers/knowledge_bases_controller')
-const WorkflowController = () => import('#controllers/workflow_controller')
-const WebhookController = () => import('#controllers/webhook_controller')
 const AiFeedbacksController = () => import('#controllers/ai_feedbacks_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
@@ -40,20 +37,9 @@ router.get('/docs', async () => {
   return AutoSwagger.default.ui('/swagger', swagger)
 })
 
-// Unencrypted Streams (SSE)
-router
-  .group(() => {
-    router.get('workflow/notifications', [WorkflowController, 'notifications'])
-  })
-  .prefix('api')
-  .use(middleware.auth())
-
 router
   .group(() => {
     router.get('health', [HealthChecksController, 'handle'])
-
-    // Internal System Routes (No Encryption Wrapper)
-    router.post('internal/workflow/notification', [WebhookController, 'handleNotification'])
 
     // Public Auth
     router.post('auth/2fa/verify', [AuthController, 'verify2fa']) // 2FA Verification during login
@@ -108,7 +94,7 @@ router
         // Knowledge Base
         router
           .group(() => {
-            router.resource('knowledge-base', KnowledgeBasesController).apiOnly()
+            router.resource('knowledge-base', '#controllers/knowledge_bases_controller').apiOnly()
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_KNOWLEDGE_BASE }))
 
@@ -143,7 +129,6 @@ router
 
         // Execution
         router.post('query-tasks/:id/execute', [ExecutionController, 'execute'])
-        router.get('query-tasks/:id/approval-status', [ExecutionController, 'checkApprovalStatus'])
 
         // AI Features
         router.post('ai/optimize-sql', [AiController, 'optimizeSql'])
@@ -154,23 +139,6 @@ router
         router.get('ai/conversations', [AiController, 'getConversations'])
         router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])
         router.delete('ai/conversations/:id', [AiController, 'deleteConversation'])
-
-        // Workflow Engine
-        router.get('workflow/definitions', [WorkflowController, 'index'])
-        router.get('workflow/registry', [WorkflowController, 'registry']) // Get workflow metadata
-        router.get('workflow/definitions/:id', [WorkflowController, 'showDefinition'])
-        router.get('workflow/definitions/:id/instances', [WorkflowController, 'getInstancesByDefinition'])
-        router.delete('workflow/deployments/:id', [WorkflowController, 'destroyDeployment'])
-        router.get('workflow/definitions/:id/xml', [WorkflowController, 'getXML'])
-        router.get('workflow/definitions/:id/image', [WorkflowController, 'getImage'])
-        router.post('workflow/definitions', [WorkflowController, 'deploy'])
-
-        router.post('workflow/process-instances', [WorkflowController, 'store'])
-        router.get('workflow/process-instances/:id', [WorkflowController, 'showProcessInstance'])
-        router.get('workflow/tasks', [WorkflowController, 'getTasks'])
-        router.post('workflow/tasks/:id/complete', [WorkflowController, 'completeTask'])
-        router.get('workflow/history', [WorkflowController, 'getHistory'])
-        router.post('workflow/seed', [WorkflowController, 'seed']) // Demo Setup
 
         // Public Menu Access
         router.get('menus/route-permissions', [MenusController, 'getRoutePermissions'])

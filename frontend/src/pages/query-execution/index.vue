@@ -1,11 +1,9 @@
 <script setup lang="ts">
 import type { QueryTask } from '@nexquery/shared'
-import { useEventBus } from '@vueuse/core'
-import { ArrowLeft, Database, Download, Eye, Loader2, Play, RotateCcw, ShieldAlert, ShieldCheck } from 'lucide-vue-next'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { ArrowLeft, Database, Download, Play } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -32,21 +30,6 @@ const results = ref<any[] | null>(null)
 const isExecuting = ref(false)
 const executionTime = ref<number | null>(null)
 
-// Workflow State
-const approvalStatus = ref<'idle' | 'pending' | 'approved' | 'rejected'>('idle')
-const workflowProcessId = ref<string | null>(null)
-const approvalComment = ref<string | null>(null)
-let pollTimer: any = null
-
-// Event Bus for Real-time Updates
-const bus = useEventBus<string>('workflow-event')
-const unsubscribe = bus.on((_event) => {
-  if (approvalStatus.value === 'pending' && workflowProcessId.value) {
-    // If we are waiting for approval and receive ANY workflow event, check status immediately
-    checkApprovalStatus()
-  }
-})
-
 const isArrayResult = computed(() => {
   return Array.isArray(results.value)
 })
@@ -61,9 +44,6 @@ async function fetchTask() {
   try {
     const response = await api.get(`/query-tasks/${route.params.id}`)
     task.value = response.data
-
-    // Check Approval Status
-    await checkApprovalStatus()
   }
   catch {
     toast.error('Failed to load task')
@@ -71,72 +51,14 @@ async function fetchTask() {
   }
 }
 
-async function checkApprovalStatus() {
-  try {
-    const { data } = await api.get(`/query-tasks/${task.value!.id}/approval-status`)
-    if (data.status === 'PENDING_APPROVAL') {
-      approvalStatus.value = 'pending'
-      workflowProcessId.value = data.processInstanceId
-      startPolling()
-    }
-    else if (data.status === 'APPROVED') {
-      approvalStatus.value = 'approved'
-      workflowProcessId.value = data.processInstanceId
-      approvalComment.value = data.comment || null
-      toast.success('Restored approved session. Ready to execute.')
-    }
-    else if (data.status === 'REJECTED') {
-      approvalStatus.value = 'rejected'
-      workflowProcessId.value = data.processInstanceId
-    }
-  }
-  catch (e) {
-    console.warn('Failed to restore approval status', e)
-  }
-}
-
-function resetApproval() {
-  approvalStatus.value = 'idle'
-  workflowProcessId.value = null
-  approvalComment.value = null
-  toast.info('Approval status reset. You can modify parameters and try again.')
-}
-
-function onFormChange() {
-  if (approvalStatus.value === 'approved' || approvalStatus.value === 'pending') {
-    resetApproval()
-  }
-}
-
 async function onExecute(params: any) {
   isExecuting.value = true
   results.value = null
 
-  // Construct payload
-  const payload: any = { params }
-
-  // If we already have an approved token, pass it at ROOT level
-  if (approvalStatus.value === 'approved' && workflowProcessId.value) {
-    payload.processInstanceId = workflowProcessId.value
-  }
-
   try {
-    const response = await api.post(`/query-tasks/${task.value!.id}/execute`, payload)
-
-    // Handle Approval Required (202 or 200 with PENDING_APPROVAL status)
-    const data = response.data
-    if (response.status === 202 || (data && data.status === 'PENDING_APPROVAL')) {
-      if (data && data.status === 'PENDING_APPROVAL') {
-        approvalStatus.value = 'pending'
-        workflowProcessId.value = data.processInstanceId
-        toast.info('High risk query detected. Waiting for administrator approval...')
-        startPolling()
-        return
-      }
-    }
+    const response = await api.post(`/query-tasks/${task.value!.id}/execute`, { params })
 
     let finalData = response.data.data
-    // ... (rest of the logic for normal execution)
 
     // Check if the result itself is an encrypted packet (common for API tasks calling other platform APIs)
     if (
@@ -161,13 +83,6 @@ async function onExecute(params: any) {
     results.value = finalData
     executionTime.value = response.data.duration
     toast.success('Query executed successfully')
-
-    // consume token
-    if (approvalStatus.value === 'approved') {
-      approvalStatus.value = 'idle'
-      workflowProcessId.value = null
-      approvalComment.value = null
-    }
   }
   catch (error: any) {
     toast.error(`Execution failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`)
@@ -177,35 +92,6 @@ async function onExecute(params: any) {
   }
 }
 
-function startPolling() {
-  if (pollTimer)
-    clearInterval(pollTimer)
-
-  // Reduced frequency (10s) since we have SSE
-  pollTimer = setInterval(async () => {
-    if (!workflowProcessId.value)
-      return
-
-    // Only poll if pending
-    if (approvalStatus.value !== 'pending') {
-      clearInterval(pollTimer)
-      return
-    }
-
-    try {
-      await checkApprovalStatus()
-    }
-    catch (e) {
-      console.error('Polling failed', e)
-    }
-  }, 10000)
-}
-
-onBeforeUnmount(() => {
-  if (pollTimer)
-    clearInterval(pollTimer)
-  unsubscribe()
-})
 function downloadResults() {
   if (!results.value || results.value.length === 0)
     return
@@ -243,8 +129,6 @@ function downloadResults() {
   document.body.removeChild(link)
 }
 
-// End of scripts
-
 onMounted(fetchTask)
 </script>
 
@@ -276,72 +160,10 @@ onMounted(fetchTask)
           <DynamicForm
             :schema="task.formSchema || []"
             :is-executing="isExecuting"
-            :approval-status="approvalStatus"
             @execute="onExecute"
-            @change="onFormChange"
           />
         </CardContent>
       </Card>
-
-      <!-- Approval Alert -->
-      <div v-if="approvalStatus !== 'idle'" class="flex-none">
-        <Alert v-if="approvalStatus === 'pending'" variant="default" class="border-blue-200 bg-blue-50 text-blue-900 dark:bg-blue-950/30 dark:text-blue-200 dark:border-blue-800">
-          <Loader2 class="h-4 w-4 animate-spin text-blue-600 dark:text-blue-400" />
-          <AlertTitle>Waiting for Approval</AlertTitle>
-          <AlertDescription class="mt-2 flex items-center justify-between">
-            <span>This is a high-risk operation. Administrator approval is required before execution.</span>
-            <Button
-              variant="outline"
-              size="sm"
-              class="ml-4 h-7 bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40 border-blue-200 dark:border-blue-800"
-              @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
-            >
-              <Eye class="mr-2 h-3.5 w-3.5" />
-              View Progress
-            </Button>
-          </AlertDescription>
-        </Alert>
-
-        <Alert v-else-if="approvalStatus === 'approved'" variant="default" class="border-green-200 bg-green-50 text-green-900 dark:bg-green-950/30 dark:text-green-200 dark:border-green-800">
-          <ShieldCheck class="h-4 w-4 text-green-600 dark:text-green-400" />
-          <AlertTitle>Approval Granted</AlertTitle>
-          <AlertDescription class="mt-2 flex items-center justify-between">
-            <span>You can now execute this query. One-time use permission.</span>
-            <Button
-              variant="outline"
-              size="sm"
-              class="ml-4 h-7 bg-white/50 hover:bg-white/80 dark:bg-black/20 dark:hover:bg-black/40 border-green-200 dark:border-green-800"
-              @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
-            >
-              <Eye class="mr-2 h-3.5 w-3.5" />
-              Audit Log
-            </Button>
-          </AlertDescription>
-        </Alert>
-
-        <Alert v-else-if="approvalStatus === 'rejected'" variant="destructive">
-          <ShieldAlert class="h-4 w-4" />
-          <AlertTitle>Request Rejected</AlertTitle>
-          <AlertDescription class="mt-2 flex items-center justify-between gap-4">
-            <span>The administrator denied this request. Please contact support if you believe this is an error.</span>
-            <div class="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                class="h-7 bg-background/50"
-                @click="router.push({ name: 'workflow-history-detail', params: { id: workflowProcessId } })"
-              >
-                <Eye class="mr-2 h-3.5 w-3.5" />
-                Details
-              </Button>
-              <Button variant="outline" size="sm" class="h-7 bg-background/50" @click="resetApproval">
-                <RotateCcw class="mr-2 h-3.5 w-3.5" />
-                Retry
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      </div>
 
       <!-- Bottom: Results -->
       <Card class="flex-1 flex flex-col min-h-0 overflow-hidden border-border shadow-sm">

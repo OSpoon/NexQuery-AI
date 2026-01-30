@@ -130,45 +130,6 @@ const router = createRouter({
           name: 'ai-feedback',
           component: () => import('@/pages/feedback/index.vue'),
         },
-        {
-          path: 'workflow',
-          redirect: '/workflow/tasks',
-        },
-        {
-          path: 'workflow/tasks',
-          name: 'workflow-tasks',
-          component: () => import('@/pages/workflow/MyTasks.vue'),
-        },
-        {
-          path: 'workflow/definitions',
-          name: 'process-management',
-          component: () => import('@/pages/workflow/ProcessManagement.vue'),
-        },
-        {
-          path: 'workflow/instance-history',
-          name: 'workflow-history',
-          component: () => import('@/pages/workflow/HistoryRecord.vue'),
-        },
-        {
-          path: 'workflow/instances/:id',
-          name: 'workflow-detail',
-          component: () => import('@/pages/workflow/detail.vue'),
-        },
-        {
-          path: 'workflow/history/:id',
-          name: 'workflow-history-detail',
-          component: () => import('@/pages/workflow/history-detail.vue'),
-        },
-        {
-          path: 'workflow/definitions/:id',
-          name: 'workflow-definition',
-          component: () => import('@/pages/workflow/definition.vue'),
-        },
-        {
-          path: 'workflow/design',
-          name: 'workflow-design',
-          component: () => import('@/pages/workflow/design.vue'),
-        },
       ],
     },
     {

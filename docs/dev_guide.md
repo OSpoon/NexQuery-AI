@@ -61,22 +61,19 @@ pnpm install
 *   **VSCode**: 推荐安装 Volar (Vue) 和 AdonisJS 插件。
 *   **Debug**: 可以在 VSCode 中配置 Launch.json 直接调试 Node.js 后端。
 
-## 5. 工作流系统 (Workflow System)
+## 5. AI 反馈与自进化架构
 
-项目集成 **Flowable (BPMN 2.0)** 作为核心审批引擎。
+系统通过用户真实的查询反馈不断优化 Text-to-SQL 的准确性。
 
-### 5.1 架构设计
-- **Flowable Engine**: 独立运行在 Docker 中，后端通过 REST API 进行通信。
-- **WorkflowService**: 封装了与 Flowable 的所有交互（部署、启动、任务操作、历史查询）。
-- **BpmnModeler**: 前端使用 `bpmn-js` 深度定制的设计器，支持 Flowable 扩展属性配置。
+### 5.1 反馈流转链路
+1. **收集**: 用户在前端对 AI 回复进行 👍/👎 操作。
+2. **持久化**: 后端 `AiFeedbacksController` 存储反馈，并记录当时的问题与生成的 SQL。
+3. **自动学习**:
+   - 对于“Helpful”的反馈，系统会自动调用 `LangChainService.learnInteraction()`。
+   - 数据被向量化并存入 `AiFeedback` 知识库。
+4. **RAG 增强**: 下次同类提问时，AI 会检索历史高分反馈作为 Few-shot 示例。
 
-### 5.2 核心逻辑位置
-- **Service**: [`WorkflowService.ts`](../backend/app/services/workflow_service.ts)
-- **Controller**: [`WorkflowController.ts`](../backend/app/controllers/workflow_controller.ts)
-- **Designer**: [`BpmnModeler.vue`](../frontend/src/components/workflow/BpmnModeler.vue)
-- **Moddle Extensions**: [`flowable.json`](../frontend/src/components/workflow/flowable.json) (BPMN 属性定义)
-
-### 5.3 审批通知流程
-1. `BpmnModeler` 配置 HTTP Service Task。
-2. 配置 `requestUrl` 指向后端 `WebhookController`。
-3. Flowable 运行时发起通知请求，后端解析参数并调用 `NotificationService` 发送邮件。
+### 5.2 关键组件
+- **Model**: `AiFeedback` ([`ai_feedback.ts`](../backend/app/models/ai_feedback.ts))
+- **Service**: `LangChainService` ([`lang_chain_service.ts`](../backend/app/services/lang_chain_service.ts))
+- **Controller**: `AiFeedbacksController` ([`ai_feedbacks_controller.ts`](../backend/app/controllers/ai_feedbacks_controller.ts))

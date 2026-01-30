@@ -6,7 +6,6 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-nexquery_ai}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root123}
-      POSTGRES_MULTIPLE_DATABASES: nexquery_flow
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
@@ -25,26 +24,6 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - nexquery_network
-
-  flowable:
-    image: flowable/flowable-ui:latest
-    platform: linux/amd64
-    restart: always
-    ports:
-      - '8080:8080'
-    environment:
-      - FLOWABLE_COMMON_APP_IDM_ADMIN_USER=${FLOWABLE_ADMIN:-admin}
-      - FLOWABLE_COMMON_APP_IDM_ADMIN_PASSWORD=${FLOWABLE_PASSWORD:-test}
-      - FLOWABLE_COMMON_APP_IDM_REDIRECT_URL=http://localhost:8080/flowable-idm
-      # PostgreSQL 数据库配置 (使用独立的 nexquery_flow 库)
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/nexquery_flow
-      - SPRING_DATASOURCE_USERNAME=${DB_USER:-postgres}
-      - SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD:-root123}
-      - SPRING_DATASOURCE_DRIVER_CLASS_NAME=org.postgresql.Driver
-    depends_on:
-      - db
-    networks:
-      - nexquery_network
   backend:
     build:
       context: .
@@ -56,9 +35,6 @@ services:
       HOST: 0.0.0.0
       DB_HOST: db
       QDRANT_HOST: qdrant
-      FLOWABLE_HOST: http://flowable:8080
-      FLOWABLE_USER: ${FLOWABLE_ADMIN:-admin}
-      FLOWABLE_PASSWORD: ${FLOWABLE_PASSWORD:-test}
     command: >
       sh -c "node ace.js migration:run --force && node ace.js db:seed && node bin/server.js"
     ports:

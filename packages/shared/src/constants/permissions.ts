@@ -10,8 +10,6 @@ export const PERMISSIONS = {
   MANAGE_AI_FEEDBACK: 'manage_ai_feedback',
   MANAGE_KNOWLEDGE_BASE: 'manage_knowledge_base',
   MANAGE_SETTINGS: 'manage_settings',
-  WORKFLOW_INITIATE: 'workflow:initiate',
-  WORKFLOW_APPROVE: 'workflow:approve',
 } as const
 
 export const PERMISSION_DETAILS = [
@@ -69,15 +67,5 @@ export const PERMISSION_DETAILS = [
     name: 'Manage Settings',
     slug: PERMISSIONS.MANAGE_SETTINGS,
     description: 'Can update platform-wide settings',
-  },
-  {
-    name: 'Initiate Workflow',
-    slug: PERMISSIONS.WORKFLOW_INITIATE,
-    description: 'Can trigger approval workflows for high-risk operations',
-  },
-  {
-    name: 'Approve Workflow',
-    slug: PERMISSIONS.WORKFLOW_APPROVE,
-    description: 'Can review and approve/reject pending workflow tasks',
   },
 ]

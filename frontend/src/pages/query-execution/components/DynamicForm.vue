@@ -2,7 +2,7 @@
 import { toTypedSchema } from '@vee-validate/zod'
 import { Play } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
-import { computed, watch } from 'vue'
+import { computed } from 'vue'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
@@ -18,10 +18,9 @@ import {
 const props = defineProps<{
   schema: any[]
   isExecuting: boolean
-  approvalStatus?: 'idle' | 'pending' | 'approved' | 'rejected'
 }>()
 
-const emit = defineEmits(['execute', 'change'])
+const emit = defineEmits(['execute'])
 
 // Dynamically build Zod schema based on JSON schema
 const dynamicZodSchema = computed(() => {
@@ -42,12 +41,9 @@ const dynamicZodSchema = computed(() => {
   return toTypedSchema(z.object(shape))
 })
 
-const { handleSubmit, setFieldValue, values } = useForm({
+const { handleSubmit, setFieldValue } = useForm({
   validationSchema: dynamicZodSchema,
 })
-watch(values, () => {
-  emit('change') // Signal that the user modified the form
-}, { deep: true })
 
 const onSubmit = handleSubmit((values) => {
   emit('execute', values)
@@ -100,23 +96,15 @@ const onSubmit = handleSubmit((values) => {
       <Button
         type="submit"
         class="w-full md:w-auto px-8"
-        :disabled="isExecuting || approvalStatus === 'pending' || approvalStatus === 'rejected'"
-        :variant="approvalStatus === 'rejected' ? 'destructive' : 'default'"
+        :disabled="isExecuting"
       >
         <template v-if="isExecuting">
-          <Play class="mr-2 h-4 w-4 animate-spin" />
+          <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           Running...
-        </template>
-        <template v-else-if="approvalStatus === 'pending'">
-          <Play class="mr-2 h-4 w-4 opacity-50" />
-          Approval Pending
-        </template>
-        <template v-else-if="approvalStatus === 'rejected'">
-          Request Rejected
         </template>
         <template v-else>
           <Play class="mr-2 h-4 w-4" />
-          Execute {{ approvalStatus === 'approved' ? '(Approved)' : '' }}
+          Execute
         </template>
       </Button>
     </div>

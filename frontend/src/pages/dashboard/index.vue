@@ -39,23 +39,13 @@ function getRouteTitle(name: string): string {
     'admin-api-keys': 'sidebar.admin.api_keys',
     'admin-settings': 'sidebar.admin.settings',
     'ai-feedback': 'sidebar.ai_feedback',
-    // Workflow
-    'workflow-tasks': 'sidebar.workflow.my_tasks',
-    'process-management': 'sidebar.workflow.process_management',
-    'workflow-history': 'sidebar.workflow.history',
-    'workflow-detail': 'workflow.detail_page',
-    'workflow-definition': 'workflow.definition_page',
-    'workflow-history-detail': 'workflow.history_detail',
+    'ai-feedback': 'sidebar.ai_feedback',
   }
 
   const key = keyMap[name]
   if (key && t(key) !== key) {
     return t(key)
   }
-
-  // Fallbacks for missing keys or dynamic routes
-  if (name === 'workflow-definition')
-    return t('workflow.create_new') // Roughly
 
   // Default to capitalizing the name if no translation found
   return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')

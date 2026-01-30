@@ -85,11 +85,8 @@ const navData = computed(() => {
       'Knowledge Base': 'sidebar.knowledge_base',
       'AI Intelligence': 'sidebar.ai_intelligence',
       'AI Feedback': 'sidebar.ai_feedback',
-      'Workflow Config': 'Workflow Config',
-      'Workflow Center': 'sidebar.workflow.center',
-      'My Tasks': 'sidebar.workflow.my_tasks',
-      'Process Management': 'sidebar.workflow.process_management',
-      'Workflow History': 'sidebar.workflow.history',
+      'AI Intelligence': 'sidebar.ai_intelligence',
+      'AI Feedback': 'sidebar.ai_feedback',
     }
     const key = keyMap[title]
     // If translation exists, use it. Otherwise use title as-is (allow user-defined strings)

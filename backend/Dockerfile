@@ -47,8 +47,8 @@ COPY --from=build /app/backend/build ./backend/build
 COPY --from=build /app/backend/package.json ./backend/package.json
 
 # Install production dependencies for the workspace
-# We use --no-frozen-lockfile to allow pnpm to adjust the lockfile for the production-only install if needed
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --no-frozen-lockfile
+# We use --ignore-scripts to avoid building shared package which requires devDeps
+RUN --mount=type=cache,id=pnpm,target=/pnpm/store pnpm install --prod --frozen-lockfile --ignore-scripts
 
 # Expose the application port
 EXPOSE 3008
