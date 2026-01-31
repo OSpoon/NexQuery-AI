@@ -61,6 +61,42 @@ const input = ref('')
 const scrollAreaRef = ref<HTMLDivElement | null>(null)
 const selectedDataSource = ref<string>('none')
 
+// Resizable Logic
+const chatHeight = ref(600)
+const isResizing = ref(false)
+const resizeStartY = ref(0)
+const resizeStartHeight = ref(0)
+
+function startResize(e: MouseEvent) {
+  isResizing.value = true
+  resizeStartY.value = e.clientY
+  resizeStartHeight.value = chatHeight.value
+  window.addEventListener('mousemove', onResize)
+  window.addEventListener('mouseup', stopResize)
+  // Prevent text selection during drag
+  document.body.style.userSelect = 'none'
+}
+
+function onResize(e: MouseEvent) {
+  if (!isResizing.value)
+    return
+
+  const delta = resizeStartY.value - e.clientY
+  const newHeight = resizeStartHeight.value + delta
+
+  // Min height 400, Max height (window height - 100 or something reasonable)
+  if (newHeight >= 400 && newHeight <= window.innerHeight - 50) {
+    chatHeight.value = newHeight
+  }
+}
+
+function stopResize() {
+  isResizing.value = false
+  window.removeEventListener('mousemove', onResize)
+  window.removeEventListener('mouseup', stopResize)
+  document.body.style.userSelect = ''
+}
+
 // Auto-select first data source once loaded
 watch(
   () => dataSourceStore.databaseSources,
@@ -219,8 +255,18 @@ function selectOption(option: string) {
     <!-- Chat Window -->
     <div
       v-if="store.isOpen"
-      class="w-[480px] h-[600px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden transition-all duration-200 animate-in slide-in-from-bottom-5 fade-in"
+      class="w-[480px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in relative"
+      :style="{ height: `${chatHeight}px` }"
     >
+      <!-- Resize Handle -->
+      <div
+        class="absolute top-0 left-0 right-0 h-1.5 cursor-ns-resize z-50 hover:bg-primary/20 transition-colors w-full flex justify-center items-center group"
+        @mousedown.prevent="startResize"
+      >
+        <!-- Optional visual indicator -->
+        <div class="w-12 h-1 rounded-full bg-border/50 group-hover:bg-primary/50 transition-colors" />
+      </div>
+
       <!-- Header -->
       <div class="bg-primary px-4 py-3 flex items-center justify-between text-primary-foreground">
         <div class="flex items-center gap-2">
