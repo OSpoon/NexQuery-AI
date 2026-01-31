@@ -25,7 +25,10 @@
     "frontend:build": "pnpm --filter frontend build",
     "shared:build": "pnpm --filter @nexquery/shared build",
     "mp:dev": "pnpm --filter miniprogram dev:mp-weixin",
-    "mp:build": "pnpm --filter miniprogram build:mp-weixin"
+    "mp:build": "pnpm --filter miniprogram build:mp-weixin",
+    "kill:3000": "lsof -ti:3000 | xargs kill -9",
+    "kill:3008": "lsof -ti:3008 | xargs kill -9",
+    "kill:all": "pnpm kill:3000 && pnpm kill:3008"
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.2.0",

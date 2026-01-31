@@ -66,7 +66,7 @@ function decryptResponse(response: any) {
       const isEncrypted = response.headers['x-encryption-enabled'] === 'true'
       if (isEncrypted) {
         const decrypted = cryptoService.decrypt(response.data.data)
-        if (decrypted !== null) {
+        if (decrypted !== null && decrypted !== undefined) {
           response.data = decrypted
         }
       }

@@ -1,5 +1,6 @@
 import { HttpContext } from '@adonisjs/core/http'
 import SseService from '#services/sse_service'
+import User from '#models/user'
 
 export default class NotificationsController {
   public async stream(ctx: HttpContext) {
@@ -12,18 +13,20 @@ export default class NotificationsController {
       const token = ctx.request.input('token')
       if (token) {
         try {
-          // Manually authenticate using the token from query
-          // IMPORTANT: The api guard looks for the 'authorization' header
-          ctx.request.request.headers.authorization = `Bearer ${token}`
+          // Manually verify the token using the DbAccessTokensProvider
+          // Correct sequence for Opaque Tokens in AdonisJS 6
+          const { Secret } = await import('@adonisjs/core/helpers')
+          const accessTokens = (User as any).accessTokens
+          const result = await accessTokens.verify(new Secret(token))
 
-          const user = await ctx.auth.use('api').authenticate()
-          userId = user?.id
-          // console.info('[SSE] Manual auth succeeded', { userId })
+          if (result) {
+            // In AdonisJS 6, verify() returns the AccessToken instance if successful
+            userId = result.tokenableId
+          }
         } catch (e: any) {
           console.error('[SSE] Manual auth failed', {
             message: e.message,
             code: e.code,
-            stack: e.stack,
           })
         }
       } else {
