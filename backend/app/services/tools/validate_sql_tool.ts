@@ -111,7 +111,30 @@ export class ValidateSqlTool extends StructuredTool {
 
       // SELECT logic
       try {
-        await client.rawQuery(`EXPLAIN ${sql}`)
+        const explainResult = await client.rawQuery(`EXPLAIN ${sql}`)
+        let performanceWarning = ''
+
+        // Performance Analysis Logic
+        if (dbType === 'postgresql') {
+          // PG: Result is usually row of 'QUERY PLAN'
+          const planRows = explainResult.rows.map((r: any) => r['QUERY PLAN']).join('\n')
+          if (planRows.includes('Seq Scan')) {
+            performanceWarning = ' (Performance Note: Full Table Scan detected. This might be slow on large tables. Consider adding an index.)'
+          }
+        } else {
+          // MySQL: Result is array of objects
+          const rows = Array.isArray(explainResult[0]) ? explainResult[0] : explainResult
+          for (const row of rows) {
+            if (row.type === 'ALL') {
+              performanceWarning = ' (Performance Note: Full Table Scan detected (type=ALL). Consider adding an index.)'
+              break
+            }
+            if (Number(row.rows) > 10000 && row.key === null) {
+              performanceWarning = ` (Performance Note: Scanned >10k rows (${row.rows}) without index. Optimization recommended.)`
+              break
+            }
+          }
+        }
 
         // Heuristic: Cross Join Check
         if (
@@ -122,7 +145,7 @@ export class ValidateSqlTool extends StructuredTool {
           return 'Warning: You used a JOIN without ON/USING condition. This might cause a generic Cartesian product error or logic issue. Please verify or add condition.'
         }
 
-        return 'Valid SQL'
+        return `Valid SQL${performanceWarning}`
       } catch (e: any) {
         const errorMessage = e.message.toLowerCase()
 

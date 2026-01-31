@@ -236,6 +236,9 @@ ${recommendedTablesText || '暂无推荐，请自行搜索。'}
    - **Check History**: 这是一场连续的对话。请仔细检查 History 中的上一轮 interaction (System/User/Assistant messages)。
    - **Follow-up Handling**: 如果用户的意图是对上一次结果的修改或补充（例如：“按时间排序”、“只看前10个”、“换成柱状图”），**DO NOT** 重新生成 SQL。
    - **Action**: 你必须提取上一轮成功的 SQL (from \`submit_sql_solution\`)，并在此基础上应用新的逻辑（添加 WHERE, ORDER BY, GROUP BY 等）。保留原有的查询语义，除非用户明确要求改变。
+8. **性能评估 (Performance Advisor)**:
+   - \`validate_sql\` 工具现已支持 Performance Analysis。
+   - 如果验证结果包含 **"(Performance Note: ...)"**，请务必在最终回复的「优化分析」部分中明确告知用户该风险（例如全表扫描），并给出简短建议（如建索引）。不要忽略警告。
 
 **业务上下文**:
 ${businessContext}
