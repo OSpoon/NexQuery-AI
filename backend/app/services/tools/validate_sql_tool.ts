@@ -119,7 +119,7 @@ export class ValidateSqlTool extends StructuredTool {
           && !trimmedSql.includes('on')
           && !trimmedSql.includes('using')
         ) {
-          return 'Warning: You used a JOIN without ON/USING condition. This might cause a generic Cartesian product error or logic issue. Please verify.'
+          return 'Warning: You used a JOIN without ON/USING condition. This might cause a generic Cartesian product error or logic issue. Please verify or add condition.'
         }
 
         return 'Valid SQL'
@@ -130,24 +130,31 @@ export class ValidateSqlTool extends StructuredTool {
         // Case 1: Unknown Column
         if (
           errorMessage.includes('column')
-          && (errorMessage.includes('does not exist') || errorMessage.includes('unknown'))
+          && (errorMessage.includes('does not exist') || errorMessage.includes('unknown') || errorMessage.includes('not found'))
         ) {
           const match = errorMessage.match(/["'](\w+)["']/)
-          if (match) {
-            const badCol = match[1]
-            return `SQL Validation Error: Column '${badCol}' does not exist. Please check the schema using 'get_table_schema' to find the correct column name.`
-          }
+          const badCol = match ? match[1] : 'unknown_column'
+          return `Validation Failed: Column '${badCol}' does not exist in the table. Action: Use 'get_table_schema' to inspect the table columns and fix the SQL.`
         }
 
         // Case 2: Unknown Table
         if (errorMessage.includes('relation') || errorMessage.includes('table')) {
           const match = errorMessage.match(/["'](\w+)["']/)
-          if (match) {
-            return `SQL Validation Error: Table '${match[1]}' does not exist. Please use 'list_tables' to see available tables.`
-          }
+          const badTable = match ? match[1] : 'unknown_table'
+          return `Validation Failed: Table '${badTable}' does not exist. Action: Use 'search_tables' or 'list_tables' to find the correct table name.`
         }
 
-        return `SQL Validation Error: ${e.message}`
+        // Case 3: Group By Error
+        if (errorMessage.includes('group by') || errorMessage.includes('aggregated')) {
+          return `Validation Failed: SQL Group By/Aggregation error. (${e.message}). Action: Ensure all non-aggregated columns in SELECT are present in GROUP BY.`
+        }
+
+        // Case 4: Syntax Error
+        if (errorMessage.includes('syntax')) {
+          return `Validation Failed: SQL Syntax Error near ... (${e.message}). Action: Check for missing keywords, commas, or parentheses.`
+        }
+
+        return `Validation Failed: Database returned error: ${e.message}. Action: Read the error and fix the SQL.`
       }
     } catch (error: any) {
       return `System Error during validation: ${error.message}`

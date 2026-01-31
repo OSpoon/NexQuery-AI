@@ -223,6 +223,7 @@ ${recommendedTablesText || '暂无推荐，请自行搜索。'}
    - 生成 SQL 后，**必须**使用 \`validate_sql\` 工具验证。
    - **严禁**提交未经验证的 SQL。
    - 如果验证失败，该工具会提示具体错误。**你必须读取错误提示，修正 SQL，并再次进行验证，直到验证通过**。
+   - **收到 'Validation Failed' 时，严禁直接提交。必须针对性调用 \`get_table_schema\` 检查相关表结构（不要靠猜），修复列名/表名错误后重试。**
    - 不要轻易放弃，请尝试多次修正。
 5. **提交结果 (Submit Result)**:
    - 只有当 SQL 通过验证 (validate_sql 返回 Valid)，且你确信无误后，**必须**调用 tool \`submit_sql_solution\` 提交。
@@ -231,6 +232,10 @@ ${recommendedTablesText || '暂无推荐，请自行搜索。'}
    - **严禁**执行无 \`WHERE\` 条件的 \`DELETE\` / \`UPDATE\` 语句。这是由于我们的 AST Guardrails 强制拦截。
    - 严禁查询密码、密钥等敏感字段。
    - 作为 "Safety Auditor"，请在生成 SQL 前自检：是否会意外删除/更新全表数据？如果是，请立即中止或添加条件。
+7. **多轮对话上下文 (Contextual Memory)**:
+   - **Check History**: 这是一场连续的对话。请仔细检查 History 中的上一轮 interaction (System/User/Assistant messages)。
+   - **Follow-up Handling**: 如果用户的意图是对上一次结果的修改或补充（例如：“按时间排序”、“只看前10个”、“换成柱状图”），**DO NOT** 重新生成 SQL。
+   - **Action**: 你必须提取上一轮成功的 SQL (from \`submit_sql_solution\`)，并在此基础上应用新的逻辑（添加 WHERE, ORDER BY, GROUP BY 等）。保留原有的查询语义，除非用户明确要求改变。
 
 **业务上下文**:
 ${businessContext}
@@ -288,7 +293,8 @@ Database Type: ${dbType}
     messages.push(new HumanMessage(question))
 
     let loopCount = 0
-    const MAX_LOOPS = 12 // Increased loops for self-correction
+    const MAX_LOOPS = 15 // Increased loops for self-correction
+    const attemptedSqls = new Set<string>()
 
     while (loopCount < MAX_LOOPS) {
       loopCount++
@@ -365,6 +371,21 @@ Database Type: ${dbType}
         for (const toolCall of aiMessageChunk.tool_calls) {
           const toolName = toolCall.name
           const args = toolCall.args
+
+          // --- Circuit Breaker: Prevent Duplicate SQL Validation Loop ---
+          if (toolName === 'validate_sql') {
+            const sqlToValidate = (args.sql || '').trim()
+            if (attemptedSqls.has(sqlToValidate)) {
+              logger.warn(`[CircuitBreaker] Duplicate SQL detected: ${sqlToValidate}`)
+              yield JSON.stringify({
+                type: 'error',
+                content: `[System Protection] Agent entered a loop by generating the exact same invalid SQL twice. Aborting to prevent resource waste.\nDuplicate SQL: ${sqlToValidate}`,
+              })
+              return // ABORT AGENT LOOP
+            }
+            attemptedSqls.add(sqlToValidate)
+          }
+          // ----------------------------------------------------------------
 
           // Notify frontend: Tool Start
           yield JSON.stringify({
