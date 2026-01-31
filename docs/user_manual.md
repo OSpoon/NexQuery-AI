@@ -8,7 +8,7 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 *   **专业人士 (DBA/技术支持)**: 负责配置复杂的数据源连接、预置高频查询任务和配置推送渠道。
 *   **运营人员**: 负责“一键执行”任务，或直接查收邮件/群消息中的数据报表。
 
-本文档将指导您如何使用平台的各项功能，并为高级用户提供底层逻辑的代码索引。
+本文档将指导您如何使用平台的各项功能。如需了解底层逻辑代码，请查阅 [开发指南](./development.md)。
 
 ## 目录
 
@@ -32,13 +32,13 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 *   **账号获取**: 请联系管理员为您创建账号。如果是首次部署，请使用默认管理员账号 (`admin@nexquery.ai`)。
 *   **登录**: 访问系统首页，输入账号密码。
 *   **会话有效期**: 默认 Web 会话有效期为 **24小时**。超时需重新登录。
-*   认证逻辑参考: [`AuthController`](../backend/app/controllers/auth_controller.ts)。
+*   **会话有效期**: 默认 Web 会话有效期为 **24小时**。超时需重新登录。
 
 ### 1.2 双重认证 (2FA)
 *   为了提高安全性，建议在 **个人中心 (Profile)** 开启 2FA。
 *   使用 Google Authenticator 或 Microsoft Authenticator 扫描二维码绑定。
 *   绑定后，登录时需输入 6 位动态验证码。
-*   2FA 逻辑参考: [`TwoFactorAuthController`](../backend/app/controllers/two_factor_auth_controller.ts)。
+*   绑定后，登录时需输入 6 位动态验证码。
 
 ### 1.3 密码策略
 *   密码强制过期时间：90 天。
@@ -69,7 +69,7 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 *   **Top Users**: 系统活跃用户排行。
 *   **Recent Live**: 实时滚动的最新查询日志，点击日志状态可查看详细的执行信息。
 
-*   API 端点: [`DashboardController`](../backend/app/controllers/dashboard_controller.ts)。
+*   **Recent Live**: 实时滚动的最新查询日志，点击日志状态可查看详细的执行信息。
 
 ---
 
@@ -90,7 +90,7 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 
 **自动同步 (Auto-Sync)**: 配置成功保存后，系统会自动启动后台任务同步表结构元数据至向量数据库，确保 AI 智能助手能立即识别新添加的数据源。
 
-*   **相关代码**: [`packages/shared/src/utils/crypto.ts`](../packages/shared/src/utils/crypto.ts)
+**自动同步 (Auto-Sync)**: 配置成功保存后，系统会自动启动后台任务同步表结构元数据至向量数据库，确保 AI 智能助手能立即识别新添加的数据源。
 
 *   **配置项**:
 *   **数据脱敏 (Data Masking)**: 保护敏感信息。
@@ -126,14 +126,15 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 ### 4.3 执行结果
 *   结果以表格形式展示，支持排序和分页。
 *   **应用脱敏**: 如果配置了规则，敏感数据在此处会显示为 `****`。
+*   **安全提示**: 若查询执行失败，为防止数据库结构泄露，系统仅会提示通用的“数据库操作异常”，详细错误请联系管理员查看服务端日志。
 *   **导出**: 点击 "Export" 支持导出为 CSV 或 JSON 文件。
-*   **核心服务**: [`QueryExecutionService`](../backend/app/services/query_execution_service.ts)
+*   **导出**: 点击 "Export" 支持导出为 CSV 或 JSON 文件。
 
 ---
 
 ## 5. AI 智能助手
 
-点击页面右下角的 **Brain (大脑)** 图标或使用编辑器上方的 AI 功能。核心编排逻辑位于 [`LangChainService`](../backend/app/services/lang_chain_service.ts)。
+点击页面右下角的 **Brain (大脑)** 图标或使用编辑器上方的 AI 功能。
 
 ### 5.1 Text-to-SQL (生成)
 1.  打开 AI 对话框。
@@ -152,13 +153,13 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 ### 5.3 可观测性 (Mind Chain)
 为了透明化 AI 的决策过程，您可以查看思维链：
 *   **Reasoning**: 看到 AI 是如何一步步思考的。
-*   **Tool Usage**: 查看 AI 调用了哪些工具（如 [`list_tables`](../backend/app/services/tools/list_tables_tool.ts), [`validate_sql`](../backend/app/services/tools/validate_sql_tool.ts)）。
+*   **Tool Usage**: 查看 AI 调用了哪些工具。
 *   **Retry Loop**: 如果 AI 第一次生成的 SQL 有误，您可以看到它如何根据错误信息进行自我修正。
 
 ### 5.4 安全护栏
 *   系统会拦截 `DROP` 和 `TRUNCATE` 等高危破坏性命令。
 *   所有生成的 SQL 均经过基础语法验证。
-*   校验工具: [`ValidateSqlTool`](../backend/app/services/tools/validate_sql_tool.ts)
+*   所有生成的 SQL 均经过基础语法验证。
 
 *   **作用**: 您的反馈将进入管理后台，帮助管理员优化系统准确性。
 
@@ -192,7 +193,7 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 
 ### 6.3 结果查看
 *   **History**: 即使通过邮件发送，系统也会保留一份执行快照在 **Query History** 中。
-*   **调度服务**: [`SchedulerService`](../backend/app/services/scheduler_service.ts)
+*   **History**: 即使通过邮件发送，系统也会保留一份执行快照在 **Query History** 中。
 
 ---
 
@@ -202,7 +203,7 @@ NexQuery AI 旨在帮助**运营人员与非技术用户**轻松、安全地获�
 
 *   **审计**: 查看 who (执行人), when (时间), what (SQL), status (成功/失败)。
 *   **复用**: 点击 "Load to Editor" 可以将历史 SQL 重新加载到编辑器中进行修改或再次执行。
-*   **控制器**: [`QueryLogsController`](../backend/app/controllers/query_logs_controller.ts)
+*   **复用**: 点击 "Load to Editor" 可以将历史 SQL 重新加载到编辑器中进行修改或再次执行。
 
 ---
 

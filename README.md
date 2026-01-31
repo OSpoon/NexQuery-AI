@@ -20,7 +20,7 @@
 ## 🚀 核心特性
 
 ### 🤖 AI 智能辅助 (Agentic SQL)
-核心逻辑实现于 [`LangChainService`](backend/app/services/lang_chain_service.ts)。
+### 🤖 AI 智能辅助 (Agentic SQL)
 -   **Text-to-SQL**: 使用自然语言生成复杂的 SQL 查询。
 -   **主动消解歧义**: 当需求模糊时，AI 主动反问并提供选项，拒绝“瞎猜”。
 -   **自动化可视化**: AI 自动根据数据特征推荐并标识最佳图表方案（Bar, Line, Pie 等）。
@@ -28,38 +28,45 @@
 -   **思维链 (Mind Chain)**: 透明展示 AI 的思考过程、知识库检索结果和工具调用详情，拒绝“黑盒”。
 -   **闭环自进化 (Closed-Loop)**: 通过“用户反馈 -> 修正提炼 (AI Feedback Adoption) -> 知识库审计 -> RAG 增强”实现系统准确性的持续闭环进化。
 -   **SSE 实时推送**: 集成服务端事件发送 (SSE)，实现系统状态与实时通知的毫秒级触达。
--   **安全校验**: 内置 [`ValidateSqlTool`](backend/app/services/tools/validate_sql_tool.ts) 进行语法检查与危险命令 (`DROP`, `TRUNCATE`) 拦截。
+-   **安全校验**: 内置语法检查与危险命令 (`DROP`, `TRUNCATE`) 拦截。
 
 ### 🔌 多数据源支持
-由 [`DataSourcesController`](backend/app/controllers/data_sources_controller.ts) 管理。
+### 🔌 多数据源支持
 -   **关系型数据库**: 原生支持 **PostgreSQL** 和 **MySQL**。
 -   **HTTP API**: 支持通过 `curl` 风格命令将 API 响应作为数据表进行查询。
 -   **高级配置**: 支持字段级数据脱敏 (手机号, 邮箱, 银行卡) 和枚举值自动映射。
-38: -   **PII 自动发现**: 内置 [`PiiDiscoveryService`](backend/app/services/pii_discovery_service.ts)，在同步 Schema 时利用 AI 自动识别敏感字段 (手机号, 邮箱, 身份证等) 并应用脱敏规则。
-39: -   **全局超时配置**: 支持在系统设置中动态调整 AI 模型请求的超时时间，默认 10 分钟，适应大规模 Schema 分析场景。
+-   **PII 自动发现**: 在同步 Schema 时利用 AI 自动识别敏感字段 (手机号, 邮箱, 身份证等) 并应用脱敏规则。
+-   **全局超时配置**: 支持在系统设置中动态调整 AI 模型请求的超时时间，默认 10 分钟，适应大规模 Schema 分析场景。
 
 ### 🛡️ 企业级安全
+### 🛡️ 企业级安全
 -   **RBAC 权限系统**: 基于角色的细粒度权限控制，支持动态菜单。
--   **双重认证 (2FA)**: 集成 OTP (Google Authenticator) 登录保护，逻辑位于 [`TwoFactorAuthController`](backend/app/controllers/two_factor_auth_controller.ts)。
--   **敏感数据加密**: 数据库连接串与 API Key 使用 [`CryptoService`](packages/shared/src/utils/crypto.ts) 进行 AES-256 加密存储。
+-   **双重认证 (2FA)**: 集成 OTP (Google Authenticator) 登录保护。
+-   **敏感数据加密**: 数据库连接串与 API Key 使用 AES-256 加密存储。支持**动态 API 加密**，生产环境强制开启，开发环境可灵活关闭。
+-   **安全防火墙**:
+    -   **SQL 注入防护**: 严格的参数化查询与 ORM 使用。
+    -   **错误抑制**: 生产环境自动屏蔽详细数据库报错 (SQL Error Masking)，防止信息泄露。
+    -   **高危拦截**: 自动识别并阻止 `DROP`, `TRUNCATE` 等破坏性指令。
 -   **安全审计**: 完整的查询历史记录与操作日志。
 
 ### ⚙️ 自动化与推送
--   **定时任务**: 基于 [`SchedulerService`](backend/app/services/scheduler_service.ts) 支持 Cron 表达式或一次性定时执行查询任务。
+### ⚙️ 自动化与推送
+-   **定时任务**: 支持 Cron 表达式或一次性定时执行查询任务。
 -   **多渠道触达**:
     *   **SSE/Web**: 站内实时推送审批进度与系统事件。
     *   **Email**: 定时将查询结果 (CSV) 发送到指定邮箱列表。
     *   **IM 推送**: 支持 Webhook 对接 **企业微信、钉钉、飞书**，将数据实时推送到工作群。
--   **Schema 管理**: [`SchemaSyncService`](backend/app/services/schema_sync_service.ts) 支持连接后自动同步模式，确保 AI 知识库始终处于最新状态。
+-   **Schema 管理**: 支持连接后自动同步模式，确保 AI 知识库始终处于最新状态。
 
 ## 🛠️ 技术栈
 
 本项目采用 Monorepo 架构，全栈 TypeScript 开发：
 
 -   **Frontend**: Vue 3, Vite, Pinia, TailwindCSS, Shadcn UI
+    -   Web Client: [`frontend/`](frontend/)
+    -   Mini Program: [`miniprogram/`](miniprogram/) (Uni-app + Vite)
     -   API 封装: [`api.ts`](frontend/src/lib/api.ts)
 -   **Backend**: AdonisJS 6, Lucid ORM, Node.js
-    -   核心配置: [`adonisrc.ts`](backend/adonisrc.ts)
 -   **Shared**: [`packages/shared`](packages/shared) (前后端统一加密与类型定义)
 -   **AI Engine**: LangChain, ZhipuGLM (GLM-4)
 

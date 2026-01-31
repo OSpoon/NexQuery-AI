@@ -8,8 +8,12 @@
 
 ```
 /
+/
 ├── backend/            # AdonisJS 6 后端应用
+│   ├── app/controllers/  # 业务入口 (AuthProvider, DataSources, QueryLogs)
+│   ├── app/services/     # 核心业务逻辑 (LangChain, Scheduler, SchemaSync)
 ├── frontend/           # Vue 3 (Vite) 前端应用
+├── miniprogram/        # Uni-app (Vite) 微信小程序
 ├── packages/shared/    # 前后端共享逻辑 (CryptoService, 类型定义)
 ├── docs/               # 文档说明
 └── dev.sh              # 一键开发启动脚本
@@ -32,6 +36,9 @@ pnpm install
 ### 2.2 配置文件
 1.  **拷贝模板**: `cp .env.example .env`
 2.  **核心配置**: 确保 `DB_HOST=127.0.0.1` 且 `API_ENCRYPTION_KEY` 已设置。
+3.  **动态加密**:
+    *   本地开发建议设置 `API_ENCRYPTION_ENABLED=false` 以方便调试。
+    *   生产环境 Docker 会自动强制开启加密。
 
 ### 2.3 启动开发环境 (推荐)
 我们采用 **“宿主机应用 + Docker 基础设施”** 模式：
@@ -39,7 +46,13 @@ pnpm install
 ./dev.sh
 # 或者执行：pnpm dev:all
 ```
-该操作会启动 Docker 中的数据库/缓存，并在宿主机持续运行前后端 HMR。
+该操作会启动 Docker 中的数据库/缓存，并在宿主机持续运行 **Backend + Frontend + Miniprogram** (全栈并行开发)。
+
+### 2.4 独立模块开发
+如果你只想运行特定模块：
+*   **小程序**: `pnpm mp:dev`
+*   **后端**: `pnpm backend:dev`
+*   **前端**: `pnpm frontend:dev`
 
 ---
 
@@ -100,6 +113,12 @@ alias dcp="docker compose --profile app"
 ---
 
 ## 5. 架构特性
-
-*   **AI 治理**: 语义脱敏与 SQL 校验位于 `backend/app/services/lang_chain_service.ts`。
+*   **AI 引擎**: 核心编排位于 `backend/app/services/lang_chain_service.ts`，集成了 GLM-4 模型与工具链。
 *   **安全拦截**: 全局 SQL 报错拦截位于 `backend/app/exceptions/handler.ts`，防止敏感信息泄露。
+*   **鉴权体系**:
+    *   **2FA**: `TwoFactorAuthController`
+    *   **RBAC**: 基于中间件的动态权限控制。
+*   **数据流**:
+    *   查询执行: `QueryExecutionService` (负责连接池、结果集处理与脱敏)
+    *   任务调度: `SchedulerService` (Cron 任务管理)
+    *   Schema 同步: `SchemaSyncService` (自动推断 PII 字段)
