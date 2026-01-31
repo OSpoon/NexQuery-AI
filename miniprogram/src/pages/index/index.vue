@@ -89,24 +89,31 @@ onPullDownRefresh(() => {
 
 <template>
   <view class="container">
-    <view class="search-bar">
-      <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit" />
-      <input
-        v-model="searchQuery" class="search-input" placeholder="搜索任务..." confirm-type="search"
-        @input="onSearchInput"
-      >
-    </view>
-
-    <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
-      <view class="tag-list">
-        <view
-          v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
-          @click="selectTag(tag)"
+    <view class="filter-header">
+      <view class="search-bar">
+        <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit" />
+        <input
+          v-model="searchQuery" class="search-input" placeholder="搜索任务..." confirm-type="search"
+          @input="onSearchInput"
         >
-          {{ tag }}
-        </view>
       </view>
-    </scroll-view>
+
+      <view class="filter-row">
+        <text class="filter-label">
+          标签:
+        </text>
+        <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
+          <view class="tag-list">
+            <view
+              v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+              @click="selectTag(tag)"
+            >
+              {{ tag }}
+            </view>
+          </view>
+        </scroll-view>
+      </view>
+    </view>
 
     <view v-if="loading && tasks.length === 0" class="loading-state">
       <text>加载中...</text>
@@ -151,17 +158,24 @@ onPullDownRefresh(() => {
   padding: 20rpx;
 }
 
-.search-bar {
-  display: flex;
-  align-items: center;
+.filter-header {
   background-color: #fff;
-  padding: 16rpx 24rpx;
-  border-radius: 12rpx;
-  margin: 10rpx 0 24rpx 0;
+  padding: 24rpx;
+  border-radius: 20rpx;
+  margin-bottom: 30rpx;
   box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
   position: sticky;
   top: 0;
   z-index: 100;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  background-color: #f5f7fa;
+  padding: 16rpx 24rpx;
+  border-radius: 12rpx;
+  margin-bottom: 24rpx;
 }
 
 .search-icon {
@@ -177,34 +191,46 @@ onPullDownRefresh(() => {
   color: #333;
 }
 
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.filter-label {
+  font-size: 24rpx;
+  color: #999;
+  font-weight: 500;
+  width: 70rpx;
+  flex-shrink: 0;
+}
+
 .tag-filter {
-  width: 100%;
-  margin-bottom: 30rpx;
+  flex: 1;
   white-space: nowrap;
 }
 
 .tag-list {
   display: inline-flex;
-  padding: 4rpx 10rpx;
   gap: 16rpx;
+  padding: 4rpx 0;
 }
 
 .tag-chip {
   display: inline-block;
-  padding: 10rpx 28rpx;
-  background-color: #fff;
+  padding: 8rpx 24rpx;
+  background-color: #f5f7fa;
   color: #666;
   border-radius: 30rpx;
-  font-size: 24rpx;
-  box-shadow: 0 2rpx 8rpx rgba(0, 0, 0, 0.05);
-  transition: all 0.2s ease;
+  font-size: 22rpx;
+  border: 1rpx solid transparent;
 }
 
 .tag-chip.active {
-  background-color: #007aff;
-  color: #fff;
+  background-color: #e3f2fd;
+  color: #007aff;
+  border-color: #007aff;
   font-weight: bold;
-  box-shadow: 0 4rpx 12rpx rgba(0, 122, 255, 0.2);
 }
 
 .loading-state,

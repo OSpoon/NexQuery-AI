@@ -37,6 +37,8 @@ services:
       HOST: 0.0.0.0
       DB_HOST: db
       QDRANT_HOST: qdrant
+      # Force encryption in production, even if .env says false
+      API_ENCRYPTION_ENABLED: 'true'
     command: >
       sh -c "node ace migration:run --force && node ace db:seed && node bin/server.js"
     ports:
@@ -51,6 +53,9 @@ services:
     build:
       context: .
       dockerfile: frontend/Dockerfile
+      args:
+        # Force encryption in production build
+        API_ENCRYPTION_ENABLED: 'true'
     ports:
       - 3000:3000
     restart: always

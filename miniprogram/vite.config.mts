@@ -9,6 +9,7 @@ const uni = uniPlugin.default || uniPlugin
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  envPrefix: ['VITE_', 'API_ENCRYPTION_'],
   plugins: [
     uni(),
     AutoImport({

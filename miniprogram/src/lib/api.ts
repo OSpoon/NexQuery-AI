@@ -23,8 +23,8 @@ const serverRoot = 'http://localhost:3008'
 const baseURL = `${serverRoot}/api`
 
 // Initialize Encryption Service
-// In Uni-app, we use uni.getSystemInfoSync or hardcode config
-const enableEncryption = true // or get from config
+// In Uni-app (Vite), we use import.meta.env to read variables
+const enableEncryption = import.meta.env.API_ENCRYPTION_ENABLED === 'true'
 const encryptionKey = '12345678901234567890123456789012' // Should match backend
 
 function createCryptoService() {

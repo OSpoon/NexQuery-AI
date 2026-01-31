@@ -306,6 +306,15 @@ onPullDownRefresh(() => {
   font-weight: bold;
 }
 
+.loading-state,
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400rpx;
+  color: #999;
+}
+
 .log-list {
   display: flex;
   flex-direction: column;
@@ -369,6 +378,22 @@ onPullDownRefresh(() => {
 .status-badge.failed {
   background-color: #fef2f2;
   color: #ef4444;
+}
+
+.task-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+}
+
+.task-tag {
+  font-size: 20rpx;
+  background-color: #f0f7ff;
+  color: #007aff;
+  padding: 4rpx 16rpx;
+  border-radius: 8rpx;
+  border: 1rpx solid #ddecff;
 }
 
 .log-footer {

@@ -40,7 +40,6 @@ export default class HttpExceptionHandler extends ExceptionHandler {
         message,
         code: error.code,
         errors: error.messages || undefined, // For validation errors
-        stack: this.debug ? error.stack : undefined,
       })
     }
     return super.handle(error, ctx)
