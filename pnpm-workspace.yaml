@@ -1,3 +1,8 @@
+allowedBuilds:
+  - '@swc/core'
+  - esbuild
+  - sharp
+  - simple-git-hooks
 shellEmulator: true
 
 trustPolicy: no-downgrade
@@ -10,3 +15,13 @@ packages:
 overrides:
   axios: ^1.7.9
   semver: ^7.5.4
+peerDependencyRules:
+  allowAny:
+    - '@adonisjs/core'
+    - langchain
+    - vue
+    - vite
+  ignoreMissing:
+    - '@adonisjs/core'
+    - '@dcloudio/types'
+    - langchain

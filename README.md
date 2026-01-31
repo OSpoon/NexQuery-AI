@@ -65,11 +65,12 @@
 
 ## 📖 文档指南
 
--   [用户手册 (User Manual)](docs/user_manual.md): 详细的功能使用说明。
--   [部署指南 (Deployment Guide)](docs/deployment.md): Docker 部署、环境变量配置与系统初始化。
--   [开发指南 (Developer Guide)](docs/dev_guide.md): 本地开发环境搭建与架构说明。
+- [核心开发与部署指南 (Development & Deployment)](docs/development.md): 包含环境搭建、一键启动、Docker 部署及架构说明。
+- [用户使用手册 (User Manual)](docs/user_manual.md): 详细的功能使用与操作说明。
 
-## ⚡️ 快速开始 (Docker)
+## ⚡️ 快速开始 (开发环境)
+
+本项目默认采用 **"宿主机应用 + Docker 基础设施"** 的开发模式，以获得最佳的热更新性能与调试体验。
 
 1.  **克隆项目**:
     ```bash
@@ -80,25 +81,27 @@
 2.  **配置环境**:
     ```bash
     cp .env.example .env
-    # 编辑 .env 文件，设置数据库密码、API Key 与 Qdrant Key
+    # 编辑 .env 文件，设置必要的 API Key 与密码
     ```
 
-3.  **启动服务**:
-    查看 [`docker-compose.yml`](docker-compose.yml) 了解服务编排：
+3.  **安装依赖**:
     ```bash
-    docker compose up -d
+    pnpm install
     ```
 
-4.  **初始化数据**:
+4.  **一键启动**:
+    我们提供了一个脚本来自动启动 Docker 基础设施（数据库、缓存等）并运行应用服务：
     ```bash
-    pnpm backend:migrate
-    pnpm backend:seed
+    ./dev.sh
     ```
+    *或者使用 npm 脚本:* `pnpm dev:all`
 
 5.  **访问系统**:
     打开浏览器访问 `http://localhost:3000`。
     *   默认管理员: `admin@nexquery.ai`
     *   默认密码: `password`
+
+> 💡 **提示**: 如果你想在容器中运行整个全栈环境（生产测试），请使用 `docker compose --profile app up -d`。
 
 ---
 

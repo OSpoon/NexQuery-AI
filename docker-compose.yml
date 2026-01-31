@@ -24,7 +24,9 @@ services:
       - qdrant_data:/qdrant/storage
     networks:
       - nexquery_network
+
   backend:
+    profiles: [app]
     build:
       context: .
       dockerfile: backend/Dockerfile
@@ -36,7 +38,7 @@ services:
       DB_HOST: db
       QDRANT_HOST: qdrant
     command: >
-      sh -c "node ace.js migration:run --force && node ace.js db:seed && node bin/server.js"
+      sh -c "node ace migration:run --force && node ace db:seed && node bin/server.js"
     ports:
       - '${PORT:-3008}:3008'
     depends_on:
@@ -45,6 +47,7 @@ services:
       - nexquery_network
 
   frontend:
+    profiles: [app]
     build:
       context: .
       dockerfile: frontend/Dockerfile

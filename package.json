@@ -2,9 +2,11 @@
   "name": "nexquery-ai-monorepo",
   "version": "1.0.0",
   "private": true,
+  "packageManager": "pnpm@9.15.4",
   "license": "AGPL-3.0",
   "scripts": {
     "dev": "pnpm -r run dev",
+    "dev:all": "docker compose up -d && pnpm dev",
     "build": "pnpm -r run build",
     "install:all": "pnpm install -r",
     "lint": "eslint . --fix",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@antfu/eslint-config": "^7.2.0",
+    "@types/node": "22.10.1",
     "eslint": "^9.39.2",
     "lint-staged": "^16.2.7",
     "simple-git-hooks": "^2.13.1",

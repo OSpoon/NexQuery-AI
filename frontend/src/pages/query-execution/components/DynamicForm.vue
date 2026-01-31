@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
-import { Play } from 'lucide-vue-next'
+import { Loader2, Play } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
 import { computed } from 'vue'
 import * as z from 'zod'

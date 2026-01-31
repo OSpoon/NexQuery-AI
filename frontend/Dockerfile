@@ -3,8 +3,8 @@ FROM node:22-alpine AS build
 
 ENV PNPM_HOME="/pnpm"
 ENV PATH="$PNPM_HOME:$PATH"
-ENV NPM_CONFIG_REGISTRY="https://registry.npmmirror.com"
-ENV COREPACK_NPM_REGISTRY="https://registry.npmmirror.com"
+ENV NPM_CONFIG_REGISTRY="https://registry.npmjs.org"
+ENV COREPACK_NPM_REGISTRY="https://registry.npmjs.org"
 RUN corepack enable
 
 WORKDIR /app

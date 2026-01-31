@@ -28,44 +28,6 @@ services:
   #   networks:
   #     - nexquery_network
 
-  backend:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
-      target: build # Use the build stage which has all devDependencies
-    environment:
-      NODE_ENV: development
-      SMTP_HOST: mailcatcher
-      CI: 'true'
-    volumes:
-      - ./backend:/app/backend
-      - ./packages/shared:/app/packages/shared
-      - backend_node_modules:/app/backend/node_modules
-      - root_node_modules:/app/node_modules
-    command: >
-      sh -c "cd /app/backend && node ace migration:run --force && node ace db:seed && node ace serve --hmr"
-
-  frontend:
-    build:
-      context: .
-      dockerfile: frontend/Dockerfile
-      target: build # Use the build stage which has node and pnpm
-    environment:
-      VITE_API_URL: http://backend:3008
-      CI: 'true'
-    ports:
-      - '${VITE_PORT:-3000}:3000'
-    volumes:
-      - ./frontend:/app/frontend
-      - ./packages/shared:/app/packages/shared
-      - frontend_node_modules:/app/frontend/node_modules
-      - root_node_modules:/app/node_modules
-    command: >
-      sh -c "cd /app/frontend && pnpm run dev --host 0.0.0.0 --port 3000"
-
 volumes:
   db_data:
   qdrant_data:
-  backend_node_modules:
-  frontend_node_modules:
-  root_node_modules:

@@ -17,8 +17,29 @@ export default class HttpExceptionHandler extends ExceptionHandler {
     if (ctx.request.url().startsWith('/api')) {
       ctx.request.request.headers.accept = 'application/json'
       const status = error.status || 500
+
+      // Handle database errors specifically to prevent SQL leakage
+      let message = error.message
+      const isDatabaseError
+        = error.code?.includes('DB_')
+          || error.code?.includes('SQL')
+          || error.message?.toLowerCase().includes('select')
+          || error.message?.toLowerCase().includes('relation')
+          || error.message?.toLowerCase().includes('column')
+          || error.message?.toLowerCase().includes('syntax error')
+
+      if (isDatabaseError) {
+        // Always log database errors for admin review
+        console.error('[Database Error]:', error.message)
+
+        // Return a generic message unless in debug mode AND specifically requested
+        if (!this.debug) {
+          message = '数据库操作异常，请检查连接或联系管理员'
+        }
+      }
+
       return ctx.response.status(status).send({
-        message: error.message,
+        message,
         code: error.code,
         errors: error.messages || undefined, // For validation errors
         stack: this.debug ? error.stack : undefined,
