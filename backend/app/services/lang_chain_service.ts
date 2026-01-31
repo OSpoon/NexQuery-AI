@@ -27,19 +27,32 @@ import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 
 export default class LangChainService {
-  private static readonly API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/'
-
   private async getModel(bindTools = false, dataSourceId?: number) {
-    const setting = await Setting.findBy('key', 'glm_api_key')
-    const apiKey = setting?.value
+    // 1. Get Base URL
+    const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
+    const baseUrl = baseUrlSetting?.value
 
-    if (!apiKey)
-      throw new Error('GLM API Key not configured')
+    if (!baseUrl) {
+      throw new Error('AI Base URL not configured (ai_base_url)')
+    }
+
+    // 2. Get API Key
+    const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
+    const apiKey = apiKeySetting?.value
+
+    if (!apiKey) {
+      throw new Error('AI API Key not configured (ai_api_key)')
+    }
 
     process.env.OPENAI_API_KEY = apiKey
 
+    // 3. Get Model Name
     const chatModelSetting = await Setting.findBy('key', 'ai_chat_model')
-    const chatModel = chatModelSetting?.value || 'glm-4.5-flash'
+    const chatModel = chatModelSetting?.value
+
+    if (!chatModel) {
+      throw new Error('AI Chat Model not configured (ai_chat_model)')
+    }
 
     const timeoutSetting = await Setting.findBy('key', 'ai_timeout_sec')
     const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
@@ -53,7 +66,7 @@ export default class LangChainService {
 
     const llm = new ChatOpenAI({
       apiKey,
-      configuration: { baseURL: LangChainService.API_BASE_URL },
+      configuration: { baseURL: baseUrl },
       modelName: chatModel,
       temperature: 0.1,
       timeout: timeoutMs,

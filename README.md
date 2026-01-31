@@ -68,7 +68,7 @@
     -   API 封装: [`api.ts`](frontend/src/lib/api.ts)
 -   **Backend**: AdonisJS 6, Lucid ORM, Node.js
 -   **Shared**: [`packages/shared`](packages/shared) (前后端统一加密与类型定义)
--   **AI Engine**: LangChain, ZhipuGLM (GLM-4)
+-   **AI Engine**: LangChain, OpenAI-compatible Models (GPT-4, DeepSeek, GLM, etc.)
 
 ## 📖 文档指南
 

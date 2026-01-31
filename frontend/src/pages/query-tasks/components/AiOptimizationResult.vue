@@ -3,6 +3,7 @@ import { useClipboard, useDark } from '@vueuse/core'
 import { Check, Copy, RefreshCw } from 'lucide-vue-next'
 import { MarkdownRender } from 'markstream-vue'
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,6 +22,8 @@ const props = defineProps<{
 
 const emit = defineEmits(['update:open', 'refresh'])
 
+const { t } = useI18n()
+
 const isOpen = computed({
   get: () => props.open,
   set: val => emit('update:open', val),
@@ -36,12 +39,12 @@ const isDark = useDark()
     <DialogContent class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
       <DialogHeader class="p-6 pb-2">
         <div class="flex items-center justify-between">
-          <DialogTitle>AI Optimization Analysis</DialogTitle>
+          <DialogTitle>{{ t('query_tasks.ai_optimization_title') }}</DialogTitle>
           <Button variant="ghost" size="icon" :disabled="loading" @click="emit('refresh')">
             <RefreshCw class="h-4 w-4" :class="{ 'animate-spin': loading }" />
           </Button>
         </div>
-        <DialogDescription> Analysis provided by GLM Model </DialogDescription>
+        <DialogDescription> {{ t('query_tasks.ai_optimization_desc') }} </DialogDescription>
       </DialogHeader>
 
       <div class="flex-1 min-h-0 relative bg-muted/30 mx-6 border rounded-md">
@@ -50,7 +53,7 @@ const isDark = useDark()
             v-if="!analysis && loading"
             class="flex items-center justify-center h-full text-muted-foreground text-sm"
           >
-            Thinking...
+            {{ t('query_tasks.ai_thinking') }}
           </div>
           <div v-if="analysis" class="prose dark:prose-invert max-w-none">
             <MarkdownRender custom-id="ai-result" :content="analysis" :is-dark="isDark" />
@@ -68,7 +71,7 @@ const isDark = useDark()
 
       <div class="flex justify-end gap-2 p-6 pt-4">
         <Button variant="outline" @click="isOpen = false">
-          Close
+          {{ t('common.close') }}
         </Button>
       </div>
     </DialogContent>

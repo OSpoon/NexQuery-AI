@@ -114,7 +114,7 @@ test('ai optimization for sql', async ({ page }) => {
   // Mock Settings to allow AI
   await page.route('/api/settings', async (route) => {
     await route.fulfill({
-      json: [{ key: 'glm_api_key', value: 'sk-mock-key' }],
+      json: [{ key: 'ai_api_key', value: 'sk-mock-key' }],
     })
   })
 

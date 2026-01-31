@@ -1,8 +1,6 @@
 import Setting from '#models/setting'
 
 export default class EmbeddingService {
-  private static readonly ZHIPU_API_URL = 'https://open.bigmodel.cn/api/paas/v4/embeddings'
-
   /**
    * Generate embedding for a given text
    */
@@ -11,18 +9,40 @@ export default class EmbeddingService {
       return []
     }
 
-    const glmKeySetting = await Setting.findBy('key', 'glm_api_key')
-    const apiKey = glmKeySetting?.value?.trim()
+    // 1. Get Base URL
+    const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
+    let baseUrl = baseUrlSetting?.value
 
-    if (!apiKey) {
-      throw new Error('GLM API Key not configured in System Settings')
+    if (!baseUrl) {
+      throw new Error('AI Base URL not configured (ai_base_url)')
     }
 
+    if (!baseUrl.endsWith('/')) {
+      baseUrl += '/'
+    }
+
+    // 2. Get API Key
+    const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
+    const apiKey = apiKeySetting?.value
+
+    if (!apiKey) {
+      throw new Error('AI API Key not configured (ai_api_key)')
+    }
+
+    // 3. Get Embedding Model
     const embeddingModelSetting = await Setting.findBy('key', 'ai_embedding_model')
-    const modelName = embeddingModelSetting?.value || 'embedding-3'
+    const modelName = embeddingModelSetting?.value
+
+    if (!modelName) {
+      throw new Error('AI Embedding Model not configured (ai_embedding_model)')
+    }
 
     try {
-      const response = await fetch(EmbeddingService.ZHIPU_API_URL, {
+      // Append 'embeddings' to base URL if strictly following OpenAI V1 style
+      // e.g., https://api.deepseek.com/v1/ + embeddings
+      const endpoint = `${baseUrl}embeddings`
+
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,

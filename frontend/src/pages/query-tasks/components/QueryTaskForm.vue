@@ -527,10 +527,10 @@ onMounted(fetchDataSources)
 
             <div class="flex items-center gap-2">
               <div
-                v-if="!settingsStore.hasGlmKey"
+                v-if="!settingsStore.hasAiKey"
                 class="flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/30 bg-destructive/5 text-[10px] text-destructive animate-in fade-in zoom-in"
               >
-                {{ t('settings.keys.glm_key_missing') }}
+                {{ t('settings.keys.ai_key_missing') }}
                 <router-link to="/admin/settings" class="underline font-bold">
                   {{ t('settings.keys.configure_now') }}
                 </router-link>
@@ -541,7 +541,7 @@ onMounted(fetchDataSources)
                 variant="outline"
                 size="sm"
                 class="h-7 text-xs gap-1"
-                :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasGlmKey"
+                :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasAiKey"
                 @click="optimizeSql"
               >
                 <Sparkles class="w-3.5 h-3.5 text-yellow-500" />

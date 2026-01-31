@@ -58,7 +58,14 @@ export const useSettingsStore = defineStore('settings', () => {
   const systemTimezone = computed(() => settings.value.system_timezone || 'UTC')
   const require2fa = computed(() => settings.value.require_2fa !== 'false') // Default to true if not present
   const showWatermark = computed(() => settings.value.show_watermark !== 'false') // Default to true if not present
-  const hasGlmKey = computed(() => !!settings.value.glm_api_key)
+  const hasAiKey = computed(() => !!settings.value.ai_api_key)
+
+  // AI Provider Settings
+  const aiProvider = computed(() => settings.value.ai_provider || 'openai')
+  const aiBaseUrl = computed(() => settings.value.ai_base_url || 'https://api.openai.com/v1')
+  const aiApiKey = computed(() => settings.value.ai_api_key || '')
+  const aiChatModel = computed(() => settings.value.ai_chat_model || 'gpt-4o')
+  const aiEmbeddingModel = computed(() => settings.value.ai_embedding_model || 'text-embedding-3-small')
 
   return {
     settings,
@@ -70,7 +77,12 @@ export const useSettingsStore = defineStore('settings', () => {
     systemTimezone,
     require2fa,
     showWatermark,
-    hasGlmKey,
+    hasAiKey,
+    aiProvider,
+    aiBaseUrl,
+    aiApiKey,
+    aiChatModel,
+    aiEmbeddingModel,
     themeColor,
     setThemeColor,
     initTheme,

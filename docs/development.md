@@ -107,13 +107,13 @@ alias dcp="docker compose --profile app"
 ## 4. 常见问题排查 (Troubleshooting)
 
 *   **数据库连接失败**: 确保 Docker 容器已启动且 5432 端口未被宿主机其他进程占用。
-*   **AI 无法连接**: 检查 GLM API Key 是否已在系统设置中正确配置。
+*   **AI 无法连接**: 检查 AI API Key 是否已在系统设置中正确配置。
 *   **前端组件报错**: 检查是否缺少 `lucide-vue-next` 的图标导入。
 
 ---
 
 ## 5. 架构特性
-*   **AI 引擎**: 核心编排位于 `backend/app/services/lang_chain_service.ts`，集成了 GLM-4 模型与工具链。
+*   **AI 引擎**: 核心编排位于 `backend/app/services/lang_chain_service.ts`，集成了大语言模型与工具链。
 *   **安全拦截**: 全局 SQL 报错拦截位于 `backend/app/exceptions/handler.ts`，防止敏感信息泄露。
 *   **鉴权体系**:
     *   **2FA**: `TwoFactorAuthController`

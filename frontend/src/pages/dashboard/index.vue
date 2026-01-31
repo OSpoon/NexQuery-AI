@@ -39,7 +39,6 @@ function getRouteTitle(name: string): string {
     'admin-api-keys': 'sidebar.admin.api_keys',
     'admin-settings': 'sidebar.admin.settings',
     'ai-feedback': 'sidebar.ai_feedback',
-    'ai-feedback': 'sidebar.ai_feedback',
   }
 
   const key = keyMap[name]

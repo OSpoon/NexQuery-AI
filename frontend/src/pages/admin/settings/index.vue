@@ -45,19 +45,24 @@ const settings = ref([
     group: 'engine',
   },
   {
-    key: 'glm_api_key',
+    key: 'ai_base_url',
+    value: 'https://api.openai.com/v1',
+    group: 'ai',
+  },
+  {
+    key: 'ai_api_key',
     value: '',
     group: 'ai',
     type: 'password',
   },
   {
     key: 'ai_chat_model',
-    value: 'glm-4.5-flash',
+    value: 'gpt-4o',
     group: 'ai',
   },
   {
     key: 'ai_embedding_model',
-    value: 'embedding-3',
+    value: 'text-embedding-3-small',
     group: 'ai',
   },
   {
@@ -115,7 +120,7 @@ async function fetchSettings() {
       response.data.forEach((s: any) => {
         const existing = settings.value.find(local => local.key === s.key)
         if (existing) {
-          if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
+          if (['ai_api_key'].includes(s.key) && cryptoService && s.value) {
             try {
               const decrypted = cryptoService.decrypt(s.value)
               existing.value = decrypted || s.value
@@ -147,7 +152,7 @@ async function saveSettings() {
   saving.value = true
   try {
     const settingsToSave = settings.value.map((s) => {
-      if (['glm_api_key'].includes(s.key) && cryptoService && s.value) {
+      if (['ai_api_key'].includes(s.key) && cryptoService && s.value) {
         return {
           ...s,
           value: cryptoService.encrypt(s.value),
@@ -317,7 +322,7 @@ onMounted(() => {
             <div class="flex items-center justify-between">
               <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
               <span
-                v-if="s.key === 'glm_api_key' && !s.value"
+                v-if="(s.key === 'ai_api_key') && !s.value"
                 class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
               >
                 MISSING
@@ -330,7 +335,7 @@ onMounted(() => {
               class="bg-background"
               :class="{
                 'border-destructive/50 focus-visible:ring-destructive':
-                  s.key === 'glm_api_key' && !s.value,
+                  (s.key === 'ai_api_key') && !s.value,
               }"
             />
             <p class="text-xs text-muted-foreground">

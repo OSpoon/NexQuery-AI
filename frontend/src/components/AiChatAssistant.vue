@@ -342,12 +342,12 @@ function selectOption(option: string) {
       <!-- Context Selector & Warning -->
       <div class="px-4 py-2 border-b bg-muted/30 space-y-2">
         <div
-          v-if="!settingsStore.hasGlmKey"
+          v-if="!settingsStore.hasAiKey"
           class="flex items-center justify-between p-2 rounded bg-destructive/10 border border-destructive/20 text-destructive text-[11px] font-medium animate-in fade-in slide-in-from-top-1"
         >
           <span class="flex items-center gap-1.5">
             <Sparkles class="h-3 w-3" />
-            {{ t('settings.keys.glm_key_missing') }}
+            {{ t('settings.keys.ai_key_missing') }}
           </span>
           <router-link to="/admin/settings" class="underline hover:opacity-80 transition-opacity">
             {{ t('settings.keys.configure_now') }}
@@ -485,12 +485,12 @@ function selectOption(option: string) {
           <Input
             v-model="input"
             :placeholder="
-              settingsStore.hasGlmKey ? 'Ask a question...' : t('settings.keys.glm_key_missing')
+              settingsStore.hasAiKey ? 'Ask a question...' : t('settings.keys.ai_key_missing')
             "
             class="flex-1"
-            :disabled="store.isLoading || !settingsStore.hasGlmKey"
+            :disabled="store.isLoading || !settingsStore.hasAiKey"
           />
-          <Button type="submit" size="icon" :disabled="store.isLoading || !settingsStore.hasGlmKey">
+          <Button type="submit" size="icon" :disabled="store.isLoading || !settingsStore.hasAiKey">
             <Send class="h-4 w-4" />
           </Button>
         </form>

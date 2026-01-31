@@ -202,6 +202,9 @@
     "command_template": "Command Template",
     "ai_optimize": "AI Optimize",
     "analyzing": "Analyzing...",
+    "ai_optimization_title": "AI Optimization Analysis",
+    "ai_optimization_desc": "Analysis provided by the AI model",
+    "ai_thinking": "Thinking...",
     "placeholders_hint": "Use {'{{'} variableName {'}}'} for placeholders",
     "save_task": "Save Task",
     "save_changes": "Save Changes",
@@ -325,16 +328,18 @@
       "query_timeout_ms_desc": "Maximum time a query is allowed to run.",
       "allow_export": "Data Export Permissions",
       "allow_export_desc": "Whether users can download query results as CSV/Excel.",
-      "glm_api_key": "GLM API Key",
-      "glm_api_key_desc": "Used for Chat analysis, SQL optimization and Embedding services.",
-      "glm_key_missing": "GLM API Key is not configured. AI features are disabled.",
       "configure_now": "Configure Now",
       "ai_chat_model": "AI Chat Model",
-      "ai_chat_model_desc": "Default model for analysis and SQL generation (e.g., glm-4.5-flash).",
+      "ai_chat_model_desc": "Default model for analysis and SQL generation (e.g., gpt-4o).",
       "ai_embedding_model": "AI Embedding Model",
       "ai_embedding_model_desc": "Model name for text embeddings (e.g. embedding-3)",
       "ai_timeout_sec": "AI Request Timeout",
-      "ai_timeout_sec_desc": "Maximum duration in seconds for AI models to respond (Default: 600s)"
+      "ai_timeout_sec_desc": "Maximum duration in seconds for AI models to respond (Default: 600s)",
+      "ai_base_url": "AI Base URL",
+      "ai_base_url_desc": "The Base URL for the Model API (e.g., https://api.deepseek.com/v1/)",
+      "ai_api_key": "AI API Key",
+      "ai_api_key_desc": "API Key for accessing generic OpenAI-protocol models.",
+      "ai_key_missing": "AI API Key is missing. AI features are disabled."
     }
   },
   "api_keys": {

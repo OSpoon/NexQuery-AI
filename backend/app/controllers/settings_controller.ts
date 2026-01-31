@@ -42,7 +42,7 @@ export default class SettingsController {
     if (encryptionKey) {
       const crypto = new CryptoService(encryptionKey)
       for (const s of serializedSettings) {
-        if (['glm_api_key'].includes(s.key) && s.value) {
+        if (['ai_api_key'].includes(s.key) && s.value) {
           s.value = crypto.encrypt(s.value)
         }
       }
@@ -67,7 +67,7 @@ export default class SettingsController {
 
     for (const item of settings) {
       // Decrypt sensitive keys before saving
-      if (['glm_api_key'].includes(item.key) && crypto && item.value) {
+      if (['ai_api_key'].includes(item.key) && crypto && item.value) {
         try {
           // It might be sent as encrypted string
           const decrypted = crypto.decrypt(item.value)

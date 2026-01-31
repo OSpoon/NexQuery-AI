@@ -203,6 +203,9 @@
     "command_template": "命令模板",
     "ai_optimize": "AI 优化",
     "analyzing": "分析中...",
+    "ai_optimization_title": "AI 优化分析",
+    "ai_optimization_desc": "由大模型提供的优化建议",
+    "ai_thinking": "正在思考...",
     "placeholders_hint": "使用 {'{{'} variableName {'}}'} 作为占位符",
     "save_task": "保存任务",
     "save_changes": "保存修改",
@@ -326,16 +329,18 @@
       "query_timeout_ms_desc": "允许查询运行的最大毫秒数，防止长连接挂死。",
       "allow_export": "结果导出权限",
       "allow_export_desc": "控制是否允许将执行记录或查询结果下载为 CSV/Excel。",
-      "glm_api_key": "GLM API 密钥",
-      "glm_api_key_desc": "用于聊天分析、SQL 优化与向量嵌入服务。",
-      "glm_key_missing": "未配置 GLM API 密钥，AI 相关功能将无法使用。",
       "configure_now": "立即配置",
       "ai_chat_model": "对话模型",
-      "ai_chat_model_desc": "默认的分析与 SQL 生成模型 (如 glm-4.5-flash)。",
+      "ai_chat_model_desc": "默认的分析与 SQL 生成模型 (如 gpt-4o)。",
       "ai_embedding_model": "嵌入模型",
       "ai_embedding_model_desc": "用于文本嵌入的模型名称（如 embedding-3）",
       "ai_timeout_sec": "AI 请求超时时间",
-      "ai_timeout_sec_desc": "AI 模型响应的最大等待时间，单位秒（默认 600秒）"
+      "ai_timeout_sec_desc": "AI 模型响应的最大等待时间，单位秒（默认 600秒）",
+      "ai_base_url": "AI 基础地址 (Base URL)",
+      "ai_base_url_desc": "大模型 API 的 Base URL (如 https://api.deepseek.com/v1/)",
+      "ai_api_key": "AI API 密钥",
+      "ai_api_key_desc": "用于访问通用 OpenAI 协议模型的 API Key。",
+      "ai_key_missing": "未配置 AI API 密钥，AI 能力受限。"
     }
   },
   "api_keys": {
