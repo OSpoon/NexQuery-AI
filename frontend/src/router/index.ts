@@ -126,6 +126,11 @@ const router = createRouter({
           component: () => import('@/pages/admin/menus/index.vue'),
         },
         {
+          path: 'admin/finops',
+          name: 'admin-finops',
+          component: () => import('@/pages/admin/finops/index.vue'),
+        },
+        {
           path: 'ai-feedback',
           name: 'ai-feedback',
           component: () => import('@/pages/feedback/index.vue'),

@@ -69,6 +69,7 @@ export default class extends BaseSeeder {
       permissions[PERMISSIONS.VIEW_HISTORY],
       permissions[PERMISSIONS.MANAGE_KNOWLEDGE_BASE],
       permissions[PERMISSIONS.MANAGE_AI_FEEDBACK],
+      permissions[PERMISSIONS.MANAGE_AI_FINOPS],
     ]
     await developerRole.related('permissions').sync(getIds(devPerms))
 
@@ -194,6 +195,13 @@ export default class extends BaseSeeder {
         icon: 'Key',
         permission: PERMISSIONS.MANAGE_API_KEYS,
         sortOrder: 91,
+      },
+      {
+        title: 'FinOps Monitoring',
+        path: '/admin/finops',
+        icon: 'BarChart',
+        permission: PERMISSIONS.MANAGE_AI_FINOPS,
+        sortOrder: 95,
       },
       {
         title: 'Users',

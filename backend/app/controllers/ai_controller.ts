@@ -76,7 +76,7 @@ export default class AiController {
     }
   }
 
-  async optimizeSql({ request, response }: HttpContext) {
+  async optimizeSql({ request, response, auth }: HttpContext) {
     const { sql, dbType, schema } = request.all()
 
     if (!sql) {
@@ -93,7 +93,11 @@ export default class AiController {
 
     try {
       const langChainService = new LangChainService()
-      const stream = langChainService.optimizeSqlStream(sql, { dbType, schema })
+      const stream = langChainService.optimizeSqlStream(sql, {
+        dbType,
+        schema,
+        userId: auth.user?.id,
+      })
 
       for await (const chunk of stream) {
         response.response.write(`data: ${JSON.stringify({ chunk })}\n\n`)
@@ -109,7 +113,7 @@ export default class AiController {
     }
   }
 
-  async chat({ request, response }: HttpContext) {
+  async chat({ request, response, auth }: HttpContext) {
     const { question, dbType, schema } = request.all()
 
     if (!question) {
@@ -122,6 +126,7 @@ export default class AiController {
         dbType,
         schema,
         dataSourceId: request.input('dataSourceId'),
+        userId: auth.user?.id,
       })
 
       return response.ok({ sql })
@@ -226,6 +231,8 @@ export default class AiController {
         dbType,
         dataSourceId: dsId,
         history: dbHistory,
+        userId: user.id,
+        conversationId: conversation.id,
       })
 
       let fullAssistantContent = ''

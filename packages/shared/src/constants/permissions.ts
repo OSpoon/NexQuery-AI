@@ -10,6 +10,7 @@ export const PERMISSIONS = {
   MANAGE_AI_FEEDBACK: 'manage_ai_feedback',
   MANAGE_KNOWLEDGE_BASE: 'manage_knowledge_base',
   MANAGE_SETTINGS: 'manage_settings',
+  MANAGE_AI_FINOPS: 'manage_ai_finops',
 } as const
 
 export const PERMISSION_DETAILS = [
@@ -67,5 +68,10 @@ export const PERMISSION_DETAILS = [
     name: 'Manage Settings',
     slug: PERMISSIONS.MANAGE_SETTINGS,
     description: 'Can update platform-wide settings',
+  },
+  {
+    name: 'Manage AI FinOps',
+    slug: PERMISSIONS.MANAGE_AI_FINOPS,
+    description: 'Can monitor AI token usage and costs',
   },
 ]

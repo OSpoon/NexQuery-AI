@@ -1,10 +1,13 @@
 import Setting from '#models/setting'
+import AiUsageLog from '#models/ai_usage_log'
+import ModelCostService from '#services/model_cost_service'
+import logger from '@adonisjs/core/services/logger'
 
 export default class EmbeddingService {
   /**
    * Generate embedding for a given text
    */
-  public async generate(text: string): Promise<number[]> {
+  public async generate(text: string, userId?: number): Promise<number[]> {
     if (!text || text.trim().length === 0) {
       return []
     }
@@ -38,8 +41,6 @@ export default class EmbeddingService {
     }
 
     try {
-      // Append 'embeddings' to base URL if strictly following OpenAI V1 style
-      // e.g., https://api.deepseek.com/v1/ + embeddings
       const endpoint = `${baseUrl}embeddings`
 
       const response = await fetch(endpoint, {
@@ -50,7 +51,7 @@ export default class EmbeddingService {
         },
         body: JSON.stringify({
           model: modelName,
-          input: text.substring(0, 1000),
+          input: text.substring(0, 4000), // Increased standard limit
         }),
       })
 
@@ -63,12 +64,35 @@ export default class EmbeddingService {
 
       const data = (await response.json()) as any
       if (data.data && data.data[0] && data.data[0].embedding) {
+        // --- Log Usage ---
+        const usage = data.usage
+        if (usage && userId) {
+          const promptTokens = usage.prompt_tokens || usage.total_tokens || 0
+          const totalTokens = usage.total_tokens || promptTokens
+          const estimatedCost = ModelCostService.calculateCost(modelName, {
+            promptTokens,
+            completionTokens: 0,
+            totalTokens,
+          })
+
+          await AiUsageLog.create({
+            userId,
+            modelName,
+            provider: 'openai',
+            promptTokens,
+            completionTokens: 0,
+            totalTokens,
+            estimatedCost,
+            context: 'embedding',
+          })
+        }
+
         return data.data[0].embedding
       }
 
       throw new Error('Invalid response format from Embedding API')
     } catch (error) {
-      console.error('[EmbeddingService] Error:', error)
+      logger.error({ error }, 'EmbeddingService Error')
       throw error
     }
   }

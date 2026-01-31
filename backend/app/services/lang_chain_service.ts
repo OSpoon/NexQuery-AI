@@ -1,5 +1,7 @@
 import Setting from '#models/setting'
 import KnowledgeBase from '#models/knowledge_base'
+import AiUsageLog from '#models/ai_usage_log'
+import ModelCostService from '#services/model_cost_service'
 import { ChatOpenAI } from '@langchain/openai'
 import type {
   AIMessageChunk,
@@ -27,10 +29,12 @@ import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 
 export default class LangChainService {
+  private static readonly DEFAULT_API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/'
+
   private async getModel(bindTools = false, dataSourceId?: number) {
     // 1. Get Base URL
     const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
-    const baseUrl = baseUrlSetting?.value
+    const baseUrl = baseUrlSetting?.value || LangChainService.DEFAULT_API_BASE_URL
 
     if (!baseUrl) {
       throw new Error('AI Base URL not configured (ai_base_url)')
@@ -71,6 +75,7 @@ export default class LangChainService {
       temperature: 0.1,
       timeout: timeoutMs,
       streaming: true,
+      streamUsage: true, // Enable usage reporting
       callbacks: [langfuseHandler],
     })
 
@@ -91,6 +96,41 @@ export default class LangChainService {
     }
 
     return { llm, tools: [] }
+  }
+
+  /**
+   * Record AI Usage log
+   */
+  private async recordUsage(params: {
+    userId?: number
+    conversationId?: number | null
+    modelName: string
+    provider: string
+    promptTokens: number
+    completionTokens: number
+    context: string
+  }) {
+    try {
+      if (params.promptTokens <= 0 && params.completionTokens <= 0)
+        return
+
+      const totalTokens = params.promptTokens + params.completionTokens
+      const estimatedCost = ModelCostService.calculateCost(params.modelName, {
+        promptTokens: params.promptTokens,
+        completionTokens: params.completionTokens,
+        totalTokens,
+      })
+
+      await AiUsageLog.create({
+        ...params,
+        totalTokens,
+        estimatedCost,
+      })
+
+      logger.info(`[recordUsage] Recorded: ${params.modelName}, Cost: ${estimatedCost}, Tokens: ${totalTokens}, Context: ${params.context}`)
+    } catch (e) {
+      logger.error({ error: e }, 'Failed to record AI usage log')
+    }
   }
 
   private async retrieveContext(question: string): Promise<string> {
@@ -168,6 +208,7 @@ export default class LangChainService {
           item.exampleSql,
           item.embedding,
           item.status,
+          item.id,
         )
       }
       return item
@@ -181,7 +222,7 @@ export default class LangChainService {
    */
   async* naturalLanguageToSqlStream(
     question: string,
-    context: { dbType?: string, dataSourceId?: number, history?: any[] },
+    context: { dbType?: string, dataSourceId?: number, history?: any[], userId?: number, conversationId?: number },
   ) {
     const dataSourceId = context.dataSourceId ? Number(context.dataSourceId) : undefined
     if (!dataSourceId) {
@@ -191,6 +232,7 @@ export default class LangChainService {
 
     const { llm: modelWithTools, tools } = await this.getModel(true, dataSourceId)
     const dbType = context.dbType || 'mysql'
+    const modelName = (modelWithTools as any).modelName || 'gpt-4o' // Fallback for logging
 
     const businessContext = await this.retrieveContext(question)
 
@@ -199,7 +241,7 @@ export default class LangChainService {
     try {
       const embeddingService = new EmbeddingService()
       const vectorStore = new VectorStoreService()
-      const embedding = await embeddingService.generate(question)
+      const embedding = await embeddingService.generate(question, context.userId)
 
       const relatedTables = await vectorStore.searchTables(Number(dataSourceId), embedding, 10)
 
@@ -244,7 +286,7 @@ ${recommendedTablesText || '暂无推荐，请自行搜索。'}
 6. **安全红线**:
    - **严禁**执行无 \`WHERE\` 条件的 \`DELETE\` / \`UPDATE\` 语句。这是由于我们的 AST Guardrails 强制拦截。
    - 严禁查询密码、密钥等敏感字段。
-   - 作为 "Safety Auditor"，请在生成 SQL 前自检：是否会意外删除/更新全表数据？如果是，请立即中止或添加条件。
+   - 作为 "Safety Auditor"，请 Richmond 在生成 SQL 前自检：是否会意外删除/更新全表数据？如果是，请立即中止或添加条件。
 7. **多轮对话上下文 (Contextual Memory)**:
    - **Check History**: 这是一场连续的对话。请仔细检查 History 中的上一轮 interaction (System/User/Assistant messages)。
    - **Follow-up Handling**: 如果用户的意图是对上一次结果的修改或补充（例如：“按时间排序”、“只看前10个”、“换成柱状图”），**DO NOT** 重新生成 SQL。
@@ -339,6 +381,21 @@ Database Type: ${dbType}
 
         if (!aiMessageChunk) {
           throw new Error('AI returned an empty response.')
+        }
+
+        // --- Log Usage ---
+        const usage = (aiMessageChunk as any).usage_metadata || aiMessageChunk.response_metadata?.tokenUsage
+        if (usage) {
+          const actualModelName = aiMessageChunk.response_metadata?.model_name || modelName
+          await this.recordUsage({
+            userId: context.userId,
+            conversationId: context.conversationId,
+            modelName: actualModelName,
+            provider: 'openai',
+            promptTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? 0,
+            completionTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
+            context: 'chat',
+          })
         }
       } catch (e: any) {
         logger.error({ error: e }, 'LLM Generation Error')
@@ -449,18 +506,16 @@ Database Type: ${dbType}
         // Loop continues to let AI react to tool results
       } else {
         // No tool calls means we have a final answer (text only)
-        // If the AI forgot to call submit, we might be stuck.
-        // We can prompt it to use submit, or just accept the text.
-        // For now, we accept the text and exit.
         return
       }
     }
   }
 
   // Keep legacy logical method for optimizing SQL (simpler chain)
-  async* optimizeSqlStream(sql: string, context: { dbType?: string, schema?: any }) {
+  async* optimizeSqlStream(sql: string, context: { dbType?: string, schema?: any, userId?: number }) {
     const { llm } = await this.getModel(false)
     const dbType = context.dbType || 'mysql'
+    const modelName = (llm as any).modelName || 'gpt-4o'
 
     const prompt = `你是一位 SQL 专家。请对以下 ${dbType} SQL 进行优化分析。
 业务上下文：${JSON.stringify(context.schema || {})}
@@ -474,9 +529,31 @@ ${sql}
 2. **优化后的 SQL**（包裹在 \`\`\`sql 代码块中）
 `
     const stream = await llm.stream([new HumanMessage(prompt)])
+    let fullResponse: AIMessageChunk | undefined
+
     for await (const chunk of stream) {
+      if (!fullResponse)
+        fullResponse = chunk
+      else
+        fullResponse = fullResponse.concat(chunk)
+
       if (chunk.content)
         yield chunk.content.toString()
+    }
+
+    if (fullResponse) {
+      const usage = (fullResponse as any).usage_metadata || fullResponse.response_metadata?.tokenUsage
+      if (usage) {
+        const actualModelName = fullResponse.response_metadata?.model_name || modelName
+        await this.recordUsage({
+          userId: context.userId,
+          modelName: actualModelName,
+          provider: 'openai',
+          promptTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? 0,
+          completionTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
+          context: 'sql_optimization',
+        })
+      }
     }
   }
 
