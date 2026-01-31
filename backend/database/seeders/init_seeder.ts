@@ -244,13 +244,11 @@ export default class extends BaseSeeder {
       { key: 'allow_export', value: 'true', type: 'boolean', group: 'security' },
       { key: 'show_watermark', value: 'true', type: 'boolean', group: 'security' },
       { key: 'query_timeout_ms', value: '30000', type: 'number', group: 'engine' },
-      { key: 'ai_provider', value: 'openai', type: 'string', group: 'ai', label: 'AI Provider', description: 'The AI Provider to use (e.g., openai, deepseek, glm).' },
-      { key: 'ai_base_url', value: 'https://api.openai.com/v1', type: 'string', group: 'ai', label: 'AI Base URL', description: 'Base URL for the AI Provider API.' },
+      { key: 'ai_base_url', value: 'https://open.bigmodel.cn/api/paas/v4', type: 'string', group: 'ai', label: 'AI Base URL', description: 'Base URL for the AI Provider API.' },
       { key: 'ai_api_key', value: '', type: 'string', group: 'ai', label: 'AI API Key', description: 'API Key for the AI Provider.' },
-      { key: 'ai_chat_model', value: 'gpt-4o', type: 'string', group: 'ai' },
-      { key: 'ai_embedding_model', value: 'text-embedding-3-small', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
+      { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'ai' },
+      { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
       { key: 'ai_timeout_sec', value: '600', type: 'number', group: 'ai', label: 'AI Request Timeout', description: 'Maximum duration in seconds for AI models to respond.' },
-      { key: 'workflow_bindings', value: '{}', type: 'string', group: 'workflow' },
     ]
 
     for (const s of defaultSettings) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useDark } from '@vueuse/core'
+import { useDark, useTextareaAutosize } from '@vueuse/core'
 import {
   Bot,
   HelpCircle,
@@ -34,7 +34,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
@@ -43,6 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 import { useAiStore } from '@/stores/ai'
 import { useDataSourceStore } from '@/stores/dataSource'
@@ -57,7 +57,14 @@ const settingsStore = useSettingsStore()
 const dataSourceStore = useDataSourceStore()
 
 const isDark = useDark()
-const input = ref('')
+const { textarea: textareaRef, input } = useTextareaAutosize()
+const textareaComponent = ref(null)
+
+watch(textareaComponent, (comp) => {
+  if (comp && (comp as any).$el) {
+    textareaRef.value = (comp as any).$el
+  }
+})
 const scrollAreaRef = ref<HTMLDivElement | null>(null)
 const selectedDataSource = ref<string>('none')
 
@@ -175,6 +182,13 @@ function handleSend() {
 
   store.sendMessage(input.value)
   input.value = ''
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
+    handleSend()
+  }
 }
 
 const isCorrectionOpen = ref(false)
@@ -481,14 +495,17 @@ function selectOption(option: string) {
 
       <!-- Input -->
       <div class="p-3 pt-0">
-        <form class="flex gap-2" @submit.prevent="handleSend">
-          <Input
+        <form class="flex gap-2 items-end" @submit.prevent="handleSend">
+          <Textarea
+            ref="textareaComponent"
             v-model="input"
+            rows="1"
             :placeholder="
-              settingsStore.hasAiKey ? 'Ask a question...' : t('settings.keys.ai_key_missing')
+              settingsStore.hasAiKey ? 'Ask a question... (Shift+Enter for new line)' : t('settings.keys.ai_key_missing')
             "
-            class="flex-1"
+            class="flex-1 min-h-[40px] max-h-[200px] resize-none py-3"
             :disabled="store.isLoading || !settingsStore.hasAiKey"
+            @keydown="handleKeydown"
           />
           <Button type="submit" size="icon" :disabled="store.isLoading || !settingsStore.hasAiKey">
             <Send class="h-4 w-4" />

@@ -225,8 +225,73 @@ export default class LangChainService {
     context: { dbType?: string, dataSourceId?: number, history?: any[], userId?: number, conversationId?: number },
   ) {
     const dataSourceId = context.dataSourceId ? Number(context.dataSourceId) : undefined
+    // --- General Chat Mode (No DataSource) ---
     if (!dataSourceId) {
-      yield 'Error: DataSource ID is required for Agentic mode.'
+      const systemPrompt = `你是一位名为 "NexQuery AI" 的智能助手。
+你的目标是辅助用户进行日常对话、技术解答或通用问题处理。
+当前用户没有连接任何具体的数据库，因此你无法执行 SQL 查询或访问数据表。
+
+请根据用户的提问提供有帮助、准确且友好的回答。`
+
+      const { llm: model } = await this.getModel(false)
+      const modelName = (model as any).modelName || 'gpt-4o'
+
+      const messages: BaseMessage[] = [new SystemMessage(systemPrompt)]
+      for (const m of context.history || []) {
+        if (m.role === 'user') {
+          messages.push(new HumanMessage(m.content))
+        } else if (m.role === 'assistant') {
+          messages.push(new AIMessage(m.content))
+        }
+      }
+      messages.push(new HumanMessage(question))
+
+      try {
+        const stream = await model.stream(messages)
+        let fullContent = ''
+        let fullResponse: AIMessageChunk | undefined
+
+        for await (const chunk of stream) {
+          if (!fullResponse)
+            fullResponse = chunk
+          else fullResponse = fullResponse.concat(chunk)
+
+          const text = chunk.content.toString()
+          if (text) {
+            fullContent += text
+            // In General Chat, we stream thoughts as the main content for now, or just chunks
+            // But to keep frontend happy with the existing parser, we can send 'thought' or 'response' parts?
+            // Actually, the frontend appends 'response' types to the content.
+            // Let's stream as 'response' so it shows up directly.
+            yield JSON.stringify({ type: 'chunk', chunk: text })
+          }
+        }
+
+        // Final payload to ensure state is consistent
+        yield JSON.stringify({
+          type: 'response',
+          content: fullContent,
+        })
+
+        // Log Usage
+        if (fullResponse) {
+          const usage = (fullResponse as any).usage_metadata || fullResponse.response_metadata?.tokenUsage
+          if (usage) {
+            await this.recordUsage({
+              userId: context.userId,
+              conversationId: context.conversationId,
+              modelName,
+              provider: 'openai',
+              promptTokens: usage.prompt_tokens ?? 0,
+              completionTokens: usage.completion_tokens ?? 0,
+              context: 'general_chat',
+            })
+          }
+        }
+      } catch (e: any) {
+        logger.error({ error: e }, 'General Chat Error')
+        yield JSON.stringify({ type: 'error', content: `AI Error: ${e.message}` })
+      }
       return
     }
 
