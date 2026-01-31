@@ -32,10 +32,8 @@ export default class HttpExceptionHandler extends ExceptionHandler {
         // Always log database errors for admin review
         console.error('[Database Error]:', error.message)
 
-        // Return a generic message unless in debug mode AND specifically requested
-        if (!this.debug) {
-          message = '数据库操作异常，请检查连接或联系管理员'
-        }
+        // Always mask database errors to prevent SQL leakage, even in development
+        message = '数据库操作异常，请检查连接或联系管理员'
       }
 
       return ctx.response.status(status).send({

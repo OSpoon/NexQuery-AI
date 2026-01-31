@@ -47,20 +47,46 @@ pnpm install
 
 在生产环境中，我们建议全量使用容器化部署。
 
-### 3.1 一键启动全栈
+### 3.1 启动生产环境
 ```bash
+# 第一次启动或更新代码后
 docker compose --profile app up -d --build
+# 后续正常启动
+docker compose --profile app up -d
 ```
-> [!NOTE]
-> 即使 `.env` 中设置的是 `127.0.0.1`，容器启动时会自动通过环境变量覆盖为容器内的服务名（如 `db`），无需手动修改。
+> [!IMPORTANT]
+> **缓存注意**：如果更新了 `.env` 中的加密密钥，启动后请在浏览器中执行 **硬刷新 (Cmd+Shift+R)**，以确保前端加载注入新配置的资源。
 
-### 3.2 数据库初始化
-首次部署需手动初始化数据表和基础数据：
+### 3.2 停止与清理
+根据需求选择命令：
+```bash
+# 停止并移除容器（保留数据库数据）
+docker compose --profile app down
+
+# 仅停止服务（不移除容器）
+docker compose --profile app stop
+
+# 彻底清理（包括删除数据库数据卷）
+docker compose --profile app down -v
+```
+
+### 3.3 数据库操作 (首次或更新)
 ```bash
 # 执行迁移
 docker compose --profile app exec backend node ace migration:run --force
 # 执行种子数据
 docker compose --profile app exec backend node ace db:seed
+```
+
+### 3.4 推荐：添加终端别名
+建议在 `~/.zshrc` 或 `~/.bashrc` 中添加以下别名以简化操作：
+```bash
+alias dcp="docker compose --profile app"
+
+# 使用示例：
+# dcp up -d
+# dcp down
+# dcp logs -f
 ```
 
 ---
