@@ -11,7 +11,7 @@
 ![AdonisJS 6](https://img.shields.io/badge/Backend-AdonisJS%206-5a45ff)
 ![LangChain](https://img.shields.io/badge/AI-LangChain-blue)
 ![Docker](https://img.shields.io/badge/Deploy-Docker-2496ed)
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)
 
 </div>
 
@@ -125,5 +125,5 @@
 ---
 
 <div align="center">
-    Copyright © 2024-2026 NexQuery AI Team. MIT Licensed.
+    Copyright © 2025-2026 NexQuery AI Team. Apache 2.0 Licensed.
 </div>
