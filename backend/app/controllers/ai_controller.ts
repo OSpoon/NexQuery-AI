@@ -4,12 +4,77 @@ import AiConversation from '#models/ai_conversation'
 import AiMessage from '#models/ai_message'
 import DataSource from '#models/data_source'
 import QueryExecutionService from '#services/query_execution_service'
+import Setting from '#models/setting'
+import env from '#start/env'
+import { CryptoService } from '@nexquery/shared'
 import { inject } from '@adonisjs/core'
 import { DateTime } from 'luxon'
 
 @inject()
 export default class AiController {
   constructor(protected executionService: QueryExecutionService) {}
+
+  async testConnection({ request, response }: HttpContext) {
+    let { baseUrl, apiKey } = request.all()
+    const encryptionKey = env.get('API_ENCRYPTION_KEY')
+    const crypto = encryptionKey ? new CryptoService(encryptionKey) : null
+
+    // Helper to try decrypting
+    const tryDecrypt = (val: string) => {
+      if (!val || !crypto)
+        return val
+      try {
+        const decrypted = crypto.decrypt(val)
+        return decrypted || val // Return original if decrypt returns null (likely raw)
+      } catch {
+        return val
+      }
+    }
+
+    // 1. Resolve API Key
+    if (apiKey) {
+      apiKey = tryDecrypt(apiKey)
+    } else {
+      // Fallback to DB
+      const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
+      if (apiKeySetting?.value) {
+        apiKey = tryDecrypt(apiKeySetting.value)
+      }
+    }
+
+    // 2. Resolve Base URL
+    if (!baseUrl) {
+      const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
+      baseUrl = baseUrlSetting?.value
+    }
+
+    if (!baseUrl || !apiKey) {
+      return response.badRequest({ message: 'Base URL and API Key are required' })
+    }
+
+    // Normalize Base URL
+    if (baseUrl.endsWith('/'))
+      baseUrl = baseUrl.slice(0, -1)
+
+    try {
+      const fetchUrl = `${baseUrl}/models`
+      const res = await fetch(fetchUrl, {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!res.ok) {
+        const errText = await res.text()
+        throw new Error(`Provider returned ${res.status}: ${errText.substring(0, 200)}`)
+      }
+
+      return response.ok({ message: 'Connection successful' })
+    } catch (error: any) {
+      return response.badRequest({ message: error.message })
+    }
+  }
 
   async optimizeSql({ request, response }: HttpContext) {
     const { sql, dbType, schema } = request.all()

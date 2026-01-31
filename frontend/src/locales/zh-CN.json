@@ -316,6 +316,9 @@
     "engine_desc": "执行限速与资源配置",
     "ai": "AI 智能集成",
     "ai_desc": "大模型与 LLM 能力配置",
+    "test_connection": "测试连接",
+    "connection_success": "连接成功",
+    "connection_failed": "连接失败",
     "keys": {
       "platform_name": "平台名称",
       "platform_name_desc": "侧边栏和标题中显示的名称。",

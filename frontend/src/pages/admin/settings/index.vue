@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { CryptoService } from '@nexquery/shared'
-import { Cpu, Database, Globe, Save, Shield } from 'lucide-vue-next'
+import { Cpu, Database, Globe, Plug, Save, Shield } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -8,7 +8,6 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-
 import { Switch } from '@/components/ui/switch'
 import api from '@/lib/api'
 import { useSettingsStore } from '@/stores/settings'
@@ -101,6 +100,31 @@ const decryptedResult = computed(() => {
 const loading = ref(true)
 const saving = ref(false)
 const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
+
+// AI Connection Testing
+const isTestingConnection = ref(false)
+
+async function testConnection() {
+  const baseUrl = settings.value.find(s => s.key === 'ai_base_url')?.value
+  const apiKey = settings.value.find(s => s.key === 'ai_api_key')?.value
+
+  if (!baseUrl) {
+    toast.error('Please configure AI Base URL first')
+    return
+  }
+
+  isTestingConnection.value = true
+  try {
+    await api.post('/ai/test-connection', { baseUrl, apiKey })
+    toast.success(t('settings.connection_success'))
+  }
+  catch (e: any) {
+    toast.error(e.response?.data?.message || t('settings.connection_failed'))
+  }
+  finally {
+    isTestingConnection.value = false
+  }
+}
 
 async function fetchRoles() {
   try {
@@ -303,14 +327,29 @@ onMounted(() => {
       <!-- 4. AI Intelligence -->
       <Card class="shadow-sm">
         <CardHeader>
-          <div class="flex items-center space-x-3 text-primary">
-            <Cpu class="h-5 w-5" />
-            <div>
-              <CardTitle class="text-lg">
-                {{ t('settings.ai') }}
-              </CardTitle>
-              <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
+          <div class="flex items-center justify-between text-primary">
+            <div class="flex items-center space-x-3">
+              <Cpu class="h-5 w-5" />
+              <div>
+                <CardTitle class="text-lg">
+                  {{ t('settings.ai') }}
+                </CardTitle>
+                <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
+              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              class="ml-auto"
+              :disabled="isTestingConnection"
+              @click="testConnection"
+            >
+              <Plug
+                class="mr-2 h-3.5 w-3.5"
+                :class="{ 'animate-pulse': isTestingConnection }"
+              />
+              {{ t('settings.test_connection') }}
+            </Button>
           </div>
         </CardHeader>
         <CardContent class="grid gap-6 pt-0">

@@ -132,6 +132,7 @@ router
         router.post('query-tasks/:id/execute', [ExecutionController, 'execute'])
 
         // AI Features
+        router.post('ai/test-connection', [AiController, 'testConnection'])
         router.post('ai/optimize-sql', [AiController, 'optimizeSql'])
         router.post('ai/chat', [AiController, 'chat'])
         router.post('ai/chat/stream', [AiController, 'chatStream'])

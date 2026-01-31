@@ -315,6 +315,9 @@
     "engine_desc": "Performance and safety limits",
     "ai": "AI Intelligence",
     "ai_desc": "LLM models and AI capability configuration",
+    "test_connection": "Test Connection",
+    "connection_success": "Connection successful",
+    "connection_failed": "Connection failed",
     "keys": {
       "platform_name": "Platform Name",
       "platform_name_desc": "The name displayed in the sidebar and title.",
