@@ -47,6 +47,7 @@ export interface Menu {
   path: string
   icon?: string
   permission?: string
+  component?: string
   sortOrder: number
   isActive: boolean
   children?: Menu[]

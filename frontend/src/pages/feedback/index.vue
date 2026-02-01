@@ -77,7 +77,7 @@ function stripSqlMarkdown(content: string) {
 
   // Try to extract SQL block
   const sqlMatch = content.match(/```sql([\s\S]*?)```/)
-  if (sqlMatch)
+  if (sqlMatch && sqlMatch[1])
     return sqlMatch[1].trim()
 
   // Fallback: Remove all markdown headers and bolding

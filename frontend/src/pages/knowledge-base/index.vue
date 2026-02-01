@@ -50,7 +50,7 @@ function stripSqlMarkdown(content: string) {
     return content
 
   const sqlMatch = content.match(/```sql([\s\S]*?)```/)
-  if (sqlMatch)
+  if (sqlMatch && sqlMatch[1])
     return sqlMatch[1].trim()
 
   return content

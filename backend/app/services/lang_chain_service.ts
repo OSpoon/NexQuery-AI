@@ -208,7 +208,6 @@ export default class LangChainService {
           item.exampleSql,
           item.embedding,
           item.status,
-          item.id,
         )
       }
       return item

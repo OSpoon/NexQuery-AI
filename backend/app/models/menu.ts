@@ -22,6 +22,9 @@ export default class Menu extends BaseModel {
   declare permission: string | null
 
   @column()
+  declare component: string | null
+
+  @column()
   declare sortOrder: number
 
   @column()

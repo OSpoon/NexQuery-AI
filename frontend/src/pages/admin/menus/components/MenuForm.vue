@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
@@ -38,6 +38,7 @@ const formSchema = toTypedSchema(
     path: z.string().min(1, 'Path is required'),
     icon: z.string().optional(),
     permission: z.string().optional(),
+    component: z.string().optional(),
     parentId: z.union([z.number(), z.null()]).optional(),
     sortOrder: z.coerce.number().default(0),
 
@@ -52,6 +53,7 @@ const form = useForm({
     path: props.initialValues?.path || '',
     icon: props.initialValues?.icon || '',
     permission: props.initialValues?.permission || '',
+    component: props.initialValues?.component || '',
     parentId: props.initialValues?.parentId ?? null,
 
     sortOrder: props.initialValues?.sortOrder || 0,
@@ -68,6 +70,7 @@ watch(
         path: newVal?.path || '',
         icon: newVal?.icon || '',
         permission: newVal?.permission || '',
+        component: newVal?.component || '',
         parentId: newVal?.parentId ?? null,
         sortOrder: newVal?.sortOrder || 0,
         isActive: !!(newVal?.isActive ?? true),
@@ -89,6 +92,20 @@ function onInvalidSubmit({ errors }: any) {
   toast.error('Please check the form for errors')
 }
 
+const availablePermissions = ref<any[]>([])
+
+async function fetchPermissions() {
+  try {
+    const response = await api.get('/permissions')
+    availablePermissions.value = response.data
+  }
+  catch (e) {
+    console.error('Failed to fetch permissions', e)
+  }
+}
+
+onMounted(fetchPermissions)
+
 const onSubmit = form.handleSubmit(async (values) => {
   isSubmitting.value = true
   // Handle empty strings as null for optional fields if needed by backend
@@ -97,6 +114,8 @@ const onSubmit = form.handleSubmit(async (values) => {
   // Clean up empty strings for optional fields
   if (!payload.permission)
     payload.permission = undefined
+  if (!payload.component)
+    payload.component = undefined
   if (!payload.icon)
     payload.icon = undefined
 
@@ -179,11 +198,36 @@ const onSubmit = form.handleSubmit(async (values) => {
         </div>
       </div>
 
-      <FormField v-slot="{ componentField }" name="permission" :validate-on-blur="false">
+      <FormField v-slot="{ value, handleChange }" name="permission" :validate-on-blur="false">
         <FormItem>
           <FormLabel>Required Permission (Optional)</FormLabel>
+          <Select
+            :model-value="value || 'none'"
+            @update:model-value="(v) => handleChange(v === 'none' ? undefined : v)"
+          >
+            <FormControl>
+              <SelectTrigger>
+                <SelectValue placeholder="Select a permission" />
+              </SelectTrigger>
+            </FormControl>
+            <SelectContent>
+              <SelectItem value="none">
+                None (Public)
+              </SelectItem>
+              <SelectItem v-for="p in availablePermissions" :key="p.id" :value="p.slug">
+                {{ p.name }} ({{ p.slug }})
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <FormMessage />
+        </FormItem>
+      </FormField>
+
+      <FormField v-slot="{ componentField }" name="component" :validate-on-blur="false">
+        <FormItem>
+          <FormLabel>Component Path (e.g. @/pages/dashboard/home.vue)</FormLabel>
           <FormControl>
-            <Input placeholder="manage_users" v-bind="componentField" />
+            <Input placeholder="@/pages/data-sources/index.vue" v-bind="componentField" />
           </FormControl>
           <FormMessage />
         </FormItem>

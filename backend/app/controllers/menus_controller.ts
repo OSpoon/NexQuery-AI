@@ -80,6 +80,7 @@ export default class MenusController {
       'path',
       'icon',
       'permission',
+      'component',
       'sortOrder',
       'isActive',
     ])
@@ -100,6 +101,7 @@ export default class MenusController {
       'path',
       'icon',
       'permission',
+      'component',
       'sortOrder',
       'isActive',
     ])

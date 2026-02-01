@@ -150,7 +150,7 @@ router
         // RBAC Management
         router
           .group(() => {
-            router.get('permissions', [RolesController, 'permissions'])
+            router.resource('permissions', '#controllers/permissions_controller').apiOnly()
             router.resource('roles', RolesController).apiOnly()
             router.resource('users', UsersController).apiOnly()
             router.resource('menus', MenusController).apiOnly()

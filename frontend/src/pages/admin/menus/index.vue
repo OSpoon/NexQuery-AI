@@ -143,6 +143,11 @@ const columns: ColumnDef<any>[] = [
     },
   },
   {
+    accessorKey: 'component',
+    header: () => 'Component',
+    cell: ({ row }) => h('div', { class: 'font-mono text-[10px] text-muted-foreground' }, row.getValue('component') as string || '-'),
+  },
+  {
     accessorKey: 'parent',
     header: () => t('menus.parent'),
     cell: ({ row }) => {

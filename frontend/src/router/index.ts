@@ -75,66 +75,6 @@ const router = createRouter({
           name: 'profile',
           component: () => import('@/pages/profile/index.vue'),
         },
-        {
-          path: 'data-sources',
-          name: 'data-sources',
-          component: () => import('@/pages/data-sources/index.vue'),
-        },
-        {
-          path: 'knowledge-base',
-          name: 'knowledge-base',
-          component: () => import('@/pages/knowledge-base/index.vue'),
-        },
-        {
-          path: 'query-tasks',
-          name: 'query-tasks',
-          component: () => import('@/pages/query-tasks/index.vue'),
-        },
-        {
-          path: 'query-tasks/:id/run',
-          name: 'query-run',
-          component: () => import('@/pages/query-execution/index.vue'),
-        },
-        {
-          path: 'history',
-          name: 'history',
-          component: () => import('@/pages/history/index.vue'),
-        },
-        {
-          path: 'admin/users',
-          name: 'admin-users',
-          component: () => import('@/pages/admin/users/index.vue'),
-        },
-        {
-          path: 'admin/roles',
-          name: 'admin-roles',
-          component: () => import('@/pages/admin/roles/index.vue'),
-        },
-        {
-          path: 'admin/settings',
-          name: 'admin-settings',
-          component: () => import('@/pages/admin/settings/index.vue'),
-        },
-        {
-          path: 'admin/api-keys',
-          name: 'admin-api-keys',
-          component: () => import('@/pages/admin/api-keys/index.vue'),
-        },
-        {
-          path: 'admin/menus',
-          name: 'admin-menus',
-          component: () => import('@/pages/admin/menus/index.vue'),
-        },
-        {
-          path: 'admin/finops',
-          name: 'admin-finops',
-          component: () => import('@/pages/admin/finops/index.vue'),
-        },
-        {
-          path: 'ai-feedback',
-          name: 'ai-feedback',
-          component: () => import('@/pages/feedback/index.vue'),
-        },
       ],
     },
     {

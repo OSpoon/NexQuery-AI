@@ -3,6 +3,7 @@ import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 
 import api from '@/lib/api'
+import router from '@/router'
 
 export type { Menu, Permission, Role, User }
 
@@ -162,9 +163,58 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await api.get('/menus/public')
       menus.value = response.data
+      // Register dynamic routes based on fetched menus
+      registerDynamicRoutes()
     }
     catch (e) {
       console.error('Failed to fetch menus', e)
+    }
+  }
+
+  function registerDynamicRoutes() {
+    // Glob all vue components in @/pages
+    const modules = import.meta.glob('@/pages/**/*.vue')
+
+    const flattenMenus = (items: Menu[]): Menu[] => {
+      let result: Menu[] = []
+      for (const item of items) {
+        result.push(item)
+        if (item.children) {
+          result = result.concat(flattenMenus(item.children))
+        }
+      }
+      return result
+    }
+
+    const allMenus = flattenMenus(menus.value)
+
+    for (const menu of allMenus) {
+      if (menu.path && menu.component && !menu.path.startsWith('#')) {
+        // Match the component path from DB with globbed modules
+        // We look for a key that ends with the path stored in DB (e.g. pages/dashboard/home.vue)
+        const dbPath = menu.component.replace('@/', '')
+        const matchingKey = Object.keys(modules).find(key => key.includes(dbPath))
+        const resolver = matchingKey ? modules[matchingKey] : null
+
+        if (resolver) {
+          const routeName = `dynamic-${menu.id}`
+          // Check if route already exists to avoid warnings/duplicates
+          if (!router.hasRoute(routeName)) {
+            router.addRoute('dashboard', {
+              path: menu.path.startsWith('/') ? menu.path.substring(1) : menu.path,
+              name: routeName,
+              component: resolver,
+              meta: {
+                requiresAuth: true,
+                permission: menu.permission,
+              },
+            })
+          }
+        }
+        else {
+          console.warn(`[DynamicRouting] Component not found for path: ${menu.component}`)
+        }
+      }
     }
   }
 

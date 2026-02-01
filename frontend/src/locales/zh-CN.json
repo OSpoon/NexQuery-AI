@@ -58,6 +58,7 @@
       "roles": "角色权限",
       "menus": "菜单管理",
       "api_keys": "API 密钥",
+      "permissions": "权限管理",
       "settings": "系统设置",
       "finops": "费用监控"
     },
@@ -520,5 +521,18 @@
     "unbound": "未绑定",
     "dialog_unbind_title": "解除微信绑定",
     "dialog_unbind_desc": "您确定要解除微信绑定吗？解除后您将无法使用微信一键登录。"
+  },
+  "permissions": {
+    "title": "权限管理",
+    "desc": "定义和管理系统的权限码。",
+    "create": "新建权限",
+    "edit": "编辑权限",
+    "name": "权限名称",
+    "slug": "标识 (Slug)",
+    "description": "描述",
+    "delete_confirm": "您确定要删除此权限吗？这可能会影响关联的角色和菜单。",
+    "delete_success": "权限已删除",
+    "save_success": "权限已保存",
+    "config_desc": "配置权限详情和唯一标识。"
   }
 }
