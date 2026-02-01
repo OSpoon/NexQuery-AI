@@ -46,4 +46,5 @@ export const middleware = router.named({
   auth: () => import('#middleware/auth_middleware'),
   rbac: () => import('#middleware/rbac_middleware'),
   encrypt: () => import('#middleware/api_encryption_middleware'),
+  apiKeyGuard: () => import('#middleware/api_key_guard_middleware'),
 })

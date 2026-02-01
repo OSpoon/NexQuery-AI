@@ -174,7 +174,10 @@ router
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_AI_FINOPS }))
       })
-      .use(middleware.auth())
+      .use([
+        middleware.auth(),
+        middleware.apiKeyGuard(),
+      ])
   })
   .prefix('api')
   .use(middleware.encrypt())
