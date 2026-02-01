@@ -216,7 +216,7 @@ async function handleFeedback(msg: any, helpful: boolean) {
     if (!isCancel) {
       await api.post('/ai/feedback', {
         question,
-        generatedSql: msg.content,
+        generatedSql: msg.generatedSql || msg.content,
         isHelpful: helpful,
         userCorrection: null,
         conversationId: store.currentConversationId,
@@ -243,7 +243,7 @@ async function submitCorrection() {
   try {
     await api.post('/ai/feedback', {
       question,
-      generatedSql: activeFeedbackMsg.value.content,
+      generatedSql: activeFeedbackMsg.value.generatedSql || activeFeedbackMsg.value.content,
       isHelpful: false,
       userCorrection: correctionText.value,
       conversationId: store.currentConversationId,

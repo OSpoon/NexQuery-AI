@@ -68,6 +68,26 @@ async function fetchContext(conversationId: number) {
   }
 }
 
+function stripSqlMarkdown(content: string) {
+  if (!content)
+    return ''
+  // If it's already pure SQL (no markdown markers), return it
+  if (!content.includes('```') && !content.includes('###'))
+    return content
+
+  // Try to extract SQL block
+  const sqlMatch = content.match(/```sql([\s\S]*?)```/)
+  if (sqlMatch)
+    return sqlMatch[1].trim()
+
+  // Fallback: Remove all markdown headers and bolding
+  return content
+    .replace(/###\s+(?:\S.*)?\n/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/```/g, '')
+    .trim()
+}
+
 async function openDetail(item: FeedbackItem) {
   selectedItem.value = item
   isDetailOpen.value = true
@@ -109,12 +129,18 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
   {
     accessorKey: 'generatedSql',
     header: t('feedback.ai_sql'),
-    cell: ({ row }) =>
-      h(
-        'code',
-        { class: 'bg-muted px-1 py-0.5 rounded text-xs block max-w-[250px] truncate' },
-        row.getValue('generatedSql') || '-',
-      ),
+    cell: ({ row }) => {
+      const sql = stripSqlMarkdown(row.getValue('generatedSql') as string)
+      return h(
+        'div',
+        {
+          class:
+            'bg-muted/50 p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[300px] border border-border/50',
+          title: sql,
+        },
+        sql || '-',
+      )
+    },
   },
   {
     accessorKey: 'userCorrection',
@@ -123,10 +149,11 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
       const correction = row.getValue('userCorrection') as string
       return correction
         ? h(
-            'code',
+            'div',
             {
               class:
-                'bg-primary/10 text-primary px-1 py-0.5 rounded text-xs block max-w-[250px] truncate',
+                'bg-primary/5 text-primary p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[300px] border border-primary/10',
+              title: correction,
             },
             correction,
           )
@@ -211,7 +238,7 @@ function promoteToKnowledge(item: FeedbackItem) {
   promoteForm.value = {
     keyword: item.question.length > 50 ? `${item.question.substring(0, 47)}...` : item.question,
     description: `Improved logic for: ${item.question}`,
-    exampleSql: item.userCorrection || item.generatedSql,
+    exampleSql: stripSqlMarkdown(item.userCorrection || item.generatedSql),
     sourceId: item.id,
   }
   isPromoteOpen.value = true
@@ -407,11 +434,10 @@ onMounted(fetchFeedbacks)
                 <div class="flex flex-col gap-1 mr-auto items-start max-w-[92%]">
                   <span class="text-[10px] text-muted-foreground font-semibold px-2 uppercase">assistant</span>
                   <div class="text-xs p-4 rounded-2xl bg-background border shadow-sm w-full">
-                    <MarkdownRender
+                    <pre
                       v-if="selectedItem?.generatedSql"
-                      :content="selectedItem.generatedSql"
-                      :is-dark="isDark"
-                    />
+                      class="whitespace-pre-wrap font-mono text-[11px] leading-relaxed"
+                    >{{ stripSqlMarkdown(selectedItem.generatedSql) }}</pre>
                     <span v-else class="text-muted-foreground italic">{{ t('feedback.detail_dialog.no_captured') }}</span>
                   </div>
                 </div>

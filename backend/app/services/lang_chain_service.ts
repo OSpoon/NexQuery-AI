@@ -482,13 +482,16 @@ Database Type: ${dbType}
         if (submissionCall) {
           logger.info('[AgentLoop] Solution Submitted!')
           const args = submissionCall.args
+          const sql = args.sql
+          const explanation = args.explanation
 
           // Format Final Output
-          const finalOutput = `### 优化分析\n${args.explanation}\n\n### 优化后的 SQL\n${args.risk_level === 'modification' ? '**请注意：这是一个数据修改操作，请谨慎执行。**\n' : ''}\n\`\`\`sql\n${args.sql}\n\`\`\``
+          const finalOutput = `### 优化分析\n${explanation}\n\n### 优化后的 SQL\n${args.risk_level === 'modification' ? '**请注意：这是一个数据修改操作，请谨慎执行。**\n' : ''}\n\`\`\`sql\n${sql}\n\`\`\``
 
           yield JSON.stringify({
             type: 'response',
             content: finalOutput,
+            sql, // PURE SQL for feedback fix
           })
           return // EXIT LOOP
         }

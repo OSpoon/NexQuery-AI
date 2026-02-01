@@ -43,13 +43,30 @@ const formData = ref({
   status: 'approved',
 })
 
+function stripSqlMarkdown(content: string) {
+  if (!content)
+    return ''
+  if (!content.includes('```') && !content.includes('###'))
+    return content
+
+  const sqlMatch = content.match(/```sql([\s\S]*?)```/)
+  if (sqlMatch)
+    return sqlMatch[1].trim()
+
+  return content
+    .replace(/###\s+(?:\S.*)?\n/g, '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/```/g, '')
+    .trim()
+}
+
 function openEditDialog(item: KnowledgeBaseItem) {
   isEditing.value = true
   formData.value = {
     id: item.id,
     keyword: item.keyword,
     description: item.description,
-    exampleSql: item.exampleSql || '',
+    exampleSql: stripSqlMarkdown(item.exampleSql || ''),
     status: item.status,
   }
   dialogOpen.value = true
@@ -85,13 +102,14 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
     accessorKey: 'exampleSql',
     header: t('knowledge_base.example_sql'),
     cell: ({ row }) => {
-      const sql = row.getValue('exampleSql') as string
+      const sql = stripSqlMarkdown(row.getValue('exampleSql') as string)
       return sql
         ? h(
-            'code',
+            'div',
             {
               class:
-                'bg-muted px-2 py-1 rounded text-xs block whitespace-pre-wrap break-all max-w-[300px] line-clamp-2',
+                'bg-muted/50 p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[300px] border border-border/50',
+              title: sql,
             },
             sql,
           )

@@ -17,6 +17,7 @@ declare module 'vue' {
     AccordionTrigger: typeof import('./components/ui/accordion/AccordionTrigger.vue')['default']
     AgentSteps: typeof import('./components/AgentSteps.vue')['default']
     AiChart: typeof import('./components/shared/AiChart.vue')['default']
+    AiChartRenderer: typeof import('./components/AiChartRenderer.vue')['default']
     AiChatAssistant: typeof import('./components/AiChatAssistant.vue')['default']
     Alert: typeof import('./components/ui/alert/Alert.vue')['default']
     AlertDescription: typeof import('./components/ui/alert/AlertDescription.vue')['default']

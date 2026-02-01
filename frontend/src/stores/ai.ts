@@ -16,13 +16,14 @@ export interface AgentStep {
 export interface ChatMessage {
   role: 'user' | 'assistant'
   content: string
-  prompt?: string // For assistant messages, stores the question that triggered it
+  prompt?: string
   feedback?: 'up' | 'down' | null
   agentSteps?: AgentStep[]
   clarification?: {
     question: string
     options: string[]
   }
+  generatedSql?: string // PURE SQL for feedback/preview
 }
 
 export const useAiStore = defineStore('ai', () => {
@@ -225,6 +226,8 @@ export const useAiStore = defineStore('ai', () => {
                 // New Event: This is the Final Answer.
                 // Append this to the main chat bubble.
                 activeMessage.content += data.content
+                if (data.sql)
+                  activeMessage.generatedSql = data.sql
               }
               else if (data.type === 'tool_start') {
                 activeMessage.agentSteps.push({
