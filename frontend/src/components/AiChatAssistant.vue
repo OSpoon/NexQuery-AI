@@ -2,9 +2,11 @@
 import { useDark, useTextareaAutosize } from '@vueuse/core'
 import {
   Bot,
+  Download,
   HelpCircle,
   History,
   MessageCircle,
+  Play,
   Plus,
   Send,
   Sparkles,
@@ -42,6 +44,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 import { useAiStore } from '@/stores/ai'
@@ -258,6 +268,64 @@ async function submitCorrection() {
   }
 }
 
+const isRunningSql = ref<Record<number, boolean>>({})
+
+async function handleRunSql(msg: any, index: number) {
+  if (!store.dataSourceId || isRunningSql.value[index])
+    return
+
+  isRunningSql.value[index] = true
+  try {
+    await store.previewSql(store.dataSourceId, msg.generatedSql || msg.sql, index)
+    toast.success(t('common.success'))
+  }
+  catch (e: any) {
+    toast.error(e.message || t('common.error'))
+  }
+  finally {
+    isRunningSql.value[index] = false
+  }
+}
+
+function downloadResults(index: number) {
+  const result = store.queryResults[index]
+  if (!result || !result.data || result.data.length === 0)
+    return
+
+  const columns = Object.keys(result.data[0])
+  const headers = columns.join(',')
+  const rows = result.data.map((row: any) =>
+    columns
+      .map((col) => {
+        let val = row[col]
+        if (val === null || val === undefined) {
+          val = ''
+        }
+        else if (typeof val === 'object') {
+          val = JSON.stringify(val)
+        }
+        else {
+          val = String(val)
+        }
+        // Escape double quotes and wrap in double quotes
+        return `"${val.replace(/"/g, '""')}"`
+      })
+      .join(','),
+  )
+
+  const csvContent = [headers, ...rows].join('\n')
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+
+  link.setAttribute('href', url)
+  link.setAttribute('download', `ai_query_${new Date().getTime()}.csv`)
+  link.style.visibility = 'hidden'
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 function selectOption(option: string) {
   input.value = option
   handleSend()
@@ -269,7 +337,7 @@ function selectOption(option: string) {
     <!-- Chat Window -->
     <div
       v-if="store.isOpen"
-      class="w-[480px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in relative"
+      class="w-[520px] shadow-xl border rounded-lg bg-background flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in relative"
       :style="{ height: `${chatHeight}px` }"
     >
       <!-- Resize Handle -->
@@ -420,6 +488,62 @@ function selectOption(option: string) {
                   />
 
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
+
+                  <!-- Run Button -->
+                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.sql)" class="mt-2 flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      class="h-7 text-xs gap-1.5 border-primary/30 hover:bg-primary/10"
+                      :disabled="isRunningSql[index] || !store.dataSourceId"
+                      @click="handleRunSql(msg, index)"
+                    >
+                      <Play v-if="!isRunningSql[index]" class="h-3 w-3" />
+                      <div v-else class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      {{ isRunningSql[index] ? 'Running...' : 'Run SQL' }}
+                    </Button>
+                  </div>
+
+                  <!-- Results Table -->
+                  <div v-if="store.queryResults[index]" class="mt-4 border rounded-md overflow-hidden bg-background">
+                    <div class="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between text-[10px] text-muted-foreground">
+                      <div class="flex items-center gap-2">
+                        <span>Results ({{ store.queryResults[index].data?.length || 0 }} rows)</span>
+                        <span class="opacity-50">|</span>
+                        <span>{{ store.queryResults[index].duration }}ms</span>
+                      </div>
+                      <Button
+                        v-if="store.queryResults[index].data?.length"
+                        variant="ghost"
+                        size="icon"
+                        class="h-6 w-6 text-muted-foreground hover:text-foreground"
+                        @click="downloadResults(index)"
+                      >
+                        <Download class="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div class="max-h-[300px] overflow-auto">
+                      <Table v-if="store.queryResults[index].data?.length">
+                        <TableHeader class="sticky top-0 bg-background z-10 shadow-sm">
+                          <TableRow>
+                            <TableHead v-for="col in Object.keys(store.queryResults[index].data[0])" :key="col" class="h-8 py-0 px-3 text-[10px]">
+                              {{ col }}
+                            </TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          <TableRow v-for="(row, rIdx) in store.queryResults[index].data" :key="rIdx">
+                            <TableCell v-for="col in Object.keys(row)" :key="col" class="py-1.5 px-3 text-[10px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                              {{ row[col] }}
+                            </TableCell>
+                          </TableRow>
+                        </TableBody>
+                      </Table>
+                      <div v-else class="p-4 text-center text-xs text-muted-foreground">
+                        No data returned.
+                      </div>
+                    </div>
+                  </div>
 
                   <!-- Clarification Request -->
                   <div

@@ -344,6 +344,8 @@
     "engine_desc": "执行限速与资源配置",
     "ai": "AI 智能集成",
     "ai_desc": "大模型与 LLM 能力配置",
+    "ai_skills": "AI 技能插件",
+    "ai_skills_desc": "开启或关闭 Agent 的特定能力模块。",
     "test_connection": "测试连接",
     "connection_success": "连接成功",
     "connection_failed": "连接失败",
@@ -371,7 +373,13 @@
       "ai_base_url_desc": "大模型 API 的 Base URL (如 https://api.deepseek.com/v1/)",
       "ai_api_key": "AI API 密钥",
       "ai_api_key_desc": "用于访问通用 OpenAI 协议模型的 API Key。",
-      "ai_key_missing": "未配置 AI API 密钥，AI 能力受限。"
+      "ai_key_missing": "未配置 AI API 密钥，AI 能力受限。",
+      "ai_skill_discovery": "数据发现技能",
+      "ai_skill_discovery_desc": "允许 AI 探索数据库表、获取结构和抽样数据（DiscoverySkill）。",
+      "ai_skill_security": "安全合规技能",
+      "ai_skill_security_desc": "开启 SQL 验证、安全拦截和性能审计（SecuritySkill）。",
+      "ai_skill_core": "核心对话技能",
+      "ai_skill_core_desc": "维护多轮对话记忆、澄清意图和提交最终 SQL（CoreSkill）。"
     }
   },
   "api_keys": {

@@ -284,6 +284,18 @@ export const useAiStore = defineStore('ai', () => {
     currentConversationId.value = null
   }
 
+  const queryResults = ref<Record<number, { data: any[], duration: number }>>({})
+
+  async function previewSql(dataSourceId: number, sql: string, messageIndex: number) {
+    try {
+      const response = await api.post('/ai/preview', { dataSourceId, sql })
+      queryResults.value[messageIndex] = response.data
+    }
+    catch (error: any) {
+      throw new Error(error.response?.data?.message || 'Failed to execute SQL preview')
+    }
+  }
+
   return {
     isOpen,
     messages,
@@ -302,5 +314,7 @@ export const useAiStore = defineStore('ai', () => {
     loadConversation,
     startNewChat,
     deleteConversation,
+    queryResults,
+    previewSql,
   }
 })

@@ -64,13 +64,13 @@
 
 本项目采用 **Monorepo** 架构，统一管理前后端与共享库。
 
-| 模块 | 技术选型 | 说明 |
+| Component | Status | Description |
 | :--- | :--- | :--- |
-| **Frontend** | Vue 3, Vite, Pinia, Shadcn UI | 现代化响应式 Web 客户端 |
-| **Backend** | AdonisJS 6, Lucid ORM, Node.js | 高性能、类型安全的后端服务 |
-| **AI Layer** | LangChain, OpenAI API | 支持 GPT-4, DeepSeek, GLM 等模型 |
-| **Database** | PostgreSQL (System), Redis (Queue/Cache) | 系统元数据存储与任务队列 |
-| **Vector DB** | Qdrant (Optional/Built-in) | 知识库与 Schema 向量检索 |
+| **AI SQL Generation** | ✅ Implemented | Robust backend agent using LangChain, schema retrieval, and self-correction. |
+| **Chat Interface** | ✅ Implemented | Floating AI assistant accessible from all dashboard pages. |
+| **Reasoning Display** | ✅ Implemented | Users can see "thoughts" and "tool calls" (e.g., schema lookup, validation). |
+| **Direct Execution** | ✅ Implemented | Users can click "Run" on any generated SQL to see results instantly. |
+| **Data Report Display**| ✅ Implemented | Results are rendered as an interactive table directly inside the chat. |
 | **Mobile** | Uni-app + Vite | 跨平台小程序开发 |
 
 ---

@@ -384,6 +384,42 @@ onMounted(() => {
         </CardContent>
       </Card>
 
+      <!-- 5. AI Skill Plugins -->
+      <Card class="shadow-sm">
+        <CardHeader>
+          <div class="flex items-center space-x-3 text-primary">
+            <Plug class="h-5 w-5" />
+            <div>
+              <CardTitle class="text-lg">
+                {{ t('settings.ai_skills') }}
+              </CardTitle>
+              <CardDescription>{{ t('settings.ai_skills_desc') }}</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent class="grid gap-6 pt-0">
+          <div
+            v-for="s in settings.filter((s) => s.group === 'ai_skills')"
+            :key="s.key"
+            class="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-transparent hover:border-border transition-colors"
+          >
+            <div class="space-y-0.5">
+              <Label :for="s.key" class="text-base cursor-pointer">
+                {{ t(`settings.keys.${s.key}`) }}
+              </Label>
+              <p class="text-xs text-muted-foreground max-w-[400px]">
+                {{ t(`settings.keys.${s.key}_desc`) }}
+              </p>
+            </div>
+            <Switch
+              :id="s.key"
+              :model-value="s.value === 'true'"
+              @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <!-- Security Tools (Helper) -->
       <Card class="shadow-sm">
         <CardHeader>

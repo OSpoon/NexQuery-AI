@@ -15,21 +15,40 @@ import {
 } from '@langchain/core/messages'
 import EmbeddingService from '#services/embedding_service'
 import VectorStoreService from '#services/vector_store_service'
-import { ListTablesTool } from '#services/tools/list_tables_tool'
-import { GetTableSchemaTool } from '#services/tools/get_table_schema_tool'
-import { SampleTableDataTool } from '#services/tools/sample_table_data_tool'
-import { ValidateSqlTool } from '#services/tools/validate_sql_tool'
-import { GetCurrentTimeTool } from '#services/tools/get_current_time_tool'
-import { SearchColumnValuesTool } from '#services/tools/search_column_values_tool'
-import { SearchTablesTool } from '#services/tools/search_tables_tool'
-import { SubmitSqlTool } from '#services/tools/submit_sql_tool'
-import { ClarifyIntentTool } from '#services/tools/clarify_intent_tool'
+import { DiscoverySkill } from '#services/skills/discovery_skill'
+import { SecuritySkill } from '#services/skills/security_skill'
+import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
+import type { BaseSkill, SkillContext } from '#services/skills/skill_interface'
 import { CallbackHandler } from 'langfuse-langchain'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
 
 export default class LangChainService {
   private static readonly DEFAULT_API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/'
+
+  private async getAvailableSkills(_context: SkillContext): Promise<BaseSkill[]> {
+    const skills: BaseSkill[] = []
+
+    // 1. Discovery Skill
+    const discoveryEnabled = await Setting.findBy('key', 'ai_skill_discovery')
+    if (discoveryEnabled?.value !== 'false') {
+      skills.push(new DiscoverySkill())
+    }
+
+    // 2. Security Skill
+    const securityEnabled = await Setting.findBy('key', 'ai_skill_security')
+    if (securityEnabled?.value !== 'false') {
+      skills.push(new SecuritySkill())
+    }
+
+    // 3. Core Assistant Skill
+    const coreEnabled = await Setting.findBy('key', 'ai_skill_core')
+    if (coreEnabled?.value !== 'false') {
+      skills.push(new CoreAssistantSkill())
+    }
+
+    return skills
+  }
 
   private async getModel(bindTools = false, dataSourceId?: number) {
     // 1. Get Base URL
@@ -80,17 +99,9 @@ export default class LangChainService {
     })
 
     if (bindTools && dataSourceId) {
-      const tools = [
-        new ListTablesTool(),
-        new GetTableSchemaTool(),
-        new SampleTableDataTool(),
-        new ValidateSqlTool(),
-        new GetCurrentTimeTool(),
-        new SearchColumnValuesTool(),
-        new SearchTablesTool(),
-        new SubmitSqlTool(),
-        new ClarifyIntentTool(),
-      ]
+      const skills = await this.getAvailableSkills({ dataSourceId, dbType: 'mysql' }) // Default dbType, will be refined in loop
+      const tools = skills.flatMap(skill => skill.getTools({ dataSourceId, dbType: 'mysql' }))
+
       // LangChain's bindTools automatically converts StructuredTools to OpenAI Function format
       return { llm: llm.bindTools(tools), tools }
     }
@@ -318,57 +329,30 @@ export default class LangChainService {
       console.warn('Schema Pruning failed', e)
     }
 
+    const skills = await this.getAvailableSkills({ dataSourceId, dbType, userId: context.userId })
+    const skillPrompts = skills.map(s => s.getSystemPrompt({ dataSourceId, dbType, userId: context.userId })).join('\n\n')
+
     const systemPrompt = `你是一位精通 ${dbType} 的数据分析专家和 SQL 架构师。
 你的目标是分析用户问题并生成准确的 SQL 查询。
 
 **推荐关注的表 (Based on relevance)**:
 ${recommendedTablesText || '暂无推荐，请自行搜索。'}
 
-**关键能力与规则**:
-1. **主动探索与效率**:
-   - **Table Search**: 使用 \`search_tables\` 搜索相关表。这是探索未知数据库或大型数据库的首选方式。
-   - **Schema Inspection**: 确定表名后，使用 \`get_table_schema\` 获取详细结构。
-   - **List Tables**: 仅在需要浏览所有表名时使用。
-   - **Data Sampling**: 遇到不确定的字段含义（如状态值），务必使用 \`sample_table_data\` 确认真实数据。
-   - **性能优化**: 请在一个步骤中尽可能同时调用多个工具。
-2. **值与时间感知**:
-   - 遇到不确定的字段值，使用 \`search_column_values\` 搜索真实值。
-   - 遇到相对时间（如“上个月”），使用 \`get_current_time\` 获取当前参考时间。
-3. **歧义主动消解 (Disambiguation)**:
-   - **重要**: 如果用户的提问过于模糊，或存在多种合理的业务解释（例如：“活跃用户”是指登录过的还是下单过的？），**不要瞎猜**。
-   - **必须**使用 \`clarify_intent\` 工具向用户发起询问，并提供几个可能的选项。
-   - 只有在明确用户意图后，才继续生成 SQL。
-4. **自我验证 & 智能纠错 (Self-Correction)**:
-   - 生成 SQL 后，**必须**使用 \`validate_sql\` 工具验证。
-   - **严禁**提交未经验证的 SQL。
-   - 如果验证失败，该工具会提示具体错误。**你必须读取错误提示，修正 SQL，并再次进行验证，直到验证通过**。
-   - **收到 'Validation Failed' 时，严禁直接提交。必须针对性调用 \`get_table_schema\` 检查相关表结构（不要靠猜），修复列名/表名错误后重试。**
-   - 不要轻易放弃，请尝试多次修正。
-5. **提交结果 (Submit Result)**:
-   - 只有当 SQL 通过验证 (validate_sql 返回 Valid)，且你确信无误后，**必须**调用 tool \`submit_sql_solution\` 提交。
-   - **不要**直接输出 markdown 代码块，**不要**包含 \`\`\`sql ... \`\`\`。一切输出必须通过 \`submit_sql_solution\` 工具完成。
-6. **安全红线**:
-   - **严禁**执行无 \`WHERE\` 条件的 \`DELETE\` / \`UPDATE\` 语句。这是由于我们的 AST Guardrails 强制拦截。
-   - 严禁查询密码、密钥等敏感字段。
-   - 作为 "Safety Auditor"，请 Richmond 在生成 SQL 前自检：是否会意外删除/更新全表数据？如果是，请立即中止或添加条件。
-7. **多轮对话上下文 (Contextual Memory)**:
-   - **Check History**: 这是一场连续的对话。请仔细检查 History 中的上一轮 interaction (System/User/Assistant messages)。
-   - **Follow-up Handling**: 如果用户的意图是对上一次结果的修改或补充（例如：“按时间排序”、“只看前10个”、“换成柱状图”），**DO NOT** 重新生成 SQL。
-   - **Action**: 你必须提取上一轮成功的 SQL (from \`submit_sql_solution\`)，并在此基础上应用新的逻辑（添加 WHERE, ORDER BY, GROUP BY 等）。保留原有的查询语义，除非用户明确要求改变。
-8. **性能评估 (Performance Advisor)**:
-   - \`validate_sql\` 工具现已支持 Performance Analysis。
-   - 如果验证结果包含 **"(Performance Note: ...)"**，请务必在最终回复的「优化分析」部分中明确告知用户该风险（例如全表扫描），并给出简短建议（如建索引）。不要忽略警告。
-
 **业务上下文**:
 ${businessContext}
 
-**当前数据库连接信息**:
-DataSource ID: ${dataSourceId}
-Database Type: ${dbType}
+${skillPrompts}
 
 请开始思考并执行任务。`
 
     const messages: BaseMessage[] = [new SystemMessage(systemPrompt)]
+
+    // Visibility: Show that skills are loaded
+    yield JSON.stringify({
+      type: 'thought',
+      content: `[系统] 已挂载技能: ${skills.map(s => s.name).join(', ')}\n`,
+    })
+
     for (const m of context.history || []) {
       if (m.role === 'user') {
         messages.push(new HumanMessage(m.content))

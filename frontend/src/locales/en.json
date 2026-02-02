@@ -342,6 +342,8 @@
     "engine_desc": "Performance and safety limits",
     "ai": "AI Intelligence",
     "ai_desc": "LLM models and AI capability configuration",
+    "ai_skills": "AI Skill Plugins",
+    "ai_skills_desc": "Enable or disable specific Agent capability modules.",
     "test_connection": "Test Connection",
     "connection_success": "Connection successful",
     "connection_failed": "Connection failed",
@@ -369,7 +371,13 @@
       "ai_base_url_desc": "The Base URL for the Model API (e.g., https://api.deepseek.com/v1/)",
       "ai_api_key": "AI API Key",
       "ai_api_key_desc": "API Key for accessing generic OpenAI-protocol models.",
-      "ai_key_missing": "AI API Key is missing. AI features are disabled."
+      "ai_key_missing": "AI API Key is missing. AI features are disabled.",
+      "ai_skill_discovery": "Discovery Skill",
+      "ai_skill_discovery_desc": "Allows the AI to explore database tables, retrieve schemas, and sample data.",
+      "ai_skill_security": "Security Skill",
+      "ai_skill_security_desc": "Enables SQL validation, security redline enforcement, and performance auditing.",
+      "ai_skill_core": "Core Assistant Skill",
+      "ai_skill_core_desc": "Maintains contextual memory, handles intent clarification, and submits final solutions."
     }
   },
   "api_keys": {

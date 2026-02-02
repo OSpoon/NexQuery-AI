@@ -241,7 +241,7 @@ export default class extends BaseSeeder {
         icon: 'Lock',
         permission: PERMISSIONS.MANAGE_ROLES, // Sharing role management permission for now
         component: '@/pages/admin/permissions/index.vue',
-        sortOrder: 94.5,
+        sortOrder: 95,
       },
       {
         title: 'Settings',
@@ -249,7 +249,7 @@ export default class extends BaseSeeder {
         icon: 'Settings',
         permission: PERMISSIONS.MANAGE_SETTINGS,
         component: '@/pages/admin/settings/index.vue',
-        sortOrder: 95,
+        sortOrder: 96,
       },
     ]
 
@@ -269,6 +269,9 @@ export default class extends BaseSeeder {
       { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'ai' },
       { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
       { key: 'ai_timeout_sec', value: '600', type: 'number', group: 'ai', label: 'AI Request Timeout', description: 'Maximum duration in seconds for AI models to respond.' },
+      { key: 'ai_skill_discovery', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Discovery Skill', description: 'Enable database schema exploration and data sampling.' },
+      { key: 'ai_skill_security', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Security Skill', description: 'Enable SQL validation, security redlines, and performance auditing.' },
+      { key: 'ai_skill_core', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Core Assistant Skill', description: 'Enable fundamental interaction, contextual memory, and task submission.' },
     ]
 
     for (const s of defaultSettings) {
