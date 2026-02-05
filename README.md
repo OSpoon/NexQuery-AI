@@ -32,13 +32,14 @@
 ### 🤖 AI 智能引擎 (Agentic Engine)
 *   **Dual-Mode Chat**:
     *   **SQL Agent**: 深度结合数据库 Schema，支持 Text-to-SQL、错误自修复、歧义主动询问 (Disambiguation) 与思维链展示。
+    *   **Lucene Agent**: 专为 Elasticsearch 设计，支持 Index 发现、Mapping 解析与 Lucene 查询语句生成。
     *   **General Chat**: 像 ChatGPT 一样的通用问答模式，处理非数据库类问题。
 *   **Smart Optimization**: AI 自动分析 SQL 性能，提供索引建议与重写方案。
 *   **Mind Chain**: 透明展示 AI 的推理过程 (Reasoning)、工具调用 (ListTables, ValidateSql) 与自我纠错逻辑。
 *   **Knowledge RAG**: 将用户认可的优质 SQL 沉淀为知识库，增强 AI 在特定业务场景下的准确率。
 
 ### 🔌 多源数据接入
-*   **Supported Sources**: PostgreSQL, MySQL, HTTP API (cURL 适配)。
+*   **Supported Sources**: PostgreSQL, MySQL, Elasticsearch, HTTP API (cURL 适配)。
 *   **Auto-Discovery**: 自动扫描数据库元数据，利用 AI 识别手机号、邮箱等 PII 敏感字段并配置脱敏规则。
 *   **Schema Sync**: 定时或触发式同步最新的表结构至向量数据库。
 
