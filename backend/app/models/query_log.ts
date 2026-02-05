@@ -4,6 +4,8 @@ import type { BelongsTo } from '@adonisjs/lucid/types/relations'
 import User from '#models/user'
 import QueryTask from '#models/query_task'
 import DataSource from '#models/data_source'
+import { isInternalIP } from '../utils/ip_utils.js'
+import type { HttpContext } from '@adonisjs/core/http'
 
 export default class QueryLog extends BaseModel {
   @column({ isPrimary: true })
@@ -72,4 +74,43 @@ export default class QueryLog extends BaseModel {
 
   @column.dateTime({ autoCreate: true, autoUpdate: true })
   declare updatedAt: DateTime
+
+  /**
+   * Context-aware logging helper
+   */
+  public static async log(
+    ctx: HttpContext | { request: any, auth?: any },
+    data: {
+      userId?: number
+      taskId?: number
+      dataSourceId: number
+      executedSql: string
+      parameters?: any
+      executionTimeMs?: number
+      results?: any
+      status: 'success' | 'failed'
+      errorMessage?: string
+      deviceInfo?: any
+    },
+  ) {
+    const { request, auth } = ctx
+    const userId = data.userId || auth?.user?.id
+    const ipAddress = request.ip()
+
+    return await this.create({
+      userId,
+      taskId: data.taskId,
+      dataSourceId: data.dataSourceId,
+      executedSql: data.executedSql,
+      parameters: data.parameters,
+      executionTimeMs: data.executionTimeMs,
+      results: data.results,
+      status: data.status,
+      errorMessage: data.errorMessage,
+      ipAddress,
+      userAgent: request.header('user-agent'),
+      deviceInfo: data.deviceInfo,
+      isInternalIp: isInternalIP(ipAddress),
+    })
+  }
 }

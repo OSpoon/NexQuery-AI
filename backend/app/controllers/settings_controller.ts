@@ -1,9 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Setting from '#models/setting'
 import env from '#start/env'
-import { CryptoService } from '@nexquery/shared'
-import AuditLog from '#models/audit_log'
-import { isInternalIP } from '../utils/ip_utils.js'
+import { CryptoHelper } from '#services/crypto_helper'
+import { AuditService } from '#services/audit_service'
 
 export default class SettingsController {
   async index({ auth, response }: HttpContext) {
@@ -38,14 +37,16 @@ export default class SettingsController {
     }
 
     // Encrypt sensitive keys if encryption is enabled
-    const encryptionKey = env.get('API_ENCRYPTION_KEY')
-    if (encryptionKey) {
-      const crypto = new CryptoService(encryptionKey)
+    try {
+      const crypto = CryptoHelper.getInstance()
+
       for (const s of serializedSettings) {
         if (['ai_api_key'].includes(s.key) && s.value) {
           s.value = crypto.encrypt(s.value)
         }
       }
+      return response.ok(serializedSettings)
+    } catch {
       return response.ok(serializedSettings)
     }
 
@@ -59,8 +60,7 @@ export default class SettingsController {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
-    const encryptionKey = env.get('API_ENCRYPTION_KEY')
-    const crypto = encryptionKey ? new CryptoService(encryptionKey) : null
+    const crypto = CryptoHelper.getInstance()
 
     // Track changed keys for audit
     const changedKeys: string[] = []
@@ -93,14 +93,8 @@ export default class SettingsController {
     }
 
     if (changedKeys.length > 0) {
-      await AuditLog.create({
-        userId: currentUser.id,
-        action: 'admin:update_settings',
-        status: 'success',
-        details: { updatedKeys: changedKeys },
-        ipAddress: request.ip(),
-        userAgent: request.header('user-agent'),
-        isInternalIp: isInternalIP(request.ip()),
+      await AuditService.logAdminAction({ request, auth } as any, 'update_settings', {
+        details: { keys: settings.map((s: any) => s.key) },
       })
     }
 

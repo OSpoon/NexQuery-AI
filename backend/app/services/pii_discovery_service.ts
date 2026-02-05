@@ -1,9 +1,8 @@
-import Setting from '#models/setting'
-import env from '#start/env'
-import { ChatOpenAI } from '@langchain/openai'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
-import { CallbackHandler } from 'langfuse-langchain'
 import logger from '@adonisjs/core/services/logger'
+
+import AiProviderService from '#services/ai_provider_service'
+import DataSource from '#models/data_source'
 import { PII_DISCOVERY_SYSTEM_PROMPT } from '#prompts/index'
 
 export interface PiiFieldConfig {
@@ -20,39 +19,8 @@ export interface PiiTableConfig {
 
 export default class PiiDiscoveryService {
   private async getModel() {
-    // 1. Get Base URL
-    const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
-    const baseUrl = baseUrlSetting?.value || 'https://open.bigmodel.cn/api/paas/v4/'
-
-    // 2. Get API Key
-    const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
-    const apiKey = apiKeySetting?.value
-
-    if (!apiKey)
-      throw new Error('AI API Key not configured')
-
-    const chatModelSetting = await Setting.findBy('key', 'ai_chat_model')
-    const chatModel = chatModelSetting?.value
-
-    const timeoutSetting = await Setting.findBy('key', 'ai_timeout_sec')
-    const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
-
-    // Initialize Langfuse Callback Handler
-    const langfuseHandler = new CallbackHandler({
-      publicKey: env.get('LANGFUSE_PUBLIC_KEY', ''),
-      secretKey: env.get('LANGFUSE_SECRET_KEY', ''),
-      baseUrl: env.get('LANGFUSE_HOST', 'https://cloud.langfuse.com'),
-    })
-
-    return new ChatOpenAI({
-      apiKey,
-      configuration: { baseURL: baseUrl },
-      modelName: chatModel,
-      temperature: 0.1,
-      timeout: timeoutMs,
-      maxRetries: 2,
-      callbacks: [langfuseHandler],
-    })
+    const aiProvider = new AiProviderService()
+    return aiProvider.getChatModel({ temperature: 0.1 })
   }
 
   /**
@@ -114,5 +82,47 @@ export default class PiiDiscoveryService {
       logger.error({ error: e, stack: e.stack }, 'PII Discovery failed')
       return []
     }
+  }
+
+  /**
+   * Merges discovery results into a DataSource's advanced_config
+   */
+  public async mergeDiscoveryResults(ds: DataSource, piiConfig: any[]) {
+    // 1. Merge with existing advanced_config
+    const currentConfig = ds.config || {}
+    const advancedConfig = (currentConfig.advanced_config || []).map((t: any) => ({
+      table: t.table || t.tableName, // compatibility
+      fields: t.fields || [],
+    }))
+
+    for (const tableRule of piiConfig) {
+      let existingTable = advancedConfig.find((t: any) => t.table === tableRule.table)
+      if (!existingTable) {
+        existingTable = { table: tableRule.table, fields: [] }
+        advancedConfig.push(existingTable)
+      }
+
+      // Merge fields
+      for (const field of tableRule.fields) {
+        const existingField = existingTable.fields.find((f: any) => f.name === field.name)
+        if (existingField) {
+          // Only update if no manual masking is set or if it's 'none'
+          if (!existingField.masking || existingField.masking.type === 'none') {
+            existingField.masking = field.masking
+            existingField.isAuto = true
+          }
+        } else {
+          existingTable.fields.push({ ...field, isAuto: true })
+        }
+      }
+    }
+
+    ds.config = {
+      ...currentConfig,
+      advanced_config: advancedConfig,
+    }
+
+    await ds.save()
+    logger.info({ dataSourceId: ds.id, tablesDiscovered: piiConfig.length }, 'PII discovery applied to advanced_config')
   }
 }

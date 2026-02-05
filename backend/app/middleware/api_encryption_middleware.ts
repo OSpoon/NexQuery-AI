@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import env from '#start/env'
-import { CryptoService } from '@nexquery/shared'
 import logger from '@adonisjs/core/services/logger'
+import { CryptoHelper } from '#services/crypto_helper'
 
 export default class ApiEncryptionMiddleware {
   async handle({ request, response }: HttpContext, next: () => Promise<void>) {
@@ -18,13 +18,7 @@ export default class ApiEncryptionMiddleware {
       return await next()
     }
 
-    const key = env.get('API_ENCRYPTION_KEY')
-    if (!key) {
-      logger.warn('API Encryption is enabled but API_ENCRYPTION_KEY is missing.')
-      return await next()
-    }
-
-    const crypto = new CryptoService(key)
+    const crypto = CryptoHelper.getInstance()
 
     // --- Request Decryption ---
     // Only attempt decryption if the body has content and looks like it might be encrypted

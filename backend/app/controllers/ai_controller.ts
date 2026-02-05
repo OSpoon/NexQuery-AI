@@ -5,10 +5,10 @@ import AiMessage from '#models/ai_message'
 import DataSource from '#models/data_source'
 import QueryExecutionService from '#services/query_execution_service'
 import Setting from '#models/setting'
-import env from '#start/env'
-import { CryptoService } from '@nexquery/shared'
 import { inject } from '@adonisjs/core'
 import { DateTime } from 'luxon'
+import { CryptoHelper } from '#services/crypto_helper'
+import SseService from '#services/sse_service'
 
 @inject()
 export default class AiController {
@@ -16,29 +16,15 @@ export default class AiController {
 
   async testConnection({ request, response }: HttpContext) {
     let { baseUrl, apiKey } = request.all()
-    const encryptionKey = env.get('API_ENCRYPTION_KEY')
-    const crypto = encryptionKey ? new CryptoService(encryptionKey) : null
-
-    // Helper to try decrypting
-    const tryDecrypt = (val: string) => {
-      if (!val || !crypto)
-        return val
-      try {
-        const decrypted = crypto.decrypt(val)
-        return decrypted || val // Return original if decrypt returns null (likely raw)
-      } catch {
-        return val
-      }
-    }
 
     // 1. Resolve API Key
     if (apiKey) {
-      apiKey = tryDecrypt(apiKey)
+      apiKey = CryptoHelper.tryDecrypt(apiKey)
     } else {
       // Fallback to DB
       const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
       if (apiKeySetting?.value) {
-        apiKey = tryDecrypt(apiKeySetting.value)
+        apiKey = CryptoHelper.tryDecrypt(apiKeySetting.value)
       }
     }
 
@@ -83,13 +69,7 @@ export default class AiController {
       return response.badRequest({ message: 'SQL query is required' })
     }
 
-    // Set standard SSE headers
-    response.header('Content-Type', 'text/event-stream')
-    response.header('Cache-Control', 'no-cache')
-    response.header('Connection', 'keep-alive')
-    response.header('X-Accel-Buffering', 'no')
-
-    response.response.flushHeaders()
+    SseService.initStream({ request, response } as any)
 
     try {
       const langChainService = new LangChainService()
@@ -198,14 +178,7 @@ export default class AiController {
       content: question,
     })
 
-    // Set standard SSE headers using framework methods
-    response.header('Content-Type', 'text/event-stream')
-    response.header('Cache-Control', 'no-cache')
-    response.header('Connection', 'keep-alive')
-    response.header('X-Accel-Buffering', 'no')
-
-    // Explicitly send headers to the client immediately
-    response.response.flushHeaders()
+    SseService.initStream({ request, response } as any)
 
     // Notify frontend of conversation ID (always send it so frontend can sync)
     response.response.write(

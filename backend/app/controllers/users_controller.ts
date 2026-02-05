@@ -1,11 +1,8 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
-
-import AuditLog from '#models/audit_log'
-import { isInternalIP } from '../utils/ip_utils.js'
+import { AuditService } from '#services/audit_service'
 
 export default class UsersController {
-  // ... index (omitted)
   async index({ auth, response }: HttpContext) {
     if (!auth.user!.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
@@ -36,12 +33,9 @@ export default class UsersController {
       await user.related('roles').sync(roleIds)
     }
 
-    await AuditLog.create({
-      userId: currentUser.id,
-      action: 'admin:update_user',
+    await AuditService.logAdminAction({ request, auth } as any, 'update_user', {
       entityType: 'user',
       entityId: String(user.id),
-      status: 'success',
       details: {
         previous: {
           fullName: previousData.fullName,
@@ -50,9 +44,6 @@ export default class UsersController {
         },
         new: { fullName, email, isActive, roleIds },
       },
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     await user.load('roles')
@@ -88,18 +79,12 @@ export default class UsersController {
     const userData = user.toJSON()
     await user.delete()
 
-    await AuditLog.create({
-      userId: currentUser.id,
-      action: 'admin:delete_user',
+    await AuditService.logAdminAction({ request, auth } as any, 'delete_user', {
       entityType: 'user',
       entityId: String(user.id),
-      status: 'success',
       details: {
         deletedUser: { email: userData.email, fullName: userData.fullName },
       },
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.ok({ message: 'User deleted successfully' })

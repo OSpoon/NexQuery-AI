@@ -1,6 +1,5 @@
-import db from '@adonisjs/lucid/services/db'
 import DataSource from '#models/data_source'
-import encryption from '@adonisjs/core/services/encryption'
+import DbHelper from '#services/db_helper'
 
 export interface AuditWarning {
   type: 'security' | 'performance'
@@ -86,39 +85,25 @@ export default class SqlAuditService {
     const ds = await DataSource.findOrFail(dataSourceId)
 
     try {
-      // Setup temporary connection if not exists (or reuse)
-      const decryptedPassword = encryption.decrypt(ds.password)
-
-      // Use a consistent connection name to avoid leaking connections
-      const auditConnName = `audit_ds_${ds.id}`
-      if (!db.manager.has(auditConnName)) {
-        db.manager.add(auditConnName, {
-          client: ds.type === 'postgresql' ? 'pg' : 'mysql2',
-          connection: {
-            host: ds.host === 'localhost' || ds.host === '127.0.0.1' ? 'db' : ds.host,
-            port: ds.port,
-            user: ds.username,
-            password: (decryptedPassword || '') as string,
-            database: ds.database,
-          },
-        })
-      }
-
-      const connection = db.connection(auditConnName)
-      const explainResult = await connection.rawQuery(`EXPLAIN ${sql}`)
+      const { client } = await DbHelper.getRawConnection(ds.id)
 
       if (ds.type === 'postgresql') {
+        const explainResult = await client.query(`EXPLAIN ${sql}`)
         this.parsePostgresExplain(explainResult, warnings)
       } else {
+        const [explainResult] = await client.execute(`EXPLAIN ${sql}`)
         this.parseMysqlExplain(explainResult, warnings)
       }
+      await client.end()
+    } catch (error) {
+      console.warn('[SqlAuditService] Performance check failed:', error.message)
     } finally {
-      // Maintenance: we could remove connection but let's keep it for reuse
+      // client.end() handled above
     }
   }
 
   private parseMysqlExplain(result: any, warnings: AuditWarning[]) {
-    const rows = result[0]
+    const rows = result
     for (const row of rows) {
       // MySQL Explain types: ALL (Full Table Scan), index (Full Index Scan)
       if (row.type === 'ALL') {

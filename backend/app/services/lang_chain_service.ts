@@ -1,8 +1,6 @@
-import Setting from '#models/setting'
-import KnowledgeBase from '#models/knowledge_base'
-import AiUsageLog from '#models/ai_usage_log'
-import ModelCostService from '#services/model_cost_service'
-import { ChatOpenAI } from '@langchain/openai'
+import KnowledgeBaseService from '#services/knowledge_base_service'
+import AiUsageService from '#services/ai_usage_service'
+
 import type {
   AIMessageChunk,
   BaseMessage,
@@ -21,9 +19,9 @@ import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
 import { LuceneSkill } from '#services/skills/lucene_skill'
 import type { BaseSkill, SkillContext } from '#services/skills/skill_interface'
 import DataSource from '#models/data_source'
-import { CallbackHandler } from 'langfuse-langchain'
-import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
+import AiProviderService from '#services/ai_provider_service'
+
 import {
   GENERAL_CHAT_SYSTEM_PROMPT,
   SQL_AGENT_SYSTEM_PROMPT_TEMPLATE,
@@ -31,32 +29,27 @@ import {
 } from '#prompts/index'
 
 export default class LangChainService {
-  private static readonly DEFAULT_API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/'
-
   private async getAvailableSkills(_context: SkillContext): Promise<BaseSkill[]> {
+    const aiProvider = new AiProviderService()
     const skills: BaseSkill[] = []
 
     // 1. Discovery Skill (Skip for ES, as it uses LuceneSkill for discovery)
-    const discoveryEnabled = await Setting.findBy('key', 'ai_skill_discovery')
-    if (discoveryEnabled?.value !== 'false' && _context.dbType !== 'elasticsearch') {
+    if (await aiProvider.isSkillEnabled('discovery') && _context.dbType !== 'elasticsearch') {
       skills.push(new DiscoverySkill())
     }
 
     // 2. Security Skill
-    const securityEnabled = await Setting.findBy('key', 'ai_skill_security')
-    if (securityEnabled?.value !== 'false') {
+    if (await aiProvider.isSkillEnabled('security')) {
       skills.push(new SecuritySkill())
     }
 
     // 3. Core Assistant Skill
-    const coreEnabled = await Setting.findBy('key', 'ai_skill_core')
-    if (coreEnabled?.value !== 'false') {
+    if (await aiProvider.isSkillEnabled('core')) {
       skills.push(new CoreAssistantSkill())
     }
 
     // 4. Lucene Skill (If ES data source)
-    const luceneEnabled = await Setting.findBy('key', 'ai_skill_lucene')
-    if (luceneEnabled?.value !== 'false' && _context.dbType === 'elasticsearch') {
+    if (await aiProvider.isSkillEnabled('lucene') && _context.dbType === 'elasticsearch') {
       skills.push(new LuceneSkill())
     }
 
@@ -64,52 +57,8 @@ export default class LangChainService {
   }
 
   private async getModel(bindTools = false, dataSourceId?: number) {
-    // 1. Get Base URL
-    const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
-    const baseUrl = baseUrlSetting?.value || LangChainService.DEFAULT_API_BASE_URL
-
-    if (!baseUrl) {
-      throw new Error('AI Base URL not configured (ai_base_url)')
-    }
-
-    // 2. Get API Key
-    const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
-    const apiKey = apiKeySetting?.value
-
-    if (!apiKey) {
-      throw new Error('AI API Key not configured (ai_api_key)')
-    }
-
-    process.env.OPENAI_API_KEY = apiKey
-
-    // 3. Get Model Name
-    const chatModelSetting = await Setting.findBy('key', 'ai_chat_model')
-    const chatModel = chatModelSetting?.value
-
-    if (!chatModel) {
-      throw new Error('AI Chat Model not configured (ai_chat_model)')
-    }
-
-    const timeoutSetting = await Setting.findBy('key', 'ai_timeout_sec')
-    const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
-
-    // Initialize Langfuse Callback Handler
-    const langfuseHandler = new CallbackHandler({
-      publicKey: env.get('LANGFUSE_PUBLIC_KEY'),
-      secretKey: env.get('LANGFUSE_SECRET_KEY'),
-      baseUrl: env.get('LANGFUSE_HOST'),
-    })
-
-    const llm = new ChatOpenAI({
-      apiKey,
-      configuration: { baseURL: baseUrl },
-      modelName: chatModel,
-      temperature: 0.1,
-      timeout: timeoutMs,
-      streaming: true,
-      streamUsage: true, // Enable usage reporting
-      callbacks: [langfuseHandler],
-    })
+    const aiProvider = new AiProviderService()
+    const llm = await aiProvider.getChatModel({ streaming: true })
 
     if (bindTools && dataSourceId) {
       const ds = await DataSource.find(dataSourceId)
@@ -124,41 +73,6 @@ export default class LangChainService {
     return { llm, tools: [] }
   }
 
-  /**
-   * Record AI Usage log
-   */
-  private async recordUsage(params: {
-    userId?: number
-    conversationId?: number | null
-    modelName: string
-    provider: string
-    promptTokens: number
-    completionTokens: number
-    context: string
-  }) {
-    try {
-      if (params.promptTokens <= 0 && params.completionTokens <= 0)
-        return
-
-      const totalTokens = params.promptTokens + params.completionTokens
-      const estimatedCost = ModelCostService.calculateCost(params.modelName, {
-        promptTokens: params.promptTokens,
-        completionTokens: params.completionTokens,
-        totalTokens,
-      })
-
-      await AiUsageLog.create({
-        ...params,
-        totalTokens,
-        estimatedCost,
-      })
-
-      logger.info(`[recordUsage] Recorded: ${params.modelName}, Cost: ${estimatedCost}, Tokens: ${totalTokens}, Context: ${params.context}`)
-    } catch (e) {
-      logger.error({ error: e }, 'Failed to record AI usage log')
-    }
-  }
-
   private async retrieveContext(question: string, sourceType?: string): Promise<string> {
     try {
       const embeddingService = new EmbeddingService()
@@ -168,7 +82,6 @@ export default class LangChainService {
       if (!questionEmbedding || questionEmbedding.length === 0)
         return ''
 
-      // Search Knowledge Base via Vector Store - Only retrieve Approved items
       const results = await vectorStore.searchKnowledge(questionEmbedding, 5, sourceType)
 
       if (results.length === 0) {
@@ -185,23 +98,16 @@ export default class LangChainService {
         const description = payload.description as string
 
         if (exampleSql && exampleSql.trim()) {
-          // It's a few-shot example
           fewShotExamples += `- **User Question**: "${keyword}"\n  **Correct SQL**: \`${exampleSql}\`\n`
         } else {
-          // It's a concept definition
           businessDefinitions += `- **${keyword}**: ${description}\n`
         }
       })
 
-      let contextText = ''
-      if (businessDefinitions) {
-        contextText += `**Business Logic Definitions**:\n${businessDefinitions}\n`
-      }
-      if (fewShotExamples) {
-        contextText += `**Reference Successful Queries (Few-Shot Examples)**:\n${fewShotExamples}\n`
-      }
-
-      return contextText
+      return [
+        businessDefinitions ? `**Business Logic Definitions**:\n${businessDefinitions}` : '',
+        fewShotExamples ? `**Reference Successful Queries (Few-Shot Examples)**:\n${fewShotExamples}` : '',
+      ].filter(Boolean).join('\n\n')
     } catch (e) {
       logger.error({ error: e }, 'Context retrieval failed')
       return ''
@@ -212,36 +118,12 @@ export default class LangChainService {
    * Learn from a successful interaction
    */
   public async learnInteraction(question: string, sql: string, description?: string, sourceType: string = 'sql') {
-    try {
-      const embeddingService = new EmbeddingService()
-      const desc = description || 'Auto-learned from successful execution'
-      const embedding = await embeddingService.generate(`${question}: ${desc}`)
-
-      const item = await KnowledgeBase.create({
-        keyword: question,
-        description: desc,
-        exampleSql: sql,
-        embedding,
-        status: 'approved',
-        sourceType,
-      })
-
-      // Sync to Qdrant immediately
-      if (item.embedding && item.embedding.length > 0) {
-        const vectorStore = new VectorStoreService()
-        await vectorStore.upsertKnowledge(
-          item.keyword,
-          item.description,
-          item.exampleSql,
-          item.embedding,
-          item.status,
-          item.sourceType,
-        )
-      }
-      return item
-    } catch (e) {
-      logger.error({ error: e }, 'Failed to learn interaction')
-    }
+    return await KnowledgeBaseService.upsert({
+      keyword: question,
+      description: description || 'Auto-learned from successful execution',
+      exampleSql: sql,
+      sourceType,
+    })
   }
 
   /**
@@ -297,20 +179,12 @@ export default class LangChainService {
         })
 
         // Log Usage
-        if (fullResponse) {
-          const usage = (fullResponse as any).usage_metadata || fullResponse.response_metadata?.tokenUsage
-          if (usage) {
-            await this.recordUsage({
-              userId: context.userId,
-              conversationId: context.conversationId,
-              modelName,
-              provider: 'openai',
-              promptTokens: usage.prompt_tokens ?? 0,
-              completionTokens: usage.completion_tokens ?? 0,
-              context: 'general_chat',
-            })
-          }
-        }
+        await AiUsageService.recordFromLangChain(fullResponse, {
+          userId: context.userId,
+          conversationId: context.conversationId,
+          context: 'general_chat',
+          modelName,
+        })
       } catch (e: any) {
         logger.error({ error: e }, 'General Chat Error')
         yield JSON.stringify({ type: 'error', content: `AI Error: ${e.message}` })
@@ -434,19 +308,12 @@ export default class LangChainService {
         }
 
         // --- Log Usage ---
-        const usage = (aiMessageChunk as any).usage_metadata || aiMessageChunk.response_metadata?.tokenUsage
-        if (usage) {
-          const actualModelName = aiMessageChunk.response_metadata?.model_name || modelName
-          await this.recordUsage({
-            userId: context.userId,
-            conversationId: context.conversationId,
-            modelName: actualModelName,
-            provider: 'openai',
-            promptTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? 0,
-            completionTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
-            context: 'chat',
-          })
-        }
+        await AiUsageService.recordFromLangChain(aiMessageChunk, {
+          userId: context.userId,
+          conversationId: context.conversationId,
+          context: 'chat',
+          modelName,
+        })
       } catch (e: any) {
         logger.error({ error: e }, 'LLM Generation Error')
         yield JSON.stringify({ type: 'error', content: `AI reasoning failed: ${e.message}` })
@@ -605,20 +472,11 @@ export default class LangChainService {
         yield chunk.content.toString()
     }
 
-    if (fullResponse) {
-      const usage = (fullResponse as any).usage_metadata || fullResponse.response_metadata?.tokenUsage
-      if (usage) {
-        const actualModelName = fullResponse.response_metadata?.model_name || modelName
-        await this.recordUsage({
-          userId: context.userId,
-          modelName: actualModelName,
-          provider: 'openai',
-          promptTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? 0,
-          completionTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
-          context: 'sql_optimization',
-        })
-      }
-    }
+    await AiUsageService.recordFromLangChain(fullResponse, {
+      userId: context.userId,
+      context: 'sql_optimization',
+      modelName,
+    })
   }
 
   // Fallback / standard method

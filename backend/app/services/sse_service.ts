@@ -41,17 +41,25 @@ export default class SseService {
 
     this.clients.set(clientId, client)
 
-    // Keep alive
-    const timer = setInterval(() => {
-      send({ type: 'ping' })
-    }, 30000)
-
-    request.request.on('close', () => {
-      clearInterval(timer)
-      this.clients.delete(clientId)
-    })
-
     return client
+  }
+
+  /**
+   * Initialize a standard SSE stream for an HTTP Context
+   */
+  public static initStream(ctx: HttpContext) {
+    const { response, request } = ctx
+
+    response.header('Content-Type', 'text/event-stream')
+    response.header('Cache-Control', 'no-cache')
+    response.header('Connection', 'keep-alive')
+    response.header('X-Accel-Buffering', 'no')
+    response.header('Access-Control-Allow-Origin', request.header('origin') || '*')
+
+    // Explicitly send headers to the client immediately
+    if (response.response.flushHeaders) {
+      response.response.flushHeaders()
+    }
   }
 
   public static dispatchToUser(userId: number, data: any) {

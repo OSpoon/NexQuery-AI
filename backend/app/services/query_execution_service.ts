@@ -1,15 +1,10 @@
 import type QueryTask from '#models/query_task'
 import QueryLog from '#models/query_log'
 import type DataSource from '#models/data_source'
-// import Setting from '#models/setting'
-import encryption from '@adonisjs/core/services/encryption'
-import mysql from 'mysql2/promise'
-import pg from 'pg'
 import logger from '@adonisjs/core/services/logger'
 import { exec } from 'node:child_process'
 import util from 'node:util'
-
-import { isInternalIP } from '../utils/ip_utils.js'
+import DbHelper from '#services/db_helper'
 
 const execAsync = util.promisify(exec)
 const ALLOWED_COMMAND_PREFIXES = ['curl']
@@ -45,58 +40,35 @@ export default class QueryExecutionService {
     let queryResults: any = null
     let duration = 0
 
-    const allParams: Record<string, any> = {
-      ...inputParams,
-      ds_host: ds.host,
-      ds_port: ds.port,
-      ds_username: ds.username,
-      ds_password: ds.password ? encryption.decrypt(ds.password) : '',
-      ds_database: ds.database,
+    const replaceVars = (template: string, params: Record<string, any>, mode: 'sql' | 'text' | 'pg' = 'sql') => {
+      const values: any[] = []
+      let pgCounter = 1
+      const result = template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
+        const val = params[key] ?? null
+        if (mode === 'pg') {
+          values.push(val)
+          return `$${pgCounter++}`
+        } else if (mode === 'sql') {
+          values.push(val)
+          return '?'
+        }
+        return String(val ?? '')
+      })
+      return { result, values }
     }
 
     try {
       if (ds.type === 'mysql') {
-        const values: any[] = []
-        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
-          values.push(inputParams[key] ?? null)
-          return '?'
-        })
-
-        const connection = await mysql.createConnection({
-          host: ds.host,
-          port: ds.port,
-          user: ds.username,
-          password: encryption.decrypt<string>(ds.password)!,
-          database: ds.database,
-          connectTimeout: timeout,
-        })
-
-        const [rows] = await connection.execute({
-          sql: executedSql,
-          values,
-          timeout,
-        })
-        await connection.end()
+        const { result, values } = replaceVars(sql, inputParams, 'sql')
+        executedSql = result
+        const { client } = await DbHelper.getRawConnection(ds.id, timeout)
+        const [rows] = await (client as any).execute({ sql: executedSql, values, timeout })
+        await client.end()
         queryResults = rows
       } else if (ds.type === 'postgresql') {
-        const values: any[] = []
-        let paramCounter = 1
-
-        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
-          values.push(inputParams[key] ?? null)
-          return `$${paramCounter++}`
-        })
-
-        const client = new pg.Client({
-          host: ds.host,
-          port: ds.port,
-          user: ds.username,
-          password: encryption.decrypt<string>(ds.password)!,
-          database: ds.database,
-          connectionTimeoutMillis: timeout,
-        })
-
-        await client.connect()
+        const { result, values } = replaceVars(sql, inputParams, 'pg')
+        executedSql = result
+        const { client } = await DbHelper.getRawConnection(ds.id, timeout)
         try {
           const res = await client.query(executedSql, values)
           queryResults = res.rows
@@ -104,10 +76,8 @@ export default class QueryExecutionService {
           await client.end()
         }
       } else if (ds.type === 'api') {
-        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
-          const val = allParams[key] ?? ''
-          return String(val)
-        })
+        const { result } = replaceVars(sql, inputParams, 'text')
+        executedSql = result
 
         const commandToExecute = executedSql.trim()
         const isAllowed = ALLOWED_COMMAND_PREFIXES.some(prefix =>
@@ -138,41 +108,19 @@ export default class QueryExecutionService {
           }
         }
       } else if (ds.type === 'elasticsearch') {
-        // Elasticsearch search
-        const password = ds.password ? encryption.decrypt<string>(ds.password) : undefined
-        const { default: ESClient } = await import('./elasticsearch_service.js')
-        const esService: any = new ESClient({
-          node: ds.host.startsWith('http') ? ds.host : `http://${ds.host}:${ds.port}`,
-          auth: {
-            username: ds.username,
-            password: password ?? undefined,
-          },
-        })
+        const esService = await DbHelper.getESService(ds.id)
+        const { result } = replaceVars(sql, inputParams, 'text')
+        executedSql = result
 
-        // Replace variables in "sqlTemplate" for ES query (Lucene/DSL string)
-        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
-          const val = inputParams[key] ?? allParams[key] ?? ''
-          return String(val)
-        })
-
-        // Logic: Use the processed template (executedSql) as the primary query.
-        // If the processed template is empty or just '*', and the user provided a more specific query in inputParams, then use that.
         const index = inputParams.index || ds.database || '*'
         const size = Number.parseInt(inputParams.size || inputParams.limit) || 100
 
         let query = executedSql.trim() || '*'
-        // If the user used the auto-generated "query" box and typed something specifically (not just *),
-        // and our template was just '*' (the default), then use the user's input.
         if ((query === '*' || !query) && inputParams.query && inputParams.query !== '*') {
           query = inputParams.query
         }
 
-        const esResults = await esService.search({
-          index,
-          query,
-          size,
-        })
-
+        const esResults = await esService.search({ index, query, size })
         executedSql = `ES SEARCH: index=${index} query="${query}" size=${size}`
         queryResults = esResults
       } else {
@@ -193,7 +141,7 @@ export default class QueryExecutionService {
           : normalizedRows
         : null
 
-      await QueryLog.create({
+      await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
         userId,
         taskId: task.id,
         dataSourceId: task.dataSourceId,
@@ -202,10 +150,7 @@ export default class QueryExecutionService {
         executionTimeMs: duration,
         results: truncatedResults,
         status: 'success',
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
-        deviceInfo: deviceInfo || null,
-        isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        deviceInfo,
       })
 
       logger.info({ taskId: task.id, userId, duration }, 'Query executed successfully')
@@ -220,7 +165,7 @@ export default class QueryExecutionService {
         duration,
       }
     } catch (error: any) {
-      await QueryLog.create({
+      await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
         userId,
         taskId: task.id,
         dataSourceId: task.dataSourceId,
@@ -228,10 +173,7 @@ export default class QueryExecutionService {
         parameters: inputParams,
         status: 'failed',
         errorMessage: error.message,
-        ipAddress: ipAddress || null,
-        userAgent: userAgent || null,
-        deviceInfo: deviceInfo || null,
-        isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+        deviceInfo,
       })
 
       logger.error({ taskId: task.id, userId, error: error.message }, 'Query execution failed')
@@ -262,31 +204,12 @@ export default class QueryExecutionService {
 
     try {
       if (dataSource.type === 'mysql') {
-        const connection = await mysql.createConnection({
-          host: dataSource.host,
-          port: dataSource.port,
-          user: dataSource.username,
-          password: encryption.decrypt<string>(dataSource.password)!,
-          database: dataSource.database,
-          connectTimeout: timeout,
-        })
-
-        const [rows] = await connection.execute({
-          sql: finalSql,
-          timeout,
-        })
-        await connection.end()
+        const { client } = await DbHelper.getRawConnection(dataSource.id, timeout)
+        const [rows] = await (client as any).execute({ sql: finalSql, timeout })
+        await client.end()
         queryResults = rows
       } else if (dataSource.type === 'postgresql') {
-        const client = new pg.Client({
-          host: dataSource.host,
-          port: dataSource.port,
-          user: dataSource.username,
-          password: encryption.decrypt<string>(dataSource.password)!,
-          database: dataSource.database,
-          connectionTimeoutMillis: timeout,
-        })
-        await client.connect()
+        const { client } = await DbHelper.getRawConnection(dataSource.id, timeout)
         try {
           const res = await client.query(finalSql)
           queryResults = res.rows
@@ -294,17 +217,7 @@ export default class QueryExecutionService {
           await client.end()
         }
       } else if (dataSource.type === 'elasticsearch') {
-        const password = dataSource.password ? encryption.decrypt<string>(dataSource.password) : undefined
-        const { default: ESClient } = await import('./elasticsearch_service.js')
-        const esService: any = new ESClient({
-          node: dataSource.host.startsWith('http') ? dataSource.host : `http://${dataSource.host}:${dataSource.port}`,
-          auth: {
-            username: dataSource.username,
-            password: password ?? undefined,
-          },
-        })
-
-        // In raw execute, we just ping or do a simple match_all
+        const esService = await DbHelper.getESService(dataSource.id)
         const isHealthy = await esService.testConnection()
         if (!isHealthy)
           throw new Error('Failed to connect to Elasticsearch')
@@ -321,16 +234,13 @@ export default class QueryExecutionService {
       const duration = Date.now() - startTime
 
       if (!options.skipLogging) {
-        await QueryLog.create({
+        await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
           userId,
           dataSourceId: dataSource.id,
           executedSql: finalSql,
           executionTimeMs: duration,
           status: 'success',
-          ipAddress: ipAddress || null,
-          userAgent: userAgent || null,
-          deviceInfo: deviceInfo || null,
-          isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+          deviceInfo,
         })
       }
 
@@ -340,18 +250,16 @@ export default class QueryExecutionService {
       }
     } catch (error: any) {
       if (!options.skipLogging) {
-        await QueryLog.create({
+        await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
           userId,
           dataSourceId: dataSource.id,
           executedSql: finalSql || sql,
           status: 'failed',
           errorMessage: error.message,
-          ipAddress: ipAddress || null,
-          userAgent: userAgent || null,
-          deviceInfo: deviceInfo || null,
-          isInternalIp: ipAddress ? isInternalIP(ipAddress) : false,
+          deviceInfo,
         })
       }
+
       throw error
     }
   }

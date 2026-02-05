@@ -4,11 +4,12 @@ import hash from '@adonisjs/core/services/hash'
 import logger from '@adonisjs/core/services/logger'
 import { verify } from 'otplib'
 import { DateTime } from 'luxon'
-import { CryptoService } from '@nexquery/shared'
 import env from '#start/env'
 import { passwordValidator } from '#validators/password'
 import AuditLog from '#models/audit_log'
 import { isInternalIP } from '../utils/ip_utils.js'
+import { CryptoHelper } from '#services/crypto_helper'
+import { AuditService } from '#services/audit_service'
 
 export default class AuthController {
   async register({ request, response }: HttpContext) {
@@ -30,16 +31,12 @@ export default class AuthController {
     logger.info({ userId: user.id, email: user.email }, 'User registered successfully')
 
     // Audit Log for Registration
-    await AuditLog.create({
+    await AuditService.log({ request } as any, {
       userId: user.id,
       action: 'auth:register',
       entityType: 'user',
       entityId: String(user.id),
-      status: 'success',
       details: { email, fullName },
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.created({ message: 'Registration successful. Please wait for admin approval.' })
@@ -50,40 +47,31 @@ export default class AuthController {
     const user = await User.findBy('email', email)
 
     if (!user) {
-      await AuditLog.create({
+      await AuditService.log({ request } as any, {
         action: 'auth:login_failed',
         status: 'failure',
         details: { reason: 'User not found', email },
-        ipAddress: request.ip(),
-        userAgent: request.header('user-agent'),
-        isInternalIp: isInternalIP(request.ip()),
       })
       return response.unauthorized({ message: 'Invalid credentials' })
     }
 
     if (!user.isActive) {
-      await AuditLog.create({
+      await AuditService.log({ request } as any, {
         userId: user.id,
         action: 'auth:login_failed',
         status: 'failure',
         details: { reason: 'Account inactive' },
-        ipAddress: request.ip(),
-        userAgent: request.header('user-agent'),
-        isInternalIp: isInternalIP(request.ip()),
       })
       return response.unauthorized({ message: 'Your account is pending approval.' })
     }
 
     const isValid = await hash.verify(user.password, password)
     if (!isValid) {
-      await AuditLog.create({
+      await AuditService.log({ request } as any, {
         userId: user.id,
         action: 'auth:login_failed',
         status: 'failure',
         details: { reason: 'Invalid password' },
-        ipAddress: request.ip(),
-        userAgent: request.header('user-agent'),
-        isInternalIp: isInternalIP(request.ip()),
       })
       return response.unauthorized({ message: 'Invalid credentials' })
     }
@@ -100,30 +88,23 @@ export default class AuthController {
     // --- 2FA Check ---
     if (user.twoFactorEnabled) {
       // Return a temporary token (encrypted user ID)
-      const key = env.get('API_ENCRYPTION_KEY')
-      if (key) {
-        const crypto = new CryptoService(key)
-        const tempToken = crypto.encrypt({
-          userId: user.id,
-          type: '2fa_pending',
-          timestamp: Date.now(),
-        })
+      const crypto = CryptoHelper.getInstance()
+      const tempToken = crypto.encrypt({
+        userId: user.id,
+        type: '2fa_pending',
+        timestamp: Date.now(),
+      })
 
-        // Audit Log for 2FA Challenge
-        await AuditLog.create({
-          userId: user.id,
-          action: 'auth:2fa_challenge',
-          status: 'success',
-          ipAddress: request.ip(),
-          userAgent: request.header('user-agent'),
-          isInternalIp: isInternalIP(request.ip()),
-        })
+      // Audit Log for 2FA Challenge
+      await AuditService.log({ request } as any, {
+        userId: user.id,
+        action: 'auth:2fa_challenge',
+      })
 
-        return response.ok({
-          requiresTwoFactor: true,
-          tempToken,
-        })
-      }
+      return response.ok({
+        requiresTwoFactor: true,
+        tempToken,
+      })
     }
 
     const token = await User.accessTokens.create(user, ['*'], {
@@ -132,13 +113,9 @@ export default class AuthController {
 
     logger.info({ userId: user.id, email: user.email }, 'User logged in successfully')
 
-    await AuditLog.create({
+    await AuditService.log({ request } as any, {
       userId: user.id,
       action: 'auth:login',
-      status: 'success',
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.ok({
@@ -164,12 +141,7 @@ export default class AuthController {
       return response.badRequest({ message: 'Missing token or code' })
     }
 
-    const key = env.get('API_ENCRYPTION_KEY')
-    if (!key) {
-      return response.internalServerError({ message: 'Encryption not configured' })
-    }
-
-    const crypto = new CryptoService(key)
+    const crypto = CryptoHelper.getInstance()
     const payload = crypto.decrypt(tempToken)
 
     if (!payload || !payload.userId || payload.type !== '2fa_pending') {
@@ -208,13 +180,10 @@ export default class AuthController {
     }
 
     if (!isValid && !isRecovery) {
-      await AuditLog.create({
+      await AuditService.log({ request } as any, {
         userId: user.id,
         action: 'auth:2fa_verify_failed',
         status: 'failure',
-        ipAddress: request.ip(),
-        userAgent: request.header('user-agent'),
-        isInternalIp: isInternalIP(request.ip()),
       })
       return response.unauthorized({ message: 'Invalid 2FA code' })
     }
@@ -226,13 +195,9 @@ export default class AuthController {
 
     logger.info({ userId: user.id, email: user.email }, 'User logged in with 2FA successfully')
 
-    await AuditLog.create({
+    await AuditService.log({ request } as any, {
       userId: user.id,
       action: 'auth:login_2fa',
-      status: 'success',
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.ok({
@@ -285,13 +250,9 @@ export default class AuthController {
 
     logger.info({ userId: user.id, email: user.email }, 'User logged out successfully')
 
-    await AuditLog.create({
+    await AuditService.log({ request, auth } as any, {
       userId: user.id,
       action: 'auth:logout',
-      status: 'success',
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.ok({ message: 'Logged out' })

@@ -1,9 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Role from '#models/role'
 import Permission from '#models/permission'
-
-import AuditLog from '#models/audit_log'
-import { isInternalIP } from '../utils/ip_utils.js'
+import { AuditService } from '#services/audit_service'
 
 export default class RolesController {
   async index({ response }: HttpContext) {
@@ -29,16 +27,10 @@ export default class RolesController {
       await role.related('permissions').attach(permissionIds)
     }
 
-    await AuditLog.create({
-      userId: currentUser.id,
-      action: 'admin:create_role',
+    await AuditService.logAdminAction({ request, auth } as any, 'create_role', {
       entityType: 'role',
       entityId: String(role.id),
-      status: 'success',
       details: { name, slug, permissionIds },
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     await role.load('permissions')
@@ -72,19 +64,13 @@ export default class RolesController {
       await role.related('permissions').sync(permissionIds)
     }
 
-    await AuditLog.create({
-      userId: currentUser.id,
-      action: 'admin:update_role',
+    await AuditService.logAdminAction({ request, auth } as any, 'update_role', {
       entityType: 'role',
       entityId: String(role.id),
-      status: 'success',
       details: {
         previous: { name: previousData.name, slug: previousData.slug },
         new: { name, slug, permissionIds },
       },
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     await role.load('permissions')
@@ -103,15 +89,9 @@ export default class RolesController {
 
     await role.delete()
 
-    await AuditLog.create({
-      userId: currentUser.id,
-      action: 'admin:delete_role',
+    await AuditService.logAdminAction({ request, auth } as any, 'delete_role', {
       entityType: 'role',
       entityId: String(role.id),
-      status: 'success',
-      ipAddress: request.ip(),
-      userAgent: request.header('user-agent'),
-      isInternalIp: isInternalIP(request.ip()),
     })
 
     return response.ok({ message: 'Role deleted successfully' })
