@@ -70,9 +70,10 @@ const onSubmit = handleSubmit((values) => {
                   v-bind="componentField"
                   @update:model-value="(v) => setFieldValue(field.name, v)"
                 >
-                  <SelectTrigger>
+                  <SelectTrigger class="w-full">
                     <SelectValue :placeholder="field.placeholder || 'Select...'" />
                   </SelectTrigger>
+
                   <SelectContent>
                     <SelectItem v-for="opt in field.options" :key="opt.value" :value="opt.value">
                       {{ opt.label }}

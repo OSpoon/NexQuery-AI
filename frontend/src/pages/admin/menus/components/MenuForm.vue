@@ -206,7 +206,7 @@ const onSubmit = form.handleSubmit(async (values) => {
             @update:model-value="(v) => handleChange(v === 'none' ? undefined : v)"
           >
             <FormControl>
-              <SelectTrigger>
+              <SelectTrigger class="w-full">
                 <SelectValue placeholder="Select a permission" />
               </SelectTrigger>
             </FormControl>

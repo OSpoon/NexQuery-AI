@@ -51,7 +51,9 @@
     "settings": "Settings",
     "data_sources": "Data Sources",
     "query_tasks": "Query Tasks",
+    "query_run": "Execute Query",
     "history": "History",
+
     "admin": {
       "title": "Administration",
       "users": "Users",

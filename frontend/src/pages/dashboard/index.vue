@@ -31,7 +31,8 @@ function getRouteTitle(name: string): string {
     'data-sources': 'sidebar.data_sources',
     'knowledge-base': 'sidebar.knowledge_base',
     'query-tasks': 'sidebar.query_tasks',
-    'query-run': 'sidebar.query_run', // Needs key or fallback
+    'query-run': 'sidebar.query_run',
+
     'history': 'sidebar.history',
     'admin-users': 'sidebar.admin.users',
     'admin-roles': 'sidebar.admin.roles',

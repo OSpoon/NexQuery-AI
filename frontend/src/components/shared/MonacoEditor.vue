@@ -142,5 +142,5 @@ defineExpose({
 </script>
 
 <template>
-  <div ref="editorRef" v-bind="$attrs" class="w-full h-full" />
+  <div ref="editorRef" v-bind="$attrs" class="w-full" />
 </template>

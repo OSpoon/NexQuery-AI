@@ -259,9 +259,10 @@ onMounted(fetchItems)
             <div class="grid gap-2">
               <Label> {{ t('common.source_type') }} </Label>
               <Select v-model="formData.sourceType">
-                <SelectTrigger>
+                <SelectTrigger class="w-full">
                   <SelectValue />
                 </SelectTrigger>
+
                 <SelectContent>
                   <SelectItem value="sql">
                     SQL

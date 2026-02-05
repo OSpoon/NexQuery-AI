@@ -104,9 +104,10 @@ function removeHeader(index: number) {
       <div class="col-span-1">
         <Label class="text-xs mb-1 block">Method</Label>
         <Select v-model="method">
-          <SelectTrigger>
+          <SelectTrigger class="w-full">
             <SelectValue />
           </SelectTrigger>
+
           <SelectContent>
             <SelectItem v-for="m in methods" :key="m" :value="m">
               {{ m }}

@@ -208,9 +208,10 @@ onMounted(fetchKeys)
           <div class="grid gap-2">
             <Label for="expiration">{{ t('api_keys.expiration') }}</Label>
             <Select v-model="expiration">
-              <SelectTrigger>
+              <SelectTrigger class="w-full">
                 <SelectValue :placeholder="t('api_keys.select_validity')" />
               </SelectTrigger>
+
               <SelectContent>
                 <SelectItem value="30d">
                   {{ t('api_keys.days', { count: 30 }) }}

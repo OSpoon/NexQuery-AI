@@ -53,7 +53,9 @@
     "settings": "系统设置",
     "data_sources": "数据源",
     "query_tasks": "查询任务",
+    "query_run": "执行查询",
     "history": "执行历史",
+
     "admin": {
       "title": "系统管理",
       "users": "用户列表",

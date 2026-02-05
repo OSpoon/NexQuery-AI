@@ -312,7 +312,8 @@ defineExpose({
       :language="monacoLanguage"
       :readonly="readonly"
       :variables="variables"
-      class="flex-1"
+      class="flex-1 h-full"
+
       @update:model-value="emit('update:modelValue', $event)"
       @mount="onEditorMount"
       @unmount="onEditorUnmount"
