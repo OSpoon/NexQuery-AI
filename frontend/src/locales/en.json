@@ -496,6 +496,10 @@
     "promote": "Promote",
     "helpful": "Helpful",
     "needs_improvement": "Needs Improvement",
+    "status_filter": {
+      "pending": "Pending Adoption",
+      "approved": "Adopted"
+    },
     "na_greeting": "N/A (Greeting)",
     "none": "None",
     "promote_dialog": {
@@ -530,5 +534,21 @@
     "unbound": "Unbound",
     "dialog_unbind_title": "Unbind WeChat Account",
     "dialog_unbind_desc": "Are you sure you want to unbind your WeChat account? You will no longer be able to use WeChat One-Click Login."
+  },
+  "permissions": {
+    "title": "Permissions Management",
+    "desc": "Manage granular system permissions and access controls.",
+    "create": "Create Permission",
+    "edit": "Edit Permission",
+    "delete_confirm": "Are you sure you want to delete this permission?",
+    "delete_success": "Permission deleted successfully",
+    "name": "Permission Name",
+    "slug": "Slug",
+    "description": "Description",
+    "config_desc": "Configure the permission basic details."
+  },
+  "ai_chat": {
+    "greeting": "Hello! I am your AI Copilot. How can I help you today?",
+    "error": "Sorry, I encountered an error creating that query."
   }
 }

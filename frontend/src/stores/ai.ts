@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import i18n from '@/i18n'
 import api from '@/lib/api'
 
 export interface AgentStep {
@@ -30,7 +31,7 @@ export interface ChatMessage {
 export const useAiStore = defineStore('ai', () => {
   const isOpen = ref(false)
   const messages = ref<ChatMessage[]>([
-    { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+    { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
   ])
   const isLoading = ref(false)
 
@@ -90,7 +91,7 @@ export const useAiStore = defineStore('ai', () => {
   function startNewChat() {
     currentConversationId.value = null
     messages.value = [
-      { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+      { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
     ]
   }
 
@@ -123,7 +124,7 @@ export const useAiStore = defineStore('ai', () => {
       console.error(error)
       messages.value.push({
         role: 'assistant',
-        content: 'Sorry, I encountered an error creating that query.',
+        content: i18n.global.t('ai_chat.error'),
       })
       toast.error('AI Request Failed')
     }
@@ -282,7 +283,7 @@ export const useAiStore = defineStore('ai', () => {
 
   function clearMessages() {
     messages.value = [
-      { role: 'assistant', content: 'Hello! I am your SQL Copilot. How can I help you today?' },
+      { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
     ]
     currentConversationId.value = null
   }

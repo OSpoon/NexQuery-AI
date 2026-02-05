@@ -207,6 +207,7 @@ export const useAuthStore = defineStore('auth', () => {
               meta: {
                 requiresAuth: true,
                 permission: menu.permission,
+                title: menu.title,
               },
             })
           }

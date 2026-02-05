@@ -51,7 +51,7 @@
     "platform": "平台功能",
     "profile": "个人中心",
     "settings": "系统设置",
-    "data_sources": "数据源管理",
+    "data_sources": "数据源",
     "query_tasks": "查询任务",
     "history": "执行历史",
     "admin": {
@@ -64,9 +64,9 @@
       "settings": "系统全局配置",
       "finops": "成本监控"
     },
-    "knowledge_base": "知识库管理",
+    "knowledge_base": "知识库",
     "ai_intelligence": "AI 助手",
-    "ai_feedback": "AI 反馈管理"
+    "ai_feedback": "AI 反馈"
   },
   "finops": {
     "title": "FinOps 成本监控",
@@ -498,6 +498,10 @@
     "promote": "同步到知识库",
     "helpful": "有帮助",
     "needs_improvement": "有待改进",
+    "status_filter": {
+      "pending": "待同步",
+      "approved": "已同步"
+    },
     "na_greeting": "日常问候 (N/A)",
     "none": "无修正",
     "promote_dialog": {
@@ -532,5 +536,21 @@
     "unbound": "未绑定",
     "dialog_unbind_title": "解除微信绑定",
     "dialog_unbind_desc": "确定要解除微信绑定吗？解除后您将无法使用微信一键登录。"
+  },
+  "permissions": {
+    "title": "权限管理",
+    "desc": "管理系统精细化权限与访问控制。",
+    "create": "创建权限",
+    "edit": "编辑权限",
+    "delete_confirm": "确定要删除此权限吗？",
+    "delete_success": "权限已成功删除",
+    "name": "权限名称",
+    "slug": "标识符 (Slug)",
+    "description": "描述",
+    "config_desc": "配置权限基础信息。"
+  },
+  "ai_chat": {
+    "greeting": "你好！我是你的 AI 助手。今天我能帮你做什么？",
+    "error": "抱歉，在生成查询时遇到了错误。"
   }
 }

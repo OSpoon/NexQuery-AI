@@ -42,6 +42,11 @@ function getRouteTitle(name: string): string {
     'ai-feedback': 'sidebar.ai_feedback',
   }
 
+  // 1. Check if title is passed in meta (for dynamic routes)
+  if (route.meta.title) {
+    return translateTitle(route.meta.title as string)
+  }
+
   const key = keyMap[name]
   if (key && t(key) !== key) {
     return t(key)
@@ -49,6 +54,30 @@ function getRouteTitle(name: string): string {
 
   // Default to capitalizing the name if no translation found
   return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+}
+
+// Helper to translate menu title (same logic as AppSidebar)
+function translateTitle(title: string): string {
+  const keyMap: Record<string, string> = {
+    'Dashboard': 'sidebar.dashboard',
+    'Profile': 'sidebar.profile',
+    'Settings': 'sidebar.settings',
+    'Data Sources': 'sidebar.data_sources',
+    'Query Tasks': 'sidebar.query_tasks',
+    'History': 'sidebar.history',
+    'Administration': 'sidebar.admin.title',
+    'Users': 'sidebar.admin.users',
+    'Roles': 'sidebar.admin.roles',
+    'Permissions': 'sidebar.admin.permissions',
+    'Menus': 'sidebar.admin.menus',
+    'API Access': 'sidebar.admin.api_keys',
+    'Knowledge Base': 'sidebar.knowledge_base',
+    'AI Intelligence': 'sidebar.ai_intelligence',
+    'AI Feedback': 'sidebar.ai_feedback',
+    'FinOps Monitoring': 'sidebar.admin.finops',
+  }
+  const key = keyMap[title]
+  return key ? t(key) : title
 }
 
 // Generate breadcrumbs based on route
