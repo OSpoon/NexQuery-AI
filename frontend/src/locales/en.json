@@ -444,7 +444,7 @@
     "expiration_hint": "Keys will automatically stop working after expiration.",
     "generating": "Generating...",
     "dialog_token_title": "API Key Generated",
-    "dialog_token_desc": "Make sure to copy your API key now. You won't be able to see it again!",
+    "dialog_token_desc": "API key generated successfully. You can copy it now, or retrieve it later from the API Keys list.",
     "done": "Done",
     "copied": "Copied",
     "copy": "Copy",

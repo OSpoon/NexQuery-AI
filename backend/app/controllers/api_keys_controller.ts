@@ -1,5 +1,6 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import User from '#models/user'
+import { CryptoHelper } from '#services/crypto_helper'
 
 export default class ApiKeysController {
   /**
@@ -12,7 +13,15 @@ export default class ApiKeysController {
       query.whereNotNull('name').orderBy('created_at', 'desc')
     })
 
-    return response.ok(user.apiTokens)
+    const tokens = user.apiTokens.map((t: any) => {
+      const json = t.toJSON()
+      if (t.tokenRawEncrypted) {
+        json.token = CryptoHelper.tryDecrypt(t.tokenRawEncrypted)
+      }
+      return json
+    })
+
+    return response.ok(tokens)
   }
 
   /**
@@ -36,10 +45,19 @@ export default class ApiKeysController {
       expiresIn: duration,
     })
 
+    const rawToken = token.value!.release()
+
+    // Store encrypted token for later retrieval (user request)
+    const dbToken = await user.related('apiTokens').query().where('id', (token.identifier as any)).first()
+    if (dbToken) {
+      dbToken.tokenRawEncrypted = CryptoHelper.encrypt(rawToken)
+      await dbToken.save()
+    }
+
     return response.created({
       type: 'bearer',
       name,
-      token: token.value!.release(), // Release the raw token value
+      token: rawToken,
       createdAt: new Date(),
     })
   }

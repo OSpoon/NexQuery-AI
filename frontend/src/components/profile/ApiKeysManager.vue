@@ -38,6 +38,7 @@ interface ApiKey {
   lastUsedAt: string | null
   createdAt: string
   expiresAt: string | null
+  token?: string | null
 }
 
 const { t } = useI18n()
@@ -63,6 +64,16 @@ async function fetchKeys() {
   }
   finally {
     loading.value = false
+  }
+}
+
+async function copyTokenValue(val: string) {
+  try {
+    await navigator.clipboard.writeText(val)
+    toast.success(t('api_keys.copy_success'))
+  }
+  catch {
+    toast.error(t('api_keys.copy_failed'))
   }
 }
 
@@ -178,6 +189,16 @@ onMounted(fetchKeys)
               {{ key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : t('profile.never') || 'Never' }}
             </TableCell>
             <TableCell class="text-right">
+              <Button
+                v-if="key.token"
+                variant="ghost"
+                size="sm"
+                class="mr-1 text-muted-foreground hover:text-primary"
+                @click="copyTokenValue(key.token)"
+              >
+                <Copy class="h-4 w-4" />
+                <span class="sr-only">Copy</span>
+              </Button>
               <Button
                 variant="ghost"
                 size="sm"

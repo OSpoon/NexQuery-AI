@@ -20,6 +20,9 @@ export class AccessToken extends BaseModel {
   declare hash: string
 
   @column()
+  declare tokenRawEncrypted: string | null
+
+  @column()
   declare abilities: string
 
   @column.dateTime()
