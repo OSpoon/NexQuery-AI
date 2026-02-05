@@ -440,12 +440,22 @@ export default class QueryExecutionService {
     const strVal = String(value)
 
     switch (rule.type) {
+      case 'name':
+        // Mask Chinese Name: 张三 -> 张*, 李晓明 -> 李*明, 欧阳锋 -> 欧**锋
+        if (strVal.length <= 1)
+          return strVal
+        if (strVal.length === 2)
+          return `${strVal[0]}*`
+        return `${strVal[0]}${'*'.repeat(strVal.length - 2)}${strVal[strVal.length - 1]}`
       case 'mobile':
         // Mask middle 4 digits: 13812345678 -> 138****5678
         return strVal.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2')
+      case 'fixed_phone':
+        // Mask fixed-line: 010-12345678 -> 010-****5678 or 0755-1234567 -> 0755-****567
+        return strVal.replace(/^(\d{3,4}-)\d{4}(\d+)$/, '$1****$2')
       case 'id_card':
         // Keep first 6, last 4: 110101199001011234 -> 110101********1234
-        if (strVal.length >= 15) {
+        if (strVal.length >= 10) {
           return strVal.replace(/^(\d{6}).+(\w{4})$/, '$1********$2')
         }
         return strVal
@@ -456,6 +466,21 @@ export default class QueryExecutionService {
         // Mask all except last 4
         if (strVal.length > 4) {
           return `**** **** **** ${strVal.slice(-4)}`
+        }
+        return strVal
+      case 'address':
+        // Mask detailed address, keeping first 6 chars
+        if (strVal.length > 6) {
+          return `${strVal.slice(0, 6)}******`
+        }
+        return strVal
+      case 'ip_address':
+        // Mask IP: 192.168.1.1 -> 192.168.*.*
+        return strVal.replace(/^(\d+\.\d+)\.\d+\.\d+$/, '$1.*.*')
+      case 'car_number':
+        // Mask plate: 京A12345 -> 京A***45
+        if (strVal.length >= 7) {
+          return `${strVal.slice(0, 2)}***${strVal.slice(-2)}`
         }
         return strVal
       case 'custom':

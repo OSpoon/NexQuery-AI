@@ -60,15 +60,20 @@ interface TableConfig {
 const advancedConfig = ref<TableConfig[]>([])
 const isSaving = ref(false)
 
-const maskingTypes = [
-  { value: 'none', label: 'None' },
-  { value: 'mobile', label: 'Mobile Phone' },
-  { value: 'id_card', label: 'ID Card' },
-  { value: 'email', label: 'Email' },
-  { value: 'bank_card', label: 'Bank Card' },
-  { value: 'password', label: 'Password (Hidden)' },
-  { value: 'custom', label: 'Custom Regex' },
-]
+const maskingTypes = computed(() => [
+  { value: 'none', label: t('data_sources.mask_none') },
+  { value: 'name', label: t('data_sources.mask_name') },
+  { value: 'mobile', label: t('data_sources.mask_mobile') },
+  { value: 'fixed_phone', label: t('data_sources.mask_fixed_phone') },
+  { value: 'id_card', label: t('data_sources.mask_id_card') },
+  { value: 'email', label: t('data_sources.mask_email') },
+  { value: 'bank_card', label: t('data_sources.mask_bank_card') },
+  { value: 'car_number', label: t('data_sources.mask_car_number') },
+  { value: 'ip_address', label: t('data_sources.mask_ip_address') },
+  { value: 'address', label: t('data_sources.mask_address') },
+  { value: 'password', label: t('data_sources.mask_password') },
+  { value: 'custom', label: t('data_sources.mask_custom') },
+])
 
 function initAdvancedConfig() {
   const ds: any = props.dataSource

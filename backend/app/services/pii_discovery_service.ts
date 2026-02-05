@@ -4,6 +4,7 @@ import { ChatOpenAI } from '@langchain/openai'
 import { HumanMessage, SystemMessage } from '@langchain/core/messages'
 import { CallbackHandler } from 'langfuse-langchain'
 import logger from '@adonisjs/core/services/logger'
+import { PII_DISCOVERY_SYSTEM_PROMPT } from '#prompts/index'
 
 export interface PiiFieldConfig {
   name: string
@@ -61,26 +62,7 @@ export default class PiiDiscoveryService {
     try {
       const model = await this.getModel()
 
-      const systemPrompt = `You are a data security expert. 
-Your task is to analyze database schema (tables and columns) and identify sensitive PII (Personally Identifiable Information).
-Categorize sensitive fields into one of these types:
-- mobile (For phone numbers)
-- email (For email addresses)
-- id_card (For government IDs, social security, etc.)
-- bank_card (For credit card numbers, IBAN, bank account)
-- password (For password hashes or raw passwords)
-- none (For non-sensitive data)
-
-Return your findings as a strict JSON array of objects:
-[
-  { 
-    "table": "string", 
-    "fields": [
-      { "name": "columnName", "masking": { "type": "mobile" | "email" | "id_card" | "bank_card" | "password" | "none" } }
-    ]
-  }
-]
-Only include fields that are NOT 'none'. If no PII is found in a table, omit it from the array.`
+      const systemPrompt = PII_DISCOVERY_SYSTEM_PROMPT
 
       // Prepare a condensed version of schema to save tokens
       const condensedSchema = schema.map(t => ({
