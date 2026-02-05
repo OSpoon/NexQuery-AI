@@ -14,6 +14,9 @@ export default class KnowledgeBase extends BaseModel {
   @column()
   declare exampleSql: string | null
 
+  @column()
+  declare sourceType: string
+
   @column({
     prepare: (value: any) => (value ? JSON.stringify(value) : null),
     consume: (value: any) => (typeof value === 'string' ? JSON.parse(value) : value),

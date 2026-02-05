@@ -1,0 +1,21 @@
+filebeat.inputs:
+  - type: log
+    enabled: true
+    paths:
+      - /var/log/app/*.log
+    json.keys_under_root: true
+    json.add_error_key: true
+
+output.elasticsearch:
+  hosts: ['${ELASTICSEARCH_HOSTS}']
+  username: ${ELASTICSEARCH_USERNAME:elastic}
+  password: ${ELASTICSEARCH_PASSWORD:nexquery_secure_pwd}
+  index: 'nexquery-logs-%{+yyyy.MM.dd}'
+
+setup.template.name: nexquery-logs
+setup.template.pattern: 'nexquery-logs-*'
+setup.ilm.enabled: false
+
+processors:
+  - add_host_metadata: ~
+  - add_docker_metadata: ~

@@ -4,6 +4,7 @@ import { Loader2, Play } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
 import { computed } from 'vue'
 import * as z from 'zod'
+import LuceneEditor from '@/components/shared/LuceneEditor.vue'
 import { Button } from '@/components/ui/button'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,12 @@ const dynamicZodSchema = computed(() => {
 
 const { handleSubmit, setFieldValue } = useForm({
   validationSchema: dynamicZodSchema,
+  initialValues: props.schema.reduce((acc: any, field) => {
+    if (field.defaultValue !== undefined) {
+      acc[field.name] = field.defaultValue
+    }
+    return acc
+  }, {}),
 })
 
 const onSubmit = handleSubmit((values) => {
@@ -72,6 +79,16 @@ const onSubmit = handleSubmit((values) => {
                     </SelectItem>
                   </SelectContent>
                 </Select>
+              </template>
+              <template v-else-if="field.type === 'lucene'">
+                <div class="border rounded-md min-h-[100px] flex flex-col">
+                  <LuceneEditor
+                    :model-value="componentField.modelValue"
+                    hide-toolbar
+                    class="flex-1"
+                    @update:model-value="(v) => setFieldValue(field.name, v)"
+                  />
+                </div>
               </template>
               <template v-else>
                 <Input

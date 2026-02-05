@@ -1,3 +1,4 @@
+import logger from '@adonisjs/core/services/logger'
 import app from '@adonisjs/core/services/app'
 import type { HttpContext } from '@adonisjs/core/http'
 import { ExceptionHandler } from '@adonisjs/core/http'
@@ -30,10 +31,12 @@ export default class HttpExceptionHandler extends ExceptionHandler {
 
       if (isDatabaseError) {
         // Always log database errors for admin review
-        console.error('[Database Error]:', error.message)
+        logger.error({ err: error, url: ctx.request.url() }, '[Database Error]')
 
         // Always mask database errors to prevent SQL leakage, even in development
         message = '数据库操作异常，请检查连接或联系管理员'
+      } else if (status >= 500) {
+        logger.error({ err: error, url: ctx.request.url() }, 'Internal Server Error')
       }
 
       return ctx.response.status(status).send({

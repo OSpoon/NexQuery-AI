@@ -83,6 +83,10 @@ watch(
       form.setFieldValue('port', 5432)
       form.setFieldValue('username', 'postgres')
     }
+    else if (newType === 'elasticsearch') {
+      form.setFieldValue('port', 9200)
+      form.setFieldValue('username', '')
+    }
   },
 )
 
@@ -158,6 +162,7 @@ const dbTypes = [
   { label: 'MySQL', value: 'mysql' },
   { label: 'PostgreSQL', value: 'postgresql' },
   { label: 'API / Curl', value: 'api' },
+  { label: 'Elasticsearch', value: 'elasticsearch' },
 ]
 </script>
 
@@ -210,13 +215,13 @@ const dbTypes = [
               <FormItem>
                 <FormLabel>
                   {{
-                    form.values.type === 'api' ? t('data_sources.base_url') : t('data_sources.host')
+                    form.values.type === 'api' || form.values.type === 'elasticsearch' ? t('data_sources.base_url') : t('data_sources.host')
                   }}
                 </FormLabel>
                 <FormControl>
                   <Input
                     :placeholder="
-                      form.values.type === 'api' ? 'https://api.example.com' : 'localhost'
+                      form.values.type === 'api' || form.values.type === 'elasticsearch' ? 'https://log-server:9200' : 'localhost'
                     "
                     v-bind="componentField"
                   />
@@ -246,9 +251,9 @@ const dbTypes = [
           :validate-on-blur="false"
         >
           <FormItem>
-            <FormLabel>{{ t('data_sources.database') }}</FormLabel>
+            <FormLabel>{{ form.values.type === 'elasticsearch' ? 'Default Index' : t('data_sources.database') }}</FormLabel>
             <FormControl>
-              <Input placeholder="main_db" v-bind="componentField" />
+              <Input :placeholder="form.values.type === 'elasticsearch' ? 'nexquery-logs-*' : 'main_db'" v-bind="componentField" />
             </FormControl>
             <FormMessage />
           </FormItem>

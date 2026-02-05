@@ -57,7 +57,7 @@ export interface Menu {
 export interface DataSource {
   id: number
   name: string
-  type: string
+  type: string // 'mysql' | 'postgresql' | 'api' | 'elasticsearch'
   host: string
   port: number
   username: string

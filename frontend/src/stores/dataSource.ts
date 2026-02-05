@@ -22,7 +22,7 @@ export const useDataSourceStore = defineStore('dataSource', () => {
   }
 
   const databaseSources = computed(() => {
-    return dataSources.value.filter(ds => ds.type === 'mysql' || ds.type === 'postgresql')
+    return dataSources.value.filter(ds => ds.type === 'mysql' || ds.type === 'postgresql' || ds.type === 'elasticsearch')
   })
 
   return {

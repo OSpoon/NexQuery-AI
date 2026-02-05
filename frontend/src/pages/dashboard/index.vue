@@ -35,6 +35,7 @@ function getRouteTitle(name: string): string {
     'history': 'sidebar.history',
     'admin-users': 'sidebar.admin.users',
     'admin-roles': 'sidebar.admin.roles',
+    'admin-permissions': 'sidebar.admin.permissions',
     'admin-menus': 'sidebar.admin.menus',
     'admin-api-keys': 'sidebar.admin.api_keys',
     'admin-settings': 'sidebar.admin.settings',

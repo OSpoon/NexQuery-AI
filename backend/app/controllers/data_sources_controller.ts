@@ -193,6 +193,64 @@ export default class DataSourcesController {
       return []
     }
 
+    if (ds.type === 'elasticsearch') {
+      try {
+        const password = ds.password ? encryption.decrypt<string>(ds.password) : undefined
+        const { default: ESClient } = await import('#services/elasticsearch_service')
+        const esService = new ESClient({
+          node: ds.host.startsWith('http') ? ds.host : `http://${ds.host}:${ds.port}`,
+          auth: {
+            username: ds.username,
+            password: password ?? undefined,
+          },
+        })
+
+        const mapping = await esService.getMapping(ds.database || '*')
+        const fields: any[] = []
+
+        const extractFields = (props: any, prefix = '') => {
+          if (!props)
+            return
+          for (const [key, value] of Object.entries(props)) {
+            const fieldName = prefix ? `${prefix}.${key}` : key
+            const val = value as any
+            const fieldType = val.type || (val.properties ? 'object' : 'unknown')
+
+            fields.push({
+              name: fieldName,
+              type: fieldType,
+              comment: fieldType,
+            })
+
+            if (val.properties) {
+              extractFields(val.properties, fieldName)
+            }
+          }
+        }
+
+        // ES mapping response is keyed by index name
+        for (const indexData of Object.values(mapping as any)) {
+          const info = indexData as any
+          if (info.mappings && info.mappings.properties) {
+            extractFields(info.mappings.properties)
+          }
+        }
+
+        // Deduplicate fields across indices
+        const uniqueFields = Array.from(new Map(fields.map(f => [f.name, f])).values())
+
+        return [
+          {
+            name: ds.database || 'Default Index',
+            columns: uniqueFields,
+          },
+        ]
+      } catch (error) {
+        logger.error({ err: error, dataSourceId }, '[Elasticsearch] Failed to fetch schema')
+        return []
+      }
+    }
+
     const { client, dbType } = await DbHelper.getConnection(dataSourceId)
 
     let rows: any[] = []
@@ -306,6 +364,23 @@ export default class DataSourcesController {
       // We assume if host/base url is provided, it's valid.
       // We could try to curl the host, but for now let's just allow it.
       return { success: true, message: 'API connection configured (no validation performed)' }
+    } else if (config.type === 'elasticsearch') {
+      try {
+        const { default: ESClient } = await import('#services/elasticsearch_service')
+        const esService = new ESClient({
+          node: config.host.startsWith('http') ? config.host : `http://${config.host}:${config.port}`,
+          auth: {
+            username: config.username,
+            password: config.password,
+          },
+        })
+        const isHealthy = await esService.testConnection()
+        return isHealthy
+          ? { success: true, message: 'Elasticsearch connection successful' }
+          : { success: false, message: 'Elasticsearch ping failed' }
+      } catch (error: any) {
+        return { success: false, message: `Elasticsearch connection failed: ${error.message}` }
+      }
     }
 
     return { success: false, message: 'Unsupported driver or missing type' }

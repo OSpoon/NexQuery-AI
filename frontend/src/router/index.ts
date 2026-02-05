@@ -75,6 +75,12 @@ const router = createRouter({
           name: 'profile',
           component: () => import('@/pages/profile/index.vue'),
         },
+        {
+          path: 'query-tasks/:id/run',
+          name: 'query-run',
+          component: () => import('@/pages/query-execution/index.vue'),
+          meta: { requiresAuth: true },
+        },
       ],
     },
     {

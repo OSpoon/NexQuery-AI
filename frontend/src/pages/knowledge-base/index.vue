@@ -5,7 +5,8 @@ import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
-import SqlEditor from '@/components/shared/SqlEditor.vue'
+import MonacoEditor from '@/components/shared/MonacoEditor.vue'
+import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -17,6 +18,13 @@ import {
 } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
 
@@ -27,6 +35,7 @@ interface KnowledgeBaseItem {
   keyword: string
   description: string
   exampleSql: string | null
+  sourceType: string
   status: 'pending' | 'approved' | 'rejected'
   createdAt: string
 }
@@ -40,6 +49,7 @@ const formData = ref({
   keyword: '',
   description: '',
   exampleSql: '',
+  sourceType: 'sql',
   status: 'approved',
 })
 
@@ -49,7 +59,7 @@ function stripSqlMarkdown(content: string) {
   if (!content.includes('```') && !content.includes('###'))
     return content
 
-  const sqlMatch = content.match(/```sql([\s\S]*?)```/)
+  const sqlMatch = content.match(/```(?:sql|lucene)?([\s\S]*?)```/)
   if (sqlMatch && sqlMatch[1])
     return sqlMatch[1].trim()
 
@@ -67,6 +77,7 @@ function openEditDialog(item: KnowledgeBaseItem) {
     keyword: item.keyword,
     description: item.description,
     exampleSql: stripSqlMarkdown(item.exampleSql || ''),
+    sourceType: item.sourceType || 'sql',
     status: item.status,
   }
   dialogOpen.value = true
@@ -89,6 +100,14 @@ async function deleteItem(id: number) {
 
 const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
   {
+    accessorKey: 'sourceType',
+    header: t('common.source_type'),
+    cell: ({ row }) => {
+      const type = row.getValue('sourceType') as string
+      return h(Badge, { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' }, () => type === 'elasticsearch' ? 'Elasticsearch' : 'SQL')
+    },
+  },
+  {
     accessorKey: 'keyword',
     header: t('knowledge_base.keyword'),
     cell: ({ row }) => h('div', { class: 'font-medium' }, row.getValue('keyword')),
@@ -100,7 +119,7 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
   },
   {
     accessorKey: 'exampleSql',
-    header: t('knowledge_base.example_sql'),
+    header: t('common.query_example'),
     cell: ({ row }) => {
       const sql = stripSqlMarkdown(row.getValue('exampleSql') as string)
       return sql
@@ -169,6 +188,7 @@ function openCreateDialog() {
     keyword: '',
     description: '',
     exampleSql: '',
+    sourceType: 'sql',
     status: 'approved',
   }
   dialogOpen.value = true
@@ -227,13 +247,31 @@ onMounted(fetchItems)
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label for="keyword"> {{ t('knowledge_base.keyword') }} </Label>
-            <Input
-              id="keyword"
-              v-model="formData.keyword"
-              :placeholder="t('knowledge_base.dialog.keyword_placeholder')"
-            />
+          <div class="grid grid-cols-2 gap-4">
+            <div class="grid gap-2">
+              <Label for="keyword"> {{ t('knowledge_base.keyword') }} </Label>
+              <Input
+                id="keyword"
+                v-model="formData.keyword"
+                :placeholder="t('knowledge_base.dialog.keyword_placeholder')"
+              />
+            </div>
+            <div class="grid gap-2">
+              <Label> {{ t('common.source_type') }} </Label>
+              <Select v-model="formData.sourceType">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="sql">
+                    SQL
+                  </SelectItem>
+                  <SelectItem value="elasticsearch">
+                    Elasticsearch (Lucene)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           <div class="grid gap-2">
             <Label for="description"> {{ t('knowledge_base.description') }} </Label>
@@ -244,8 +282,12 @@ onMounted(fetchItems)
             />
           </div>
           <div class="grid gap-2">
-            <Label for="exampleSql"> {{ t('knowledge_base.example_sql') }} </Label>
-            <SqlEditor v-model="formData.exampleSql" class="h-64" />
+            <Label for="exampleSql"> {{ t('common.query_example') }} </Label>
+            <MonacoEditor
+              v-model="formData.exampleSql"
+              class="h-64 border rounded-md overflow-hidden"
+              :language="formData.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
+            />
           </div>
         </div>
         <DialogFooter>

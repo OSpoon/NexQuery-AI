@@ -206,10 +206,11 @@ export default class extends BaseSeeder {
       {
         title: 'FinOps Monitoring',
         path: '/admin/finops',
-        icon: 'BarChart',
+        icon: 'Wallet',
         permission: PERMISSIONS.MANAGE_AI_FINOPS,
         component: '@/pages/admin/finops/index.vue',
         sortOrder: 95,
+        isActive: true,
       },
       {
         title: 'Users',
@@ -272,6 +273,7 @@ export default class extends BaseSeeder {
       { key: 'ai_skill_discovery', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Discovery Skill', description: 'Enable database schema exploration and data sampling.' },
       { key: 'ai_skill_security', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Security Skill', description: 'Enable SQL validation, security redlines, and performance auditing.' },
       { key: 'ai_skill_core', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Core Assistant Skill', description: 'Enable fundamental interaction, contextual memory, and task submission.' },
+      { key: 'ai_skill_lucene', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Lucene Skill', description: 'Enable Elasticsearch Lucene query generation and index exploration.' },
     ]
 
     for (const s of defaultSettings) {

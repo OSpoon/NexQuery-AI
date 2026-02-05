@@ -18,7 +18,9 @@ import VectorStoreService from '#services/vector_store_service'
 import { DiscoverySkill } from '#services/skills/discovery_skill'
 import { SecuritySkill } from '#services/skills/security_skill'
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
+import { LuceneSkill } from '#services/skills/lucene_skill'
 import type { BaseSkill, SkillContext } from '#services/skills/skill_interface'
+import DataSource from '#models/data_source'
 import { CallbackHandler } from 'langfuse-langchain'
 import env from '#start/env'
 import logger from '@adonisjs/core/services/logger'
@@ -29,9 +31,9 @@ export default class LangChainService {
   private async getAvailableSkills(_context: SkillContext): Promise<BaseSkill[]> {
     const skills: BaseSkill[] = []
 
-    // 1. Discovery Skill
+    // 1. Discovery Skill (Skip for ES, as it uses LuceneSkill for discovery)
     const discoveryEnabled = await Setting.findBy('key', 'ai_skill_discovery')
-    if (discoveryEnabled?.value !== 'false') {
+    if (discoveryEnabled?.value !== 'false' && _context.dbType !== 'elasticsearch') {
       skills.push(new DiscoverySkill())
     }
 
@@ -45,6 +47,12 @@ export default class LangChainService {
     const coreEnabled = await Setting.findBy('key', 'ai_skill_core')
     if (coreEnabled?.value !== 'false') {
       skills.push(new CoreAssistantSkill())
+    }
+
+    // 4. Lucene Skill (If ES data source)
+    const luceneEnabled = await Setting.findBy('key', 'ai_skill_lucene')
+    if (luceneEnabled?.value !== 'false' && _context.dbType === 'elasticsearch') {
+      skills.push(new LuceneSkill())
     }
 
     return skills
@@ -99,8 +107,10 @@ export default class LangChainService {
     })
 
     if (bindTools && dataSourceId) {
-      const skills = await this.getAvailableSkills({ dataSourceId, dbType: 'mysql' }) // Default dbType, will be refined in loop
-      const tools = skills.flatMap(skill => skill.getTools({ dataSourceId, dbType: 'mysql' }))
+      const ds = await DataSource.find(dataSourceId)
+      const dbType = ds?.type || 'mysql'
+      const skills = await this.getAvailableSkills({ dataSourceId, dbType })
+      const tools = skills.flatMap(skill => skill.getTools({ dataSourceId, dbType }))
 
       // LangChain's bindTools automatically converts StructuredTools to OpenAI Function format
       return { llm: llm.bindTools(tools), tools }
@@ -144,7 +154,7 @@ export default class LangChainService {
     }
   }
 
-  private async retrieveContext(question: string): Promise<string> {
+  private async retrieveContext(question: string, sourceType?: string): Promise<string> {
     try {
       const embeddingService = new EmbeddingService()
       const vectorStore = new VectorStoreService()
@@ -154,7 +164,7 @@ export default class LangChainService {
         return ''
 
       // Search Knowledge Base via Vector Store - Only retrieve Approved items
-      const results = await vectorStore.searchKnowledge(questionEmbedding, 5)
+      const results = await vectorStore.searchKnowledge(questionEmbedding, 5, sourceType)
 
       if (results.length === 0) {
         return ''
@@ -196,7 +206,7 @@ export default class LangChainService {
   /**
    * Learn from a successful interaction
    */
-  public async learnInteraction(question: string, sql: string, description?: string) {
+  public async learnInteraction(question: string, sql: string, description?: string, sourceType: string = 'sql') {
     try {
       const embeddingService = new EmbeddingService()
       const desc = description || 'Auto-learned from successful execution'
@@ -208,6 +218,7 @@ export default class LangChainService {
         exampleSql: sql,
         embedding,
         status: 'approved',
+        sourceType,
       })
 
       // Sync to Qdrant immediately
@@ -219,6 +230,7 @@ export default class LangChainService {
           item.exampleSql,
           item.embedding,
           item.status,
+          item.sourceType,
         )
       }
       return item
@@ -309,7 +321,7 @@ export default class LangChainService {
     const dbType = context.dbType || 'mysql'
     const modelName = (modelWithTools as any).modelName || 'gpt-4o' // Fallback for logging
 
-    const businessContext = await this.retrieveContext(question)
+    const businessContext = await this.retrieveContext(question, dbType)
 
     // Phase 2: Schema Pruning (Pre-Retrieval)
     let recommendedTablesText = ''
@@ -475,6 +487,27 @@ ${skillPrompts}
             type: 'response',
             content: finalOutput,
             sql, // PURE SQL for feedback fix
+          })
+          return // EXIT LOOP
+        }
+
+        // Check for SubmitLuceneTool
+        const luceneCall = aiMessageChunk.tool_calls.find(
+          c => c.name === 'submit_lucene_solution',
+        )
+        if (luceneCall) {
+          logger.info('[AgentLoop] Lucene Solution Submitted!')
+          const args = luceneCall.args
+          const lucene = args.lucene
+          const explanation = args.explanation
+
+          // Format Final Output
+          const finalOutput = `### 优化分析\n${explanation}\n\n### 生成的 Lucene 语句\n\`\`\`lucene\n${lucene}\n\`\`\``
+
+          yield JSON.stringify({
+            type: 'response',
+            content: finalOutput,
+            lucene, // PURE Lucene for UI handles
           })
           return // EXIT LOOP
         }

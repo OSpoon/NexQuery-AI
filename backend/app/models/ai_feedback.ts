@@ -15,6 +15,9 @@ export default class AiFeedback extends BaseModel {
   declare generatedSql: string
 
   @column()
+  declare sourceType: string
+
+  @column()
   declare isHelpful: boolean
 
   @column()

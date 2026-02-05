@@ -4,8 +4,15 @@ import EmbeddingService from '#services/embedding_service'
 import VectorStoreService from '#services/vector_store_service'
 
 export default class KnowledgeBasesController {
-  public async index({ response }: HttpContext) {
-    const items = await KnowledgeBase.query().orderBy('created_at', 'desc').exec()
+  public async index({ request, response }: HttpContext) {
+    const sourceType = request.input('sourceType')
+    const query = KnowledgeBase.query().orderBy('created_at', 'desc')
+
+    if (sourceType) {
+      query.where('source_type', sourceType)
+    }
+
+    const items = await query.exec()
     return response.json(items)
   }
 
@@ -14,7 +21,7 @@ export default class KnowledgeBasesController {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
-    const data = request.only(['keyword', 'description', 'exampleSql'])
+    const data = request.only(['keyword', 'description', 'exampleSql', 'sourceType'])
 
     // Validate that keyword is unique
     const existing = await KnowledgeBase.findBy('keyword', data.keyword)
@@ -35,6 +42,7 @@ export default class KnowledgeBasesController {
       keyword: data.keyword,
       description: data.description,
       exampleSql: data.exampleSql,
+      sourceType: data.sourceType || 'sql',
       embedding,
       status: 'approved',
     })
@@ -64,7 +72,7 @@ export default class KnowledgeBasesController {
     }
 
     const item = await KnowledgeBase.findOrFail(params.id)
-    const data = request.only(['keyword', 'description', 'exampleSql', 'status'])
+    const data = request.only(['keyword', 'description', 'exampleSql', 'status', 'sourceType'])
 
     // Store old keyword for deletion if needed (though changing keyword changes ID)
     const oldKeyword = item.keyword
@@ -96,6 +104,7 @@ export default class KnowledgeBasesController {
       keyword: data.keyword,
       description: data.description,
       exampleSql: data.exampleSql,
+      sourceType: data.sourceType || item.sourceType,
       status: 'approved',
       embedding,
     })
@@ -117,6 +126,7 @@ export default class KnowledgeBasesController {
           item.exampleSql,
           item.embedding,
           item.status,
+          item.sourceType,
         )
       } catch (e) {
         console.error('Failed to sync updated knowledge to Qdrant', e)

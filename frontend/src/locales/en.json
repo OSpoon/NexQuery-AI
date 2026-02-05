@@ -3,6 +3,7 @@
     "confirm": "Confirm",
     "cancel": "Cancel",
     "save": "Save",
+    "add": "Add",
     "delete": "Delete",
     "edit": "Edit",
     "search": "Search",
@@ -57,6 +58,7 @@
       "roles": "Roles",
       "menus": "Menus",
       "api_keys": "API Keys",
+      "permissions": "Permissions",
       "settings": "System Settings",
       "finops": "FinOps Monitoring"
     },
@@ -210,7 +212,7 @@
   },
   "query_tasks": {
     "title": "Query Tasks",
-    "desc": "Configure and manage your SQL query tasks",
+    "desc": "Configure and manage your query tasks",
     "create_task": "Create Task",
     "edit_task": "Edit Query Task",
     "task_name": "Task Name",
@@ -225,17 +227,18 @@
     "schedules": "Schedules",
     "store_results": "Store Execution Results",
     "store_results_desc": "If enabled, a snapshot (first 50 rows) of the result will be saved in history. Keep disabled for sensitive data.",
-    "sql_template": "SQL Template",
+    "sql_template": "Query Template",
     "command_template": "Command Template",
-    "ai_optimize": "AI Optimize",
+    "ai_optimize": "AI Suggestions",
     "analyzing": "Analyzing...",
-    "ai_optimization_title": "AI Optimization Analysis",
+    "ai_optimization_title": "AI Intelligent Analysis",
     "ai_optimization_desc": "Analysis provided by the AI model",
     "ai_thinking": "Thinking...",
     "placeholders_hint": "Use {'{{'} variableName {'}}'} for placeholders",
     "save_task": "Save Task",
     "save_changes": "Save Changes",
-    "select_datasource_hint": "Please select a data source to start editing"
+    "select_datasource_hint": "Please select a data source to start editing",
+    "tags": "Tags"
   },
   "history": {
     "title": "Execution History",
@@ -258,7 +261,7 @@
     "error": "Error",
     "parameters": "Parameters",
     "no_parameters": "No parameters used.",
-    "executed_sql": "Executed SQL",
+    "executed_sql": "Executed Statement",
     "results_snapshot": "Results (Snapshot)",
     "snapshot_note": "* Stored history is limited to the first 50 rows."
   },
@@ -377,7 +380,9 @@
       "ai_skill_security": "Security Skill",
       "ai_skill_security_desc": "Enables SQL validation, security redline enforcement, and performance auditing.",
       "ai_skill_core": "Core Assistant Skill",
-      "ai_skill_core_desc": "Maintains contextual memory, handles intent clarification, and submits final solutions."
+      "ai_skill_core_desc": "Maintains contextual memory, handles intent clarification, and submits final solutions.",
+      "ai_skill_lucene": "Lucene Skill",
+      "ai_skill_lucene_desc": "Enable Elasticsearch search, index exploration and Lucene query generation (LuceneSkill)."
     }
   },
   "api_keys": {
@@ -484,7 +489,7 @@
     "desc": "Review user ratings and corrections to improve AI accuracy.",
     "rating": "Rating",
     "question": "Question",
-    "ai_sql": "AI SQL",
+    "ai_sql": "AI Generated Content",
     "user_correction": "User Correction",
     "date": "Date",
     "view": "View",
@@ -495,7 +500,7 @@
     "none": "None",
     "promote_dialog": {
       "title": "Promote to Knowledge Base",
-      "desc": "Refine the keyword and SQL before saving to the knowledge base."
+      "desc": "Refine the keyword and statement before saving to the knowledge base."
     },
     "detail_dialog": {
       "title": "Feedback Details",

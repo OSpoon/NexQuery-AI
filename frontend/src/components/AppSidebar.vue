@@ -80,6 +80,7 @@ const navData = computed(() => {
       'Administration': 'sidebar.admin.title', // Legacy mapping
       'Users': 'sidebar.admin.users',
       'Roles': 'sidebar.admin.roles',
+      'Permissions': 'sidebar.admin.permissions',
       'Menus': 'sidebar.admin.menus',
       'API Access': 'sidebar.admin.api_keys',
       'Knowledge Base': 'sidebar.knowledge_base',

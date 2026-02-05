@@ -92,6 +92,7 @@ export default class VectorStoreService {
     exampleSql: string | null | undefined,
     vector: number[],
     status: string = 'approved',
+    sourceType: string = 'sql',
   ) {
     await this.ensureCollection(VectorStoreService.KNOWLEDGE_COLLECTION, vector.length)
 
@@ -109,6 +110,7 @@ export default class VectorStoreService {
             description,
             exampleSql: exampleSql || '',
             status,
+            sourceType,
           },
         },
       ],
@@ -152,11 +154,24 @@ export default class VectorStoreService {
   public async searchKnowledge(
     queryVector: number[],
     limit: number = 5,
+    sourceType?: string,
   ) {
     try {
+      const filter: any = {
+        must: [],
+      }
+
+      if (sourceType) {
+        filter.must.push({
+          key: 'sourceType',
+          match: { value: sourceType },
+        })
+      }
+
       const results = await this.client.search(VectorStoreService.KNOWLEDGE_COLLECTION, {
         vector: queryVector,
         limit,
+        filter: filter.must.length > 0 ? filter : undefined,
       })
       return results
     } catch (e: any) {

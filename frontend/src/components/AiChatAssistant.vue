@@ -490,6 +490,7 @@ function selectOption(option: string) {
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
 
                   <!-- Run Button -->
+                  <!-- SQL Run Button -->
                   <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.sql)" class="mt-2 flex items-center gap-2">
                     <Button
                       variant="outline"
@@ -610,7 +611,7 @@ function selectOption(option: string) {
                 <Sparkles class="h-4 w-4 animate-pulse" />
               </div>
               <div class="p-3 rounded-lg bg-muted text-xs text-muted-foreground italic">
-                Generating SQL...
+                {{ store.dataSourceId && dataSourceStore.dataSources.find(ds => ds.id === store.dataSourceId)?.type === 'elasticsearch' ? 'Generating Lucene...' : 'Generating SQL...' }}
               </div>
             </div>
           </div>

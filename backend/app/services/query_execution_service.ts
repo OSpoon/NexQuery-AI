@@ -137,6 +137,44 @@ export default class QueryExecutionService {
               .map((l, i) => ({ line: i + 1, content: l }))
           }
         }
+      } else if (ds.type === 'elasticsearch') {
+        // Elasticsearch search
+        const password = ds.password ? encryption.decrypt<string>(ds.password) : undefined
+        const { default: ESClient } = await import('./elasticsearch_service.js')
+        const esService: any = new ESClient({
+          node: ds.host.startsWith('http') ? ds.host : `http://${ds.host}:${ds.port}`,
+          auth: {
+            username: ds.username,
+            password: password ?? undefined,
+          },
+        })
+
+        // Replace variables in "sqlTemplate" for ES query (Lucene/DSL string)
+        executedSql = sql.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
+          const val = inputParams[key] ?? allParams[key] ?? ''
+          return String(val)
+        })
+
+        // Logic: Use the processed template (executedSql) as the primary query.
+        // If the processed template is empty or just '*', and the user provided a more specific query in inputParams, then use that.
+        const index = inputParams.index || ds.database || '*'
+        const size = Number.parseInt(inputParams.size || inputParams.limit) || 100
+
+        let query = executedSql.trim() || '*'
+        // If the user used the auto-generated "query" box and typed something specifically (not just *),
+        // and our template was just '*' (the default), then use the user's input.
+        if ((query === '*' || !query) && inputParams.query && inputParams.query !== '*') {
+          query = inputParams.query
+        }
+
+        const esResults = await esService.search({
+          index,
+          query,
+          size,
+        })
+
+        executedSql = `ES SEARCH: index=${index} query="${query}" size=${size}`
+        queryResults = esResults
       } else {
         throw new Error(`Unsupported database type: ${ds.type}`)
       }
@@ -248,7 +286,6 @@ export default class QueryExecutionService {
           database: dataSource.database,
           connectionTimeoutMillis: timeout,
         })
-
         await client.connect()
         try {
           const res = await client.query(finalSql)
@@ -256,6 +293,27 @@ export default class QueryExecutionService {
         } finally {
           await client.end()
         }
+      } else if (dataSource.type === 'elasticsearch') {
+        const password = dataSource.password ? encryption.decrypt<string>(dataSource.password) : undefined
+        const { default: ESClient } = await import('./elasticsearch_service.js')
+        const esService: any = new ESClient({
+          node: dataSource.host.startsWith('http') ? dataSource.host : `http://${dataSource.host}:${dataSource.port}`,
+          auth: {
+            username: dataSource.username,
+            password: password ?? undefined,
+          },
+        })
+
+        // In raw execute, we just ping or do a simple match_all
+        const isHealthy = await esService.testConnection()
+        if (!isHealthy)
+          throw new Error('Failed to connect to Elasticsearch')
+
+        queryResults = await esService.search({
+          index: dataSource.database || '*',
+          query: '*',
+          size: 10,
+        })
       } else {
         throw new Error(`Execution not supported for type: ${dataSource.type}`)
       }

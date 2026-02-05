@@ -30,6 +30,10 @@ const loggerConfig = defineConfig({
           })
           .toArray(),
       },
+      redact: {
+        paths: ['password', 'passwordHash', 'kubeconfig', 'token', 'secret', 'secretKey'],
+        remove: true,
+      },
     },
   },
 })

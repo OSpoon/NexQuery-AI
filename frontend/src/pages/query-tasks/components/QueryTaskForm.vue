@@ -2,13 +2,14 @@
 import type { QueryTask } from '@nexquery/shared'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useDebounceFn } from '@vueuse/core'
-import { Sparkles, X } from 'lucide-vue-next'
+import { X } from 'lucide-vue-next'
 import { useForm } from 'vee-validate'
 import { computed, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import CurlEditor from '@/components/shared/CurlEditor.vue'
+import LuceneEditor from '@/components/shared/LuceneEditor.vue'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -33,8 +34,6 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
-import { useSettingsStore } from '@/stores/settings'
-import AiOptimizationResult from './AiOptimizationResult.vue'
 
 import ScheduleManager from './ScheduleManager.vue'
 
@@ -46,7 +45,6 @@ const props = defineProps<{
 const emit = defineEmits(['success', 'cancel'])
 
 const { t } = useI18n()
-const settingsStore = useSettingsStore()
 
 const activeTab = ref('definition')
 
@@ -63,61 +61,6 @@ const variables = computed(() => {
   catch {
     return []
   }
-})
-
-const updateSchemaFromSql = useDebounceFn((sql: string) => {
-  const variableRegex = /\{\{\s*(\w+)\s*\}\}/g
-  const matches = [...sql.matchAll(variableRegex)].map(m => m[1])
-  const uniqueVars = [...new Set(matches)]
-
-  try {
-    const currentSchema = JSON.parse(formSchemaJson.value || '[]') as any[]
-    const existingMap = new Map(currentSchema.map(f => [f.name, f]))
-
-    // Create new schema preserving existing fields if they still exist in SQL
-    const newSchema = uniqueVars
-      .map((v) => {
-        if (!v)
-          return null
-        if (existingMap.has(v)) {
-          return existingMap.get(v)
-        }
-        return {
-          name: v,
-          label: v.charAt(0).toUpperCase() + v.slice(1),
-          type: 'text',
-          placeholder: `Enter ${v}`,
-          required: true,
-        }
-      })
-      .filter(Boolean)
-
-    // Only update if the schema actually changed (simplified check)
-    if (JSON.stringify(newSchema) !== JSON.stringify(currentSchema)) {
-      formSchemaJson.value = JSON.stringify(newSchema, null, 2)
-    }
-  }
-  catch {
-    // If JSON is invalid, reset to derived schema from SQL
-    const newSchema = uniqueVars
-      .map((v) => {
-        if (!v)
-          return null
-        return {
-          name: v,
-          label: v.charAt(0).toUpperCase() + v.slice(1),
-          type: 'text',
-          placeholder: `Enter ${v}`,
-          required: true,
-        }
-      })
-      .filter(Boolean)
-    formSchemaJson.value = JSON.stringify(newSchema, null, 2)
-  }
-}, 300)
-
-watch(sqlTemplate, (newVal) => {
-  updateSchemaFromSql(newVal)
 })
 
 const formSchema = toTypedSchema(
@@ -152,6 +95,52 @@ const form = useForm({
     })(),
     tags: props.initialValues?.tags || [],
   },
+})
+
+// --- Reordered definitions to avoid use-before-define ---
+const currentDataSource = computed(() => {
+  return dataSources.value.find(ds => ds.id === form.values.dataSourceId)
+})
+
+const dbType = computed(() => {
+  return currentDataSource.value?.type || null
+})
+
+const updateSchemaFromSql = useDebounceFn((sql: string) => {
+  const variableRegex = /\{\{\s*(\w+)\s*\}\}/g
+  const matches = [...sql.matchAll(variableRegex)].map(m => m[1])
+
+  const isEs = dbType.value === 'elasticsearch'
+  const uniqueVars = [...new Set(matches.filter(v => isEs ? !['index', 'query', 'size'].includes(v) : true))]
+
+  // Get default index from current data source
+  const defaultIndex = (currentDataSource.value as any)?.database || 'nexquery-logs-*'
+
+  // Determine the default value for the "query" field.
+  const hasVariables = matches.length > 0
+  const defaultQueryValue = hasVariables ? '*' : (sql.trim() || '*')
+
+  const standardFields = isEs
+    ? [
+        { name: 'index', label: 'Index Pattern', type: 'text', placeholder: 'nexquery-logs-*', required: true, defaultValue: defaultIndex },
+        { name: 'query', label: 'Query string (Lucene)', type: 'text', placeholder: '*', required: false, defaultValue: defaultQueryValue },
+        { name: 'size', label: 'Limit', type: 'number', placeholder: '100', required: false, defaultValue: 100 },
+      ]
+    : []
+
+  const customFields = uniqueVars.map(v => ({
+    name: v,
+    label: v.charAt(0).toUpperCase() + v.slice(1),
+    type: 'text',
+    placeholder: `Enter ${v}`,
+    required: true,
+  }))
+
+  formSchemaJson.value = JSON.stringify([...standardFields, ...customFields], null, 2)
+}, 300)
+
+watch(sqlTemplate, (newVal) => {
+  updateSchemaFromSql(newVal)
 })
 
 watch(
@@ -192,120 +181,47 @@ async function fetchDataSources() {
   }
 }
 
-const currentDataSource = computed(() => {
-  return dataSources.value.find(ds => ds.id === form.values.dataSourceId)
+const esFields = ref<Array<{ name: string, type: string }>>([])
+
+async function fetchEsSchema(dataSourceId: number) {
+  try {
+    const response = await api.get(`/data-sources/${dataSourceId}/schema`)
+    if (response.data && response.data.length > 0) {
+      esFields.value = response.data[0].columns
+    }
+  }
+  catch {
+    console.warn('Failed to fetch ES schema for autocompletion')
+  }
+}
+
+onMounted(async () => {
+  await fetchDataSources()
+  if (props.initialValues?.dataSourceId) {
+    form.setFieldValue('dataSourceId', props.initialValues.dataSourceId)
+    if (dbType.value === 'elasticsearch') {
+      fetchEsSchema(props.initialValues.dataSourceId)
+    }
+  }
+  if (props.initialValues?.sqlTemplate) {
+    sqlTemplate.value = props.initialValues.sqlTemplate
+  }
 })
 
-const dbType = computed(() => {
-  return currentDataSource.value?.type || null
+watch(() => form.values.dataSourceId, (newId) => {
+  updateSchemaFromSql(sqlTemplate.value)
+  if (newId && dbType.value === 'elasticsearch') {
+    fetchEsSchema(newId)
+  }
+  else {
+    esFields.value = []
+  }
 })
 
 const sqlEditorRef = ref<any>(null)
+const luceneEditorRef = ref<any>(null)
 
 const isSubmitting = ref(false)
-const isOptimizing = ref(false)
-const showAiResult = ref(false) // Renamed from showOptimizationResult
-const aiAnalysis = ref('') // Renamed from optimizationResult
-// optimizationUsage is removed as it's not used in the new optimizeSql logic
-
-// Get token from localStorage like api.ts does
-function getToken() {
-  return localStorage.getItem('auth_token')
-}
-
-// Assuming schemaTables should be derived from formSchemaJson if it represents database schema
-// If formSchemaJson is for form variables, this might need adjustment based on actual backend expectation
-const schemaTables = computed(() => {
-  try {
-    // This is a placeholder. The formSchemaJson currently represents form variables,
-    // not database tables. If the AI optimization endpoint expects database schema,
-    // this computed property needs to be updated to provide actual table schema.
-    // For now, it sends the parsed form variables as a 'tables' array.
-    return JSON.parse(formSchemaJson.value || '[]')
-  }
-  catch (e) {
-    console.error('Error parsing formSchemaJson for schemaTables:', e)
-    return []
-  }
-})
-
-async function optimizeSql() {
-  if (!sqlTemplate.value.trim()) {
-    toast.error('Please enter SQL to optimize')
-    return
-  }
-
-  isOptimizing.value = true
-  aiAnalysis.value = ''
-  showAiResult.value = true
-
-  try {
-    const token = await getToken() // Assuming you have a way to get auth token
-    const response = await fetch('/api/ai/optimize-sql', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`,
-      },
-      body: JSON.stringify({
-        sql: sqlTemplate.value,
-        dbType: dbType.value || 'mysql', // Use dbType from currentDataSource
-        schema: {
-          tables: schemaTables.value, // Use derived schemaTables
-        },
-      }),
-    })
-
-    if (!response.ok) {
-      throw new Error(response.statusText)
-    }
-
-    const reader = response.body?.getReader()
-    const decoder = new TextDecoder()
-
-    let buffer = ''
-
-    if (!reader)
-      throw new Error('No response body')
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done)
-        break
-
-      buffer += decoder.decode(value, { stream: true })
-
-      const lines = buffer.split('\n')
-      // Keep the last partial line in the buffer
-      buffer = lines.pop() || ''
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6).trim()
-          if (data === '[DONE]')
-            continue
-          try {
-            const parsed = JSON.parse(data)
-            const content = parsed.chunk || parsed.choices?.[0]?.delta?.content || ''
-            aiAnalysis.value += content
-          }
-          catch {
-            // Ignore parse errors for partial chunks (though buffer should prevent this)
-          }
-        }
-      }
-    }
-  }
-  catch (error: any) {
-    if (!aiAnalysis.value) {
-      aiAnalysis.value = `Error: ${error.message}`
-    }
-    toast.error(`Optimization failed: ${error.message || 'Unknown error'}`)
-  }
-  finally {
-    isOptimizing.value = false
-  }
-}
 
 const tagInput = ref('')
 function addTag() {
@@ -341,10 +257,20 @@ function removeTag(index: number) {
 
 const onSubmit = form.handleSubmit(async (values) => {
   // Validate SQL
-  if (sqlEditorRef.value) {
+  // Validate SQL (Skip for ES which uses Lucene or text)
+  if (sqlEditorRef.value && dbType.value !== 'elasticsearch' && dbType.value !== 'api') {
     const isValid = sqlEditorRef.value.validate()
     if (!isValid) {
       toast.error('Please fix SQL syntax errors before saving')
+      return
+    }
+  }
+
+  // Validate Lucene (Elasticsearch)
+  if (luceneEditorRef.value && dbType.value === 'elasticsearch') {
+    const isValid = luceneEditorRef.value.validate()
+    if (!isValid) {
+      toast.error('Please fix Lucene syntax errors before saving')
       return
     }
   }
@@ -413,7 +339,7 @@ onMounted(fetchDataSources)
           <div>
             <FormField v-slot="{ componentField }" name="name" :validate-on-blur="false">
               <FormItem>
-                <FormLabel>Task Name</FormLabel>
+                <FormLabel>{{ t('query_tasks.task_name') }}</FormLabel>
                 <FormControl>
                   <Input placeholder="User Sales Report" v-bind="componentField" />
                 </FormControl>
@@ -425,7 +351,7 @@ onMounted(fetchDataSources)
           <div>
             <FormField v-slot="{ value }" name="dataSourceId" :validate-on-blur="false">
               <FormItem>
-                <FormLabel>Data Source</FormLabel>
+                <FormLabel>{{ t('query_tasks.data_source') }}</FormLabel>
                 <Select
                   :model-value="value?.toString()"
                   @update:model-value="
@@ -469,7 +395,7 @@ onMounted(fetchDataSources)
           <div class="col-span-2">
             <FormField v-slot="{ value }" name="tags">
               <FormItem>
-                <FormLabel>Tags (Max 3)</FormLabel>
+                <FormLabel>{{ t('query_tasks.tags') }} (Max 3)</FormLabel>
                 <div class="space-y-3">
                   <div class="flex gap-2">
                     <Input
@@ -484,7 +410,7 @@ onMounted(fetchDataSources)
                       :disabled="(value || []).length >= 3"
                       @click="addTag"
                     >
-                      Add
+                      {{ t('common.add') || '添加' }}
                     </Button>
                   </div>
                   <div class="flex flex-wrap gap-2">
@@ -510,7 +436,7 @@ onMounted(fetchDataSources)
           <FormItem>
             <FormLabel>{{ t('query_tasks.desc') }}</FormLabel>
             <FormControl>
-              <Textarea placeholder="Describe what this query does..." v-bind="componentField" />
+              <Textarea :placeholder="t('query_tasks.desc')" v-bind="componentField" />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -524,34 +450,17 @@ onMounted(fetchDataSources)
             <p v-if="dbType !== 'api'" class="text-xs text-muted-foreground">
               {{ t('query_tasks.placeholders_hint') }}
             </p>
-
-            <div class="flex items-center gap-2">
-              <div
-                v-if="!settingsStore.hasAiKey"
-                class="flex items-center gap-1 px-2 py-0.5 rounded-full border border-destructive/30 bg-destructive/5 text-[10px] text-destructive animate-in fade-in zoom-in"
-              >
-                {{ t('settings.keys.ai_key_missing') }}
-                <router-link to="/admin/settings" class="underline font-bold">
-                  {{ t('settings.keys.configure_now') }}
-                </router-link>
-              </div>
-              <Button
-                v-if="dbType !== 'api'"
-                type="button"
-                variant="outline"
-                size="sm"
-                class="h-7 text-xs gap-1"
-                :disabled="isOptimizing || !sqlTemplate || !settingsStore.hasAiKey"
-                @click="optimizeSql"
-              >
-                <Sparkles class="w-3.5 h-3.5 text-yellow-500" />
-                {{ isOptimizing ? t('query_tasks.analyzing') : t('query_tasks.ai_optimize') }}
-              </Button>
-            </div>
           </div>
           <CurlEditor v-if="dbType === 'api'" v-model="sqlTemplate" :variables="variables" />
+          <LuceneEditor
+            v-else-if="dbType === 'elasticsearch'"
+            ref="luceneEditorRef"
+            v-model="sqlTemplate"
+            :variables="variables"
+            :fields="esFields"
+          />
           <SqlEditor
-            v-else-if="dbType"
+            v-else-if="dbType && dbType !== 'elasticsearch'"
             ref="sqlEditorRef"
             v-model="sqlTemplate"
             :language="dbType === 'postgresql' ? 'pgsql' : 'sql'"
@@ -585,13 +494,6 @@ onMounted(fetchDataSources)
         </div>
       </TabsContent>
     </Tabs>
-
-    <AiOptimizationResult
-      v-model:open="showAiResult"
-      :analysis="aiAnalysis"
-      :loading="isOptimizing"
-      @refresh="optimizeSql"
-    />
 
     <!-- Fixed Footer -->
     <div

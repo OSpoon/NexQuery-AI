@@ -4,8 +4,10 @@ import { ArrowLeft, Database, Download, Play } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
+import JsonViewer from '@/components/shared/JsonViewer.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+
 import {
   Table,
   TableBody,
@@ -18,7 +20,6 @@ import {
 import api, { cryptoService } from '@/lib/api'
 
 import { useSettingsStore } from '@/stores/settings'
-
 import DynamicForm from './components/DynamicForm.vue'
 
 const settingsStore = useSettingsStore()
@@ -225,7 +226,7 @@ onMounted(fetchTask)
                     :key="col"
                     class="min-w-[100px] max-w-[400px] whitespace-normal wrap-break-word align-top"
                   >
-                    {{ row[col] }}
+                    <JsonViewer :value="row[col]" />
                   </TableCell>
                 </TableRow>
               </TableBody>

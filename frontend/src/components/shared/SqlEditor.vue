@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import type { Schema } from '@/lib/monaco-sql-init'
 import { AlertCircle, Braces, CheckCircle2, Eraser } from 'lucide-vue-next'
 import * as monaco from 'monaco-editor'
 import { format } from 'sql-formatter'
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
-
 import api from '@/lib/api'
+
 import {
   registerSchema,
-
   setupMonacoSql,
   unregisterSchema,
 } from '@/lib/monaco-sql-init'
+import MonacoEditor from './MonacoEditor.vue'
 
 const props = defineProps<{
   modelValue: string
@@ -27,11 +26,9 @@ const emit = defineEmits(['update:modelValue', 'run'])
 
 const fullWidthChars = /[；，。“”（）]/
 
-const editorRef = ref<HTMLElement | null>(null)
-let editor: monaco.editor.IStandaloneCodeEditor | null = null
-const currentSchema = ref<Schema>([])
+const monacoEditorRef = ref<any>(null)
+const currentSchema = ref<any>([])
 const syntaxError = ref<string | null>(null)
-let variableProvider: monaco.IDisposable | null = null
 
 // Compute Language ID for Monaco
 const monacoLanguage = computed(() => {
@@ -49,6 +46,7 @@ async function fetchSchema() {
     const response = await api.get(`/data-sources/${props.dataSourceId}/schema`)
     currentSchema.value = response.data
     // Update Registry if editor exists
+    const editor = monacoEditorRef.value?.getEditor()
     if (editor) {
       registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
     }
@@ -58,47 +56,46 @@ async function fetchSchema() {
   }
 }
 
-function registerVariableProvider() {
-  if (variableProvider) {
-    variableProvider.dispose()
-    variableProvider = null
+function onEditorMount(editor: monaco.editor.IStandaloneCodeEditor) {
+  setupMonacoSql()
+  fetchSchema()
+
+  const uri = monacoEditorRef.value?.getUri()
+  if (uri && currentSchema.value.length > 0) {
+    registerSchema(uri, currentSchema.value)
   }
 
-  if (!props.variables || props.variables.length === 0)
-    return
-
-  // Register a simple provider just for variables
-  // Use the computed language
-  variableProvider = monaco.languages.registerCompletionItemProvider(monacoLanguage.value, {
-    triggerCharacters: ['{'],
-    provideCompletionItems: (model, position) => {
-      const word = model.getWordUntilPosition(position)
-      const range = {
-        startLineNumber: position.lineNumber,
-        endLineNumber: position.lineNumber,
-        startColumn: word.startColumn,
-        endColumn: word.endColumn,
+  // Listen for Model Markers (Errors) to update UI
+  const model = editor.getModel()
+  if (model) {
+    monaco.editor.onDidChangeMarkers(([mUri]) => {
+      if (mUri && mUri.toString() === model.uri.toString()) {
+        const markers = monaco.editor.getModelMarkers({ resource: mUri })
+        const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
+        if (error && !syntaxError.value) {
+          syntaxError.value = error.message
+        }
+        else if (!error && !fullWidthChars.test(editor.getValue())) {
+          syntaxError.value = null
+        }
       }
+    })
+  }
 
-      const suggestions: monaco.languages.CompletionItem[] = []
-      props.variables?.forEach((v) => {
-        suggestions.push({
-          label: `{{${v.name}}}`,
-          kind: monaco.languages.CompletionItemKind.Variable,
-          insertText: `{{${v.name}}}`,
-          detail: v.description || 'Variable',
-          sortText: `0_${v.name}`, // Top priority
-          range,
-        })
-      })
-      return { suggestions }
-    },
+  editor.onDidChangeModelContent(() => {
+    validateSql()
   })
 }
 
-// ...
+function onEditorUnmount(_editor: monaco.editor.IStandaloneCodeEditor | null) {
+  const uri = monacoEditorRef.value?.getUri()
+  if (uri) {
+    unregisterSchema(uri)
+  }
+}
 
 function formatSql() {
+  const editor = monacoEditorRef.value?.getEditor()
   if (!editor)
     return
   try {
@@ -142,6 +139,7 @@ function formatSql() {
 }
 
 function validateSql() {
+  const editor = monacoEditorRef.value?.getEditor()
   if (!editor)
     return
   const value = editor.getValue()
@@ -165,13 +163,48 @@ function validateSql() {
   }
 
   // 3. Check Monaco Internal Markers (Syntax Errors from Parser)
-  // Monaco markers are async, but if they exist, we must block save
   const model = editor.getModel()
   if (model) {
     const markers = monaco.editor.getModelMarkers({ resource: model.uri })
-    const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
-    if (error) {
-      syntaxError.value = error.message
+    const filteredErrors = markers.filter((m) => {
+      if (m.severity !== monaco.MarkerSeverity.Error)
+        return false
+
+      // Ignore common syntax errors caused by template placeholders {{ }}
+      const message = m.message.toLowerCase()
+      if (
+        message.includes('unexpected \'{\'')
+        || message.includes('unexpected \'}\'')
+        || (message.includes('expected') && (message.includes('{\'') || message.includes('}\'')))
+      ) {
+        return false
+      }
+
+      // Check the text at the error location
+      const errText = model.getValueInRange({
+        startLineNumber: m.startLineNumber,
+        startColumn: m.startColumn,
+        endLineNumber: m.endLineNumber,
+        endColumn: m.endColumn,
+      })
+
+      if (errText.includes('{{') || errText.includes('}}'))
+        return false
+
+      // Fallback: If it's a generic "dt-sql-parser" error and the current line has placeholders
+      const lineContent = model.getLineContent(m.startLineNumber)
+      if (lineContent.includes('{{') && lineContent.includes('}}')) {
+        // Only ignore if the error message is generic or related to symbols
+        if (message.includes('dt-sql-parser') || /unexpected|expected/.test(message)) {
+          return false
+        }
+      }
+
+      return true
+    })
+
+    if (filteredErrors.length > 0) {
+      syntaxError.value = filteredErrors[0].message
       return
     }
   }
@@ -179,122 +212,6 @@ function validateSql() {
   // Reset if no manual errors and no parser errors
   syntaxError.value = null
 }
-
-onMounted(() => {
-  setupMonacoSql() // Initialize global language features
-
-  nextTick(() => {
-    if (editorRef.value) {
-      editor = monaco.editor.create(editorRef.value, {
-        value: props.modelValue,
-        language: monacoLanguage.value,
-        theme: 'vs-dark-premium',
-        automaticLayout: true,
-        minimap: { enabled: false },
-        readOnly: props.readonly || false,
-        fontSize: 14,
-        lineHeight: 22,
-        scrollBeyondLastLine: false,
-        padding: { top: 12, bottom: 12 },
-        hover: {
-          enabled: true,
-          delay: 300,
-          sticky: true,
-          above: false,
-        },
-        unicodeHighlight: { ambiguousCharacters: false },
-        fixedOverflowWidgets: false,
-        roundedSelection: true,
-        cursorSmoothCaretAnimation: 'on',
-        smoothScrolling: true,
-        fontFamily: '\'Fira Code\', \'Monaco\', \'Cascadia Code\', monospace',
-        fontLigatures: true,
-      })
-
-      // Register Schema for this editor instance
-      if (currentSchema.value.length > 0) {
-        registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
-      }
-
-      fetchSchema()
-      registerVariableProvider()
-
-      monaco.editor.defineTheme('vs-dark-premium', {
-        base: 'vs-dark',
-        inherit: true,
-        rules: [
-          { token: 'custom-variable', foreground: 'FFD700', fontStyle: 'bold' },
-          { token: 'keyword', foreground: 'C586C0' },
-          { token: 'string', foreground: 'CE9178' },
-          { token: 'comment', foreground: '6A9955', fontStyle: 'italic' },
-        ],
-        colors: {
-          'editor.background': '#1e1e1e',
-          'editor.lineHighlightBackground': '#2d2d2d',
-        },
-      })
-      monaco.editor.setTheme('vs-dark-premium')
-
-      // Listen for Model Markers (Errors) to update UI
-      const model = editor.getModel()
-      if (model) {
-        monaco.editor.onDidChangeMarkers(([uri]) => {
-          if (uri && uri.toString() === model.uri.toString()) {
-            const markers = monaco.editor.getModelMarkers({ resource: uri })
-            const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
-            if (error && !syntaxError.value) {
-              // Don't overwrite Chinese char error if present (handled in validateSql)
-              // Actually validateSql runs on content change.
-              // Let's rely on markers.
-              syntaxError.value = error.message
-            }
-            else if (!error && !fullWidthChars.test(editor?.getValue() || '')) {
-              syntaxError.value = null
-            }
-          }
-        })
-      }
-
-      editor.onDidChangeModelContent(() => {
-        const value = editor?.getValue() || ''
-        emit('update:modelValue', value)
-        validateSql()
-      })
-    }
-  })
-})
-
-watch(
-  () => props.modelValue,
-  (newValue) => {
-    if (editor && newValue !== editor.getValue()) {
-      editor.setValue(newValue)
-    }
-  },
-)
-
-watch(
-  () => props.readonly,
-  (newValue) => {
-    if (editor) {
-      editor.updateOptions({ readOnly: newValue })
-    }
-  },
-)
-
-// Watch for DB Type or Language changes to update Editor Language
-watch(
-  () => [props.dbType, props.language],
-  () => {
-    if (editor) {
-      const model = editor.getModel()
-      if (model) {
-        monaco.editor.setModelLanguage(model, monacoLanguage.value)
-        registerVariableProvider() // Re-register for new language
-      }
-    }
-  },
-)
 
 watch(
   () => [props.dataSourceId],
@@ -304,10 +221,11 @@ watch(
 )
 
 function clearSql() {
-  editor?.setValue('')
+  monacoEditorRef.value?.getEditor()?.setValue('')
 }
 
 function insertVariable(variableName: string) {
+  const editor = monacoEditorRef.value?.getEditor()
   if (!editor)
     return
   const selection = editor.getSelection()
@@ -317,18 +235,7 @@ function insertVariable(variableName: string) {
   editor.focus()
 }
 
-onBeforeUnmount(() => {
-  if (editor) {
-    const model = editor.getModel()
-    if (model) {
-      unregisterSchema(model.uri.toString())
-    }
-    editor.dispose()
-  }
-  if (variableProvider) {
-    variableProvider.dispose()
-  }
-})
+// Monaco lifecycle is managed by MonacoEditor.vue
 
 defineExpose({
   validate: () => {
@@ -399,7 +306,17 @@ defineExpose({
         </div>
       </div>
     </div>
-    <div ref="editorRef" class="w-full flex-1" />
+    <MonacoEditor
+      ref="monacoEditorRef"
+      :model-value="modelValue"
+      :language="monacoLanguage"
+      :readonly="readonly"
+      :variables="variables"
+      class="flex-1"
+      @update:model-value="emit('update:modelValue', $event)"
+      @mount="onEditorMount"
+      @unmount="onEditorUnmount"
+    />
   </div>
 </template>
 

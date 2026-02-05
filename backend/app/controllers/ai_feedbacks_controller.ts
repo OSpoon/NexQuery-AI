@@ -13,12 +13,14 @@ export default class AiFeedbacksController {
       'isHelpful',
       'userCorrection',
       'conversationId',
+      'sourceType',
     ])
 
     const feedback = await AiFeedback.create({
       conversationId: data.conversationId || null,
       question: data.question,
       generatedSql: data.generatedSql,
+      sourceType: data.sourceType || 'sql',
       isHelpful: data.isHelpful,
       userCorrection: data.userCorrection || null,
       isAdopted: data.isHelpful === true, // Auto-adopt if helpful
@@ -28,7 +30,7 @@ export default class AiFeedbacksController {
     if (feedback.isAdopted) {
       try {
         const langChainService = new LangChainService()
-        await langChainService.learnInteraction(feedback.question, feedback.generatedSql)
+        await langChainService.learnInteraction(feedback.question, feedback.generatedSql, undefined, feedback.sourceType)
       } catch (error) {
         console.error('Failed to auto-learn from helpful feedback:', error)
       }
@@ -79,6 +81,7 @@ export default class AiFeedbacksController {
         feedback.question,
         feedback.userCorrection || feedback.generatedSql,
         feedback.userCorrection ? `User correction for: ${feedback.question}` : undefined,
+        feedback.sourceType,
       )
     } catch (error) {
       console.error('Failed to learn from adopted feedback:', error)

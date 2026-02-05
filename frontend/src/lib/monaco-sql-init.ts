@@ -48,9 +48,11 @@ export function unregisterSchema(uri: string) {
   schemaRegistry.delete(uri)
 }
 
-// Variable syntax preprocessor
+// Variable syntax preprocessor (for validation and internal parsing)
 function preprocessCode(code: string) {
-  return code.replace(/\{\{\s*(\w+)\s*\}\}/g, 'var_$1')
+  // Use a SQL-safe replacement that is valid in most expression positions
+  // Putting single quotes around the variable name is very safe
+  return code.replace(/\{\{.*?\}\}/g, '\'__VAR__\'')
 }
 
 let isSetup = false

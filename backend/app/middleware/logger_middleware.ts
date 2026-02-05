@@ -3,7 +3,8 @@ import type { NextFn } from '@adonisjs/core/types/http'
 import logger from '@adonisjs/core/services/logger'
 
 export default class LoggerMiddleware {
-  async handle({ request, response }: HttpContext, next: NextFn) {
+  async handle(ctx: HttpContext, next: NextFn) {
+    const { request, response } = ctx
     const startTime = Date.now()
 
     await next()
@@ -13,8 +14,11 @@ export default class LoggerMiddleware {
     const method = request.method()
     const url = request.url()
 
+    const requestId = (ctx as any).requestId
+
     logger.info(
       {
+        requestId,
         method,
         url,
         status,

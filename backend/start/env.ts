@@ -85,4 +85,5 @@ export default await Env.create(new URL('../', import.meta.url), {
   FLOWABLE_HOST: Env.schema.string.optional(), // e.g. http://localhost:8080 or http://flowable:8080
   FLOWABLE_USER: Env.schema.string.optional(),
   FLOWABLE_PASSWORD: Env.schema.string.optional(),
+  CACHE_DRIVER: Env.schema.enum.optional(['memory', 'redis'] as const),
 })

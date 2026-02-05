@@ -1,4 +1,4 @@
-import type { BaseTool } from '@langchain/core/tools'
+// import type { BaseTool } from '@langchain/core/tools'
 
 export interface SkillContext {
   dataSourceId?: number
@@ -19,5 +19,5 @@ export abstract class BaseSkill {
   /**
    * Returns the tools associated with this skill
    */
-  abstract getTools(context: SkillContext): BaseTool[]
+  abstract getTools(context: SkillContext): any[]
 }

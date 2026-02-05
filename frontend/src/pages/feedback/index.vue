@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import AgentSteps from '@/components/AgentSteps.vue'
 import DataTable from '@/components/common/DataTable.vue'
-import SqlEditor from '@/components/shared/SqlEditor.vue'
+import MonacoEditor from '@/components/shared/MonacoEditor.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,6 +31,7 @@ interface FeedbackItem {
   conversationId: number | null
   question: string
   generatedSql: string
+  sourceType: string
   isHelpful: boolean
   userCorrection: string | null
   isAdopted: boolean
@@ -45,6 +46,7 @@ const promoteForm = ref({
   keyword: '',
   description: '',
   exampleSql: '',
+  sourceType: 'sql',
   sourceId: null as number | null,
 })
 
@@ -71,12 +73,12 @@ async function fetchContext(conversationId: number) {
 function stripSqlMarkdown(content: string) {
   if (!content)
     return ''
-  // If it's already pure SQL (no markdown markers), return it
+  // If it's already pure (no markdown markers), return it
   if (!content.includes('```') && !content.includes('###'))
     return content
 
-  // Try to extract SQL block
-  const sqlMatch = content.match(/```sql([\s\S]*?)```/)
+  // Try to extract SQL or Lucene block
+  const sqlMatch = content.match(/```(?:sql|lucene)?([\s\S]*?)```/)
   if (sqlMatch && sqlMatch[1])
     return sqlMatch[1].trim()
 
@@ -113,13 +115,21 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
     },
   },
   {
+    accessorKey: 'sourceType',
+    header: t('common.source_type'),
+    cell: ({ row }) => {
+      const type = row.getValue('sourceType') as string
+      return h(Badge, { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' }, () => type === 'elasticsearch' ? 'Elasticsearch' : 'SQL')
+    },
+  },
+  {
     accessorKey: 'question',
     header: t('feedback.question'),
     cell: ({ row }) => {
       const question = row.getValue('question') as string
       return h(
         'div',
-        { class: 'max-w-[200px] truncate font-medium' },
+        { class: 'max-w-[150px] truncate font-medium' },
         question === 'Unknown'
           ? h('span', { class: 'text-muted-foreground italic' }, t('feedback.na_greeting'))
           : question,
@@ -135,7 +145,7 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
         'div',
         {
           class:
-            'bg-muted/50 p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[300px] border border-border/50',
+            'bg-muted/50 p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[250px] border border-border/50',
           title: sql,
         },
         sql || '-',
@@ -152,7 +162,7 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
             'div',
             {
               class:
-                'bg-primary/5 text-primary p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[300px] border border-primary/10',
+                'bg-primary/5 text-primary p-2 rounded text-[10px] font-mono whitespace-pre-wrap break-all line-clamp-3 max-w-[250px] border border-primary/10',
               title: correction,
             },
             correction,
@@ -166,8 +176,8 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
     cell: ({ row }) => {
       const isAdopted = row.getValue('isAdopted') as boolean
       return isAdopted
-        ? h(Badge, { variant: 'default' }, () => t('feedback.adopted'))
-        : h(Badge, { variant: 'secondary' }, () => t('feedback.pending'))
+        ? h(Badge, { variant: 'default' }, () => t('feedback.status_filter.approved'))
+        : h(Badge, { variant: 'secondary' }, () => t('feedback.status_filter.pending'))
     },
   },
   {
@@ -239,6 +249,7 @@ function promoteToKnowledge(item: FeedbackItem) {
     keyword: item.question.length > 50 ? `${item.question.substring(0, 47)}...` : item.question,
     description: `Improved logic for: ${item.question}`,
     exampleSql: stripSqlMarkdown(item.userCorrection || item.generatedSql),
+    sourceType: item.sourceType || 'sql',
     sourceId: item.id,
   }
   isPromoteOpen.value = true
@@ -250,6 +261,7 @@ async function confirmPromotion() {
       keyword: promoteForm.value.keyword,
       description: promoteForm.value.description,
       exampleSql: promoteForm.value.exampleSql,
+      sourceType: promoteForm.value.sourceType,
       status: 'approved',
     })
     if (res.status === 201 || res.status === 200) {
@@ -311,17 +323,27 @@ onMounted(fetchFeedbacks)
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label>{{ t('knowledge_base.keyword') }}</Label>
-            <Input v-model="promoteForm.keyword" />
+          <div class="grid grid-cols-2 gap-4">
+            <div class="grid gap-2">
+              <Label>{{ t('knowledge_base.keyword') }}</Label>
+              <Input v-model="promoteForm.keyword" />
+            </div>
+            <div class="grid gap-2">
+              <Label>{{ t('common.source_type') }}</Label>
+              <Input :value="promoteForm.sourceType" disabled />
+            </div>
           </div>
           <div class="grid gap-2">
             <Label>{{ t('knowledge_base.description') }}</Label>
             <Input v-model="promoteForm.description" />
           </div>
           <div class="grid gap-2">
-            <Label>{{ t('knowledge_base.example_sql') }}</Label>
-            <SqlEditor v-model="promoteForm.exampleSql" class="h-64" />
+            <Label>{{ t('common.query_example') }}</Label>
+            <MonacoEditor
+              v-model="promoteForm.exampleSql"
+              class="h-64 border rounded-md overflow-hidden"
+              :language="promoteForm.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
+            />
           </div>
         </div>
         <DialogFooter>
@@ -345,6 +367,9 @@ onMounted(fetchFeedbacks)
               <ThumbsUp v-if="selectedItem?.isHelpful" class="h-3 w-3 mr-1" />
               <ThumbsDown v-else class="h-3 w-3 mr-1" />
               {{ selectedItem?.isHelpful ? t('feedback.helpful') : t('feedback.needs_improvement') }}
+            </Badge>
+            <Badge variant="outline" class="ml-1 capitalize">
+              {{ selectedItem?.sourceType }}
             </Badge>
           </DialogTitle>
           <DialogDescription>
@@ -447,11 +472,11 @@ onMounted(fetchFeedbacks)
             <!-- User Correction -->
             <div v-if="selectedItem?.userCorrection" class="space-y-2 pt-2 border-t">
               <Label class="text-sm font-semibold text-primary uppercase tracking-wider">{{ t('feedback.detail_dialog.user_expected') }}</Label>
-              <SqlEditor
+              <MonacoEditor
                 v-model="selectedItem.userCorrection"
                 readonly
-                hide-toolbar
-                class="h-[200px]"
+                class="h-[200px] border rounded-md overflow-hidden"
+                :language="selectedItem.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
               />
             </div>
           </div>

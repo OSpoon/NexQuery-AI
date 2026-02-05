@@ -96,7 +96,7 @@ const columns: ColumnDef<QueryTask>[] = [
   },
   {
     accessorKey: 'tags',
-    header: () => 'Tags',
+    header: () => t('query_tasks.tags'),
     cell: ({ row }) => {
       const tags = row.original.tags
       if (!tags || tags.length === 0)
@@ -218,7 +218,7 @@ onMounted(fetchTasks)
             }}
           </DialogTitle>
           <DialogDescription>
-            Configure your SQL template. Parameters will be detected automatically.
+            {{ t('query_tasks.desc') }}
           </DialogDescription>
         </DialogHeader>
         <QueryTaskForm
