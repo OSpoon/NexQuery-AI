@@ -1,10 +1,6 @@
 import { Client } from '@elastic/elasticsearch'
 import logger from '@adonisjs/core/services/logger'
 
-import cache_main from '@adonisjs/cache/services/main'
-
-const cache = cache_main as any
-
 export default class ElasticsearchService {
   public readonly client: Client
 

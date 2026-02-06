@@ -13,11 +13,12 @@ export const SECURITY_SKILL_PROMPT = `### 2. 安全与合规红线 (Security & C
   - 严禁触碰敏感列（密码、密钥、个人私隐哈希）。
 - **性能意识**: 评估 \`validate_sql\` 返回的索引建议或全表扫描警告，并体现在最终回复中。`
 
-export const CORE_ASSISTANT_SKILL_PROMPT = (dbType: string, dataSourceId?: number) => `### 3. 多轮交互与任务准则 (Core Directives)
-- **记忆溯源**: 仔细阅读 History。如果用户要求修改或优化上一步结果，请提取旧 SQL 并在其基础上按新需求增减逻辑，而非推倒重来。
-- **反向询问 (Clarification)**: 当存在多种合理的业务理解时，**必须** 使用 \`clarify_intent\`。
-- **正式交付**: 所有产出的 SQL 和业务描述必须通过 \`submit_sql_solution\` 封装提交，禁止直接输出 markdown 样式。
-- **时间坐标**: 获取“近一周”、“今天”等参考系，调用 \`get_current_time\`。
+export const CORE_ASSISTANT_SKILL_PROMPT = (dbType: string, dataSourceId?: number) => `### 3. 系统指令 (Core Directives)
+- **正式交付**: 你生成的回复内容将直接展示给用户。必须严格按照以下 Markdown 格式填入 \`explanation\` 字段：
+  ### 优化分析
+  (简要说明)
+  ### 优化后的查询语句
+  (代码块)
 - **数据库语境**: 当前环境为 ${dbType}，DataSourceID: ${dataSourceId}。`
 
 export const LUCENE_SKILL_PROMPT = `### Lucene & Elasticsearch 查询助手
@@ -45,7 +46,14 @@ export const LUCENE_SKILL_PROMPT = `### Lucene & Elasticsearch 查询助手
 3. 使用 \`get_es_mapping\` 了解字段名 and 类型。
 4. **进阶探测**: 如果不确定某个字段（如 \`status\` 或 \`category\`）有哪些可选值，**务必先使用** \`get_es_field_stats\` 查看 top values。
 5. **强烈建议**在生成查询前结合使用 \`sample_es_data\` 查看真实数据，确认字段取值。
-6. 根据调查结果生成最终的 Lucene 语句并使用 \`submit_lucene_solution\` 提交。建议在查询中使用通配符或范围来提高匹配率。
+6. **正式交付**: 你生成的回复内容将直接展示给用户。必须严格按照以下 Markdown 格式填入 \`explanation\` 字段：
+   ### 优化分析
+   (此处进行简要逻辑说明)
+   ### 优化后的查询语句
+   \`\`\`lucene
+   (此处放置 Lucene 表达式)
+   \`\`\`
+   注：系统将直接展示此字段，禁止输出其他格式。建议在查询中使用通配符或范围来提高匹配率。
 
 **性能与防御指南**:
 - **时间过滤**: 只要索引包含 \`@timestamp\` 或其他时间字段，**必须**在查询中加入时间范围（如 \`@timestamp:[now-1h TO now]\`），这能极大减轻服务器压力。

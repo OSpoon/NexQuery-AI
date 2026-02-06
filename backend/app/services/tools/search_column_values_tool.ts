@@ -13,7 +13,7 @@ export class SearchColumnValuesTool extends StructuredTool {
     tableName: z.string().describe('The name of the table to search.'),
     columnName: z.string().describe('The name of the column to search.'),
     keyword: z.string().describe('The keyword to search for (fuzzy match).'),
-    limit: z.number().optional().default(5).describe('Max number of results to return.'),
+    limit: z.number().describe('Max number of results to return.').default(5),
   })
 
   async _call({
