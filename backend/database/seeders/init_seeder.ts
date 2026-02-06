@@ -270,10 +270,6 @@ export default class extends BaseSeeder {
       { key: 'ai_chat_model', value: 'glm-4.5-flash', type: 'string', group: 'ai' },
       { key: 'ai_embedding_model', value: 'embedding-3', type: 'string', group: 'ai', label: 'AI Embedding Model', description: 'Model for text embeddings (e.g., embedding-3).' },
       { key: 'ai_timeout_sec', value: '600', type: 'number', group: 'ai', label: 'AI Request Timeout', description: 'Maximum duration in seconds for AI models to respond.' },
-      { key: 'ai_skill_discovery', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Discovery Skill', description: 'Enable database schema exploration and data sampling.' },
-      { key: 'ai_skill_security', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Security Skill', description: 'Enable SQL validation, security redlines, and performance auditing.' },
-      { key: 'ai_skill_core', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Core Assistant Skill', description: 'Enable fundamental interaction, contextual memory, and task submission.' },
-      { key: 'ai_skill_lucene', value: 'true', type: 'boolean', group: 'ai_skills', label: 'Lucene Skill', description: 'Enable Elasticsearch Lucene query generation and index exploration.' },
     ]
 
     for (const s of defaultSettings) {

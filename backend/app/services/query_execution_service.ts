@@ -224,7 +224,7 @@ export default class QueryExecutionService {
 
         queryResults = await esService.search({
           index: dataSource.database || '*',
-          query: '*',
+          query: sql || '*',
           size: 10,
         })
       } else {

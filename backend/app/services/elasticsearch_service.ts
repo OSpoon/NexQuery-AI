@@ -89,19 +89,16 @@ export default class ElasticsearchService {
   }
 
   /**
-   * Get mapping for an index (with caching)
+   * Get mapping for an index (without caching for now)
    */
   async getMapping(index: string) {
-    const cacheKey = `es:mapping:${index}`
-    return await cache.getOrSet(cacheKey, async () => {
-      try {
-        const response: any = await this.client.indices.getMapping({ index })
-        return response
-      } catch (error: any) {
-        logger.error({ err: error, index }, '[Elasticsearch] Failed to get mapping')
-        throw error
-      }
-    })
+    try {
+      const response: any = await this.client.indices.getMapping({ index })
+      return response
+    } catch (error: any) {
+      logger.error({ err: error, index }, '[Elasticsearch] Failed to get mapping')
+      throw error
+    }
   }
 
   /**
@@ -171,55 +168,52 @@ export default class ElasticsearchService {
   }
 
   /**
-   * Get high-level summary of an index (with caching)
+   * Get high-level summary of an index (without caching for now)
    */
   async getIndexSummary(index: string) {
-    const cacheKey = `es:summary:${index}`
-    return await cache.getOrSet(cacheKey, async () => {
+    try {
+      // 1. Get doc count
+      const countRes = await this.client.count({ index })
+
+      // 2. Get stats (size)
+      const statsRes = await this.client.indices.stats({ index })
+      const sizeInBytes = statsRes.indices?.[index]?.total?.store?.size_in_bytes
+
+      // 3. Try to get time range if @timestamp exists
+      let timeRange = null
       try {
-        // 1. Get doc count
-        const countRes = await this.client.count({ index })
-
-        // 2. Get stats (size)
-        const statsRes = await this.client.indices.stats({ index })
-        const sizeInBytes = statsRes.indices?.[index]?.total?.store?.size_in_bytes
-
-        // 3. Try to get time range if @timestamp exists
-        let timeRange = null
-        try {
-          const mapping = await this.getMapping(index)
-          if (mapping[index]?.mappings?.properties?.['@timestamp']) {
-            const timeRes: any = await this.client.search({
-              index,
-              terminate_after: 10000,
-              body: {
-                size: 0,
-                aggs: {
-                  time_stats: {
-                    stats: { field: '@timestamp' },
-                  },
+        const mapping = await this.getMapping(index)
+        if (mapping[index]?.mappings?.properties?.['@timestamp']) {
+          const timeRes: any = await this.client.search({
+            index,
+            terminate_after: 10000,
+            body: {
+              size: 0,
+              aggs: {
+                time_stats: {
+                  stats: { field: '@timestamp' },
                 },
               },
-            })
-            timeRange = {
-              min: timeRes.aggregations.time_stats.min_as_string,
-              max: timeRes.aggregations.time_stats.max_as_string,
-            }
+            },
+          })
+          timeRange = {
+            min: timeRes.aggregations.time_stats.min_as_string,
+            max: timeRes.aggregations.time_stats.max_as_string,
           }
-        } catch (e) {
-          // Ignore time range errors
         }
-
-        return {
-          count: countRes.count,
-          size_bytes: sizeInBytes,
-          size_human: sizeInBytes ? `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB` : 'unknown',
-          time_range: timeRange,
-        }
-      } catch (error: any) {
-        logger.error({ err: error, index }, '[Elasticsearch] Failed to get index summary')
-        throw error
+      } catch (e) {
+        // Ignore time range errors
       }
-    })
+
+      return {
+        count: countRes.count,
+        size_bytes: sizeInBytes,
+        size_human: sizeInBytes ? `${(sizeInBytes / 1024 / 1024).toFixed(2)} MB` : 'unknown',
+        time_range: timeRange,
+      }
+    } catch (error: any) {
+      logger.error({ err: error, index }, '[Elasticsearch] Failed to get index summary')
+      throw error
+    }
   }
 }

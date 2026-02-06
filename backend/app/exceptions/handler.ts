@@ -19,28 +19,20 @@ export default class HttpExceptionHandler extends ExceptionHandler {
       ctx.request.request.headers.accept = 'application/json'
       const status = error.status || 500
 
-      // Handle database errors specifically to prevent SQL leakage
-      let message = error.message
-      const isDatabaseError
-        = error.code?.includes('DB_')
-          || error.code?.includes('SQL')
-          || error.message?.toLowerCase().includes('select')
-          || error.message?.toLowerCase().includes('relation')
-          || error.message?.toLowerCase().includes('column')
-          || error.message?.toLowerCase().includes('syntax error')
+      // Handle all internal server errors uniformly
+      if (status >= 500) {
+        // Always log internal errors for admin review
+        logger.error({ err: error, url: ctx.request.url() }, '[System Error]')
 
-      if (isDatabaseError) {
-        // Always log database errors for admin review
-        logger.error({ err: error, url: ctx.request.url() }, '[Database Error]')
-
-        // Always mask database errors to prevent SQL leakage, even in development
-        message = '数据库操作异常，请检查连接或联系管理员'
-      } else if (status >= 500) {
-        logger.error({ err: error, url: ctx.request.url() }, 'Internal Server Error')
+        // Mask internal errors to prevent leakage of sensitive info (SQL, paths, etc.)
+        return ctx.response.status(500).send({
+          message: 'System Error',
+          code: 'E_SYSTEM_ERROR',
+        })
       }
 
       return ctx.response.status(status).send({
-        message,
+        message: error.message,
         code: error.code,
         errors: error.messages || undefined, // For validation errors
       })

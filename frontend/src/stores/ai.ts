@@ -43,6 +43,7 @@ export const useAiStore = defineStore('ai', () => {
   // Persistence
   const conversations = ref<any[]>([])
   const currentConversationId = ref<number | null>(null)
+  const queryResults = ref<Record<number, { data: any[], duration: number }>>({})
 
   function toggleOpen() {
     isOpen.value = !isOpen.value
@@ -93,6 +94,7 @@ export const useAiStore = defineStore('ai', () => {
     messages.value = [
       { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
     ]
+    queryResults.value = {}
   }
 
   async function deleteConversation(id: number) {
@@ -286,9 +288,8 @@ export const useAiStore = defineStore('ai', () => {
       { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
     ]
     currentConversationId.value = null
+    queryResults.value = {}
   }
-
-  const queryResults = ref<Record<number, { data: any[], duration: number }>>({})
 
   async function previewSql(dataSourceId: number, sql: string, messageIndex: number) {
     try {

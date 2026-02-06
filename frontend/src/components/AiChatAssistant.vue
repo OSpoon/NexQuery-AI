@@ -122,7 +122,7 @@ watch(
       const firstDs = newSources[0]
       if (firstDs) {
         selectedDataSource.value = firstDs.id.toString()
-        store.dataSourceId = firstDs.id
+        // Watcher above will handle store updates
       }
     }
   },
@@ -178,17 +178,19 @@ watch(
   },
 )
 
-function handleSend() {
-  if (!input.value.trim() || store.isLoading)
-    return
-
-  // Set context if selected
-  if (selectedDataSource.value && selectedDataSource.value !== 'none') {
-    store.dataSourceId = Number(selectedDataSource.value)
+// Sync selected data source with store context
+watch(selectedDataSource, (val) => {
+  if (val && val !== 'none') {
+    store.dataSourceId = Number(val)
   }
   else {
     store.dataSourceId = undefined
   }
+})
+
+function handleSend() {
+  if (!input.value.trim() || store.isLoading)
+    return
 
   store.sendMessage(input.value)
   input.value = ''
@@ -276,7 +278,8 @@ async function handleRunSql(msg: any, index: number) {
 
   isRunningSql.value[index] = true
   try {
-    await store.previewSql(store.dataSourceId, msg.generatedSql || msg.sql, index)
+    const query = msg.generatedLucene || msg.generatedSql || msg.sql
+    await store.previewSql(store.dataSourceId, query, index)
     toast.success(t('common.success'))
   }
   catch (e: any) {
@@ -490,8 +493,8 @@ function selectOption(option: string) {
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
 
                   <!-- Run Button -->
-                  <!-- SQL Run Button -->
-                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.sql)" class="mt-2 flex items-center gap-2">
+                  <!-- SQL/Lucene Run Button -->
+                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.sql || msg.generatedLucene)" class="mt-2 flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -501,7 +504,7 @@ function selectOption(option: string) {
                     >
                       <Play v-if="!isRunningSql[index]" class="h-3 w-3" />
                       <div v-else class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      {{ isRunningSql[index] ? 'Running...' : 'Run SQL' }}
+                      {{ isRunningSql[index] ? 'Running...' : (msg.generatedLucene ? 'Run Search' : 'Run SQL') }}
                     </Button>
                   </div>
 

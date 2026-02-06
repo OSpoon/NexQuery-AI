@@ -30,30 +30,20 @@ import {
 
 export default class LangChainService {
   private async getAvailableSkills(_context: SkillContext): Promise<BaseSkill[]> {
-    const aiProvider = new AiProviderService()
-    const skills: BaseSkill[] = []
+    const isElasticsearch = _context.dbType === 'elasticsearch'
 
-    // 1. Discovery Skill (Skip for ES, as it uses LuceneSkill for discovery)
-    if (await aiProvider.isSkillEnabled('discovery') && _context.dbType !== 'elasticsearch') {
-      skills.push(new DiscoverySkill())
+    if (isElasticsearch) {
+      return [
+        new CoreAssistantSkill(),
+        new LuceneSkill(),
+      ]
     }
 
-    // 2. Security Skill
-    if (await aiProvider.isSkillEnabled('security')) {
-      skills.push(new SecuritySkill())
-    }
-
-    // 3. Core Assistant Skill
-    if (await aiProvider.isSkillEnabled('core')) {
-      skills.push(new CoreAssistantSkill())
-    }
-
-    // 4. Lucene Skill (If ES data source)
-    if (await aiProvider.isSkillEnabled('lucene') && _context.dbType === 'elasticsearch') {
-      skills.push(new LuceneSkill())
-    }
-
-    return skills
+    return [
+      new CoreAssistantSkill(),
+      new DiscoverySkill(),
+      new SecuritySkill(),
+    ]
   }
 
   private async getModel(bindTools = false, dataSourceId?: number) {
@@ -192,8 +182,17 @@ export default class LangChainService {
       return
     }
 
+    // Resolve dbType from DataSource if possible (Ignore frontend provided dbType)
+    let dbType = context.dbType || 'mysql'
+    if (dataSourceId) {
+      const ds = await DataSource.find(dataSourceId)
+      if (ds) {
+        dbType = ds.type
+      }
+    }
+
     const { llm: modelWithTools, tools } = await this.getModel(true, dataSourceId)
-    const dbType = context.dbType || 'mysql'
+    // const dbType = context.dbType || 'mysql' // Removed overridden line
     const modelName = (modelWithTools as any).modelName || 'gpt-4o' // Fallback for logging
 
     const businessContext = await this.retrieveContext(question, dbType)
