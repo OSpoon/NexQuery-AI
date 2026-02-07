@@ -69,6 +69,14 @@ export default class SchedulerService {
 
   private async execute(scheduledQuery: ScheduledQuery) {
     try {
+      // 1. Double-check: Re-fetch status from DB to ensure it wasn't disabled by another process/node
+      const freshSchedule = await ScheduledQuery.find(scheduledQuery.id)
+      if (!freshSchedule || !freshSchedule.isActive) {
+        logger.warn(`Scheduled query ${scheduledQuery.id} skipped (not active or deleted)`)
+        return
+      }
+
+      // 2. Load Task
       const task = await scheduledQuery.related('queryTask').query().preload('dataSource').first()
       if (!task)
         return
