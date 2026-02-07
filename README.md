@@ -53,9 +53,10 @@
 *   **FinOps**: 完整的 Token 消耗监控看板，支持按用户、模型维度的成本拆分。
 
 ### ⚙️ 自动化与触达
-*   **Task Scheduler**: 支持 Crontab 定时执行 SQL 报表任务。
+*   **Parameterized Scheduler**: 支持 Crontab 定时执行 SQL 报表任务，支持配置**动态占位符参数**，实现千人千面的自动化报表。
+*   **AI Feedback Loop**: 用户可以直接对 AI 生成的 SQL/Lucene 进行评价与校正，系统支持从反馈中**自动学习**，持续提升准确率。
 *   **Multi-Channel Push**:
-    *   **Email**: 自动发送 CSV 附件。
+    *   **Email**: 自动发送带有数据的 CSV 附件。
     *   **IM Webhook**: 支持企业微信、钉钉、飞书群机器人实时推送数据摘要。
 *   **Mini Program**: 配套微信小程序，随时随地查看报表与历史记录。
 
