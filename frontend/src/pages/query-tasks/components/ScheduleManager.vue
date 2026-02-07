@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
-import { CalendarClock, Edit, Globe, Mail, Plus, Settings, Trash2 } from 'lucide-vue-next'
+import { CalendarClock, Edit, Globe, Mail, Play, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { DateTime } from 'luxon'
 import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -268,6 +268,17 @@ async function toggleActive(schedule: ScheduledQuery) {
   }
 }
 
+async function executeSchedule(schedule: ScheduledQuery) {
+  try {
+    toast.info('Triggering execution...')
+    await api.post(`/scheduled-queries/${schedule.id}/execute`)
+    toast.success('Execution triggered successfully')
+  }
+  catch {
+    toast.error('Failed to trigger execution')
+  }
+}
+
 onMounted(async () => {
   await Promise.all([fetchSchedules(), fetchTask()])
 })
@@ -354,6 +365,9 @@ onMounted(async () => {
               <div>{{ new Date(s.createdAt).toLocaleDateString() }}</div>
             </TableCell>
             <TableCell class="text-right space-x-2">
+              <Button type="button" variant="ghost" size="icon" title="Run Now" @click="executeSchedule(s)">
+                <Play class="h-4 w-4 text-green-600" />
+              </Button>
               <Button type="button" variant="ghost" size="icon" @click="openEditDialog(s)">
                 <Edit class="h-4 w-4" />
               </Button>

@@ -111,4 +111,13 @@ export default class ScheduledQueriesController {
 
     return response.noContent()
   }
+
+  async execute({ params, response }: HttpContext) {
+    const schedule = await ScheduledQuery.findOrFail(params.id)
+
+    // Trigger execution in background (fire and forget)
+    this.scheduler.execute(schedule, true)
+
+    return response.ok({ message: 'Execution started' })
+  }
 }

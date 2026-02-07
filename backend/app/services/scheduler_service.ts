@@ -67,11 +67,13 @@ export default class SchedulerService {
     }
   }
 
-  private async execute(scheduledQuery: ScheduledQuery) {
+  public async execute(scheduledQuery: ScheduledQuery, force = false) {
     try {
       // 1. Double-check: Re-fetch status from DB to ensure it wasn't disabled by another process/node
       const freshSchedule = await ScheduledQuery.find(scheduledQuery.id)
-      if (!freshSchedule || !freshSchedule.isActive) {
+
+      // If force is true, we ignore the isActive check (but still ensure it exists)
+      if (!freshSchedule || (!force && !freshSchedule.isActive)) {
         logger.warn(`Scheduled query ${scheduledQuery.id} skipped (not active or deleted)`)
         return
       }

@@ -113,6 +113,7 @@ router
             router.get('scheduled-queries/check-cron', [ScheduledQueriesController, 'checkCron'])
             router.post('scheduled-queries', [ScheduledQueriesController, 'store'])
             router.put('scheduled-queries/:id', [ScheduledQueriesController, 'update'])
+            router.post('scheduled-queries/:id/execute', [ScheduledQueriesController, 'execute'])
             router.delete('scheduled-queries/:id', [ScheduledQueriesController, 'destroy'])
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_TASKS }))
