@@ -57,18 +57,22 @@ export default class AiProviderService {
   /**
    * Get Langfuse Callback Handler
    */
-  public getLangfuseHandler() {
+  public getLangfuseHandler(context?: { sessionId?: string, userId?: string, metadata?: any, tags?: string[] }) {
     return new CallbackHandler({
       publicKey: env.get('LANGFUSE_PUBLIC_KEY', ''),
       secretKey: env.get('LANGFUSE_SECRET_KEY', ''),
       baseUrl: env.get('LANGFUSE_HOST', 'https://cloud.langfuse.com'),
+      sessionId: context?.sessionId,
+      userId: context?.userId,
+      metadata: context?.metadata,
+      tags: context?.tags,
     })
   }
 
   /**
    * Get a ChatOpenAI model instance
    */
-  public async getChatModel(options: { streaming?: boolean, temperature?: number } = {}) {
+  public async getChatModel(options: { streaming?: boolean, temperature?: number, callbacks?: any[] } = {}) {
     const config = await this.getConfig()
 
     // Ensure API Key is in env for some tool integrations if needed
@@ -82,7 +86,7 @@ export default class AiProviderService {
       timeout: config.timeoutMs,
       streaming: options.streaming ?? false,
       streamUsage: true,
-      callbacks: [this.getLangfuseHandler()],
+      callbacks: options.callbacks, // Allow passing callbacks explicitly
     })
   }
 

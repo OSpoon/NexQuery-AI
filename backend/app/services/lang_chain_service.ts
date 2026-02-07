@@ -49,9 +49,9 @@ export default class LangChainService {
     ]
   }
 
-  private async getModel(bindTools = false, dataSourceId?: number) {
+  private async getModel(bindTools = false, dataSourceId?: number, callbacks?: any[]) {
     const aiProvider = new AiProviderService()
-    const llm = await aiProvider.getChatModel({ streaming: true })
+    const llm = await aiProvider.getChatModel({ streaming: true, callbacks })
 
     if (bindTools && dataSourceId) {
       const ds = await DataSource.find(dataSourceId)
@@ -91,7 +91,15 @@ export default class LangChainService {
       // ... (Keep existing general chat logic or route through graph too? For now keep simple)
       // Keeping existing plain LLM logic for safety/simplicity for non-data chats
       const systemPrompt = GENERAL_CHAT_SYSTEM_PROMPT
-      const { llm: model } = await this.getModel(false)
+
+      const aiProvider = new AiProviderService()
+      const traceHandler = aiProvider.getLangfuseHandler({
+        sessionId: context.conversationId ? `conv_${context.conversationId}` : undefined,
+        userId: context.userId ? `user_${context.userId}` : undefined,
+        tags: ['general_chat'],
+      })
+
+      const { llm: model } = await this.getModel(false, undefined, [traceHandler])
       const messages: BaseMessage[] = [new SystemMessage(systemPrompt)]
       for (const m of context.history || []) {
         if (m.role === 'user')
@@ -165,11 +173,21 @@ export default class LangChainService {
       userId: context.userId,
     }
 
+    // Create Trace Handler
+    const aiProvider = new AiProviderService()
+    const traceHandler = aiProvider.getLangfuseHandler({
+      sessionId: context.conversationId ? `conv_${context.conversationId}` : undefined,
+      userId: context.userId ? `user_${context.userId}` : undefined,
+      metadata: { dataSourceId, dbType },
+      tags: ['agent_graph', dbType],
+    })
+
     try {
       // Use streamEvents to capture tokens and tool events
       const stream = app.streamEvents(inputs, {
         version: 'v2',
         recursionLimit: 10,
+        callbacks: [traceHandler],
       })
 
       const streamState: StreamState = {
@@ -309,8 +327,15 @@ export default class LangChainService {
   }
 
   // Keep legacy logical method for optimizing SQL (simpler chain)
-  async* optimizeSqlStream(sql: string, context: { dbType?: string, schema?: any, userId?: number }) {
-    const { llm } = await this.getModel(false)
+  async* optimizeSqlStream(sql: string, context: { dbType?: string, schema?: any, userId?: number, conversationId?: number }) {
+    const aiProvider = new AiProviderService()
+    const traceHandler = aiProvider.getLangfuseHandler({
+      sessionId: context.conversationId ? `conv_${context.conversationId}` : undefined,
+      userId: context.userId ? `user_${context.userId}` : undefined,
+      tags: ['sql_optimization'],
+    })
+
+    const { llm } = await this.getModel(false, undefined, [traceHandler])
     const modelName = (llm as any).modelName || 'gpt-4o'
     const dbType = context.dbType || 'mysql'
 
