@@ -30,11 +30,14 @@
 ## 🚀 核心功能 (Features)
 
 ### 🤖 AI 智能引擎 (Agentic Engine)
+*   **Multi-Agent Workflow (LangGraph)**:
+    - **Supervisor**: 智能调度中心，根据问题深度自动编排工作流。
+    - **Discovery Agent**: 自动探索 Schema、Index Mapping 及多表关联关系。
+    - **Generator Agent**: 支持 Text-to-SQL 与 Text-to-Lucene，具备错误自修复能力。
+    - **Security Agent**: 实时审计生成的脚本，拦截危险操作并对 PII 数据进行脱敏。
 *   **Dual-Mode Chat**:
-    *   **SQL Agent**: 深度结合数据库 Schema，支持 Text-to-SQL、错误自修复、歧义主动询问 (Disambiguation) 与思维链展示。
-    *   **Lucene Agent**: 专为 Elasticsearch 设计，支持 Index 发现、Mapping 解析与 Lucene 查询语句生成。
-    *   **General Chat**: 像 ChatGPT 一样的通用问答模式，处理非数据库类问题。
-*   **Smart Optimization**: AI 自动分析 SQL 性能，提供索引建议与重写方案。
+    *   **SQL Agent**: 深度结合数据库 Schema，支持 Text-to-SQL、歧义主动询问 (Disambiguation) 与思维链展示。
+    *   **Lucene Agent**: 专为 Elasticsearch 设计，支持 Index 发现、Mapping 解析与查询语句生成。
 *   **Mind Chain**: 透明展示 AI 的推理过程 (Reasoning)、工具调用 (ListTables, ValidateSql) 与自我纠错逻辑。
 *   **Knowledge RAG**: 将用户认可的优质 SQL 沉淀为知识库，增强 AI 在特定业务场景下的准确率。
 
@@ -44,6 +47,7 @@
 *   **Schema Sync**: 定时或触发式同步最新的表结构至向量数据库。
 
 ### 🛡 安全与治理
+*   **End-to-End Encryption**: 基于 `CryptoService` 实现敏感 API 负载的全链路加密，确保 API 密钥与敏感数据在传输过程中不可被破解。
 *   **RBAC**: 基于角色的权限控制 (Admin, Developer, Operator)，支持动态菜单与按钮级权限。
 *   **Security Guardrails**:
     *   拦截 `DROP`, `TRUNCATE` 等高危指令。
@@ -68,10 +72,10 @@
 
 | Component | Status | Description |
 | :--- | :--- | :--- |
+| **Multi-Agent Graph** | ✅ Implemented | LangGraph-based workflow with Supervisor and specialized agents. |
+| **Payload Encryption** | ✅ Implemented | AES-256 encryption for sensitive data exchange using shared key. |
 | **AI SQL Generation** | ✅ Implemented | Robust backend agent using LangChain, schema retrieval, and self-correction. |
-| **Chat Interface** | ✅ Implemented | Floating AI assistant accessible from all dashboard pages. |
 | **Reasoning Display** | ✅ Implemented | Users can see "thoughts" and "tool calls" (e.g., schema lookup, validation). |
-| **Direct Execution** | ✅ Implemented | Users can click "Run" on any generated SQL to see results instantly. |
 | **Data Report Display**| ✅ Implemented | Results are rendered as an interactive table directly inside the chat. |
 | **Mobile** | Uni-app + Vite | 跨平台小程序开发 |
 
