@@ -30,7 +30,7 @@ export async function supervisorNode(state: AgentState, config?: any) {
   ]
 
   const routeSchema = z.object({
-    next: z.enum(['sql_agent', 'es_agent', 'respond_directly']).describe('Next expert or final response'),
+    next: z.enum(['discovery_agent', 'respond_directly']).describe('Next expert or final response'),
   })
 
   try {
@@ -39,7 +39,6 @@ export async function supervisorNode(state: AgentState, config?: any) {
     return { next: result.next || 'respond_directly' }
   } catch (e) {
     console.error('Supervisor Routing Error:', e)
-    const isEs = state.dbType === 'elasticsearch' || state.dbType === 'es'
-    return { next: isEs ? 'es_agent' : 'sql_agent' }
+    return { next: 'discovery_agent' }
   }
 }

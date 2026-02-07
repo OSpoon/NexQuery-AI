@@ -6,13 +6,21 @@ import { SkillContext } from '#services/skills/skill_interface'
 import { SecuritySkill } from '#services/skills/security_skill'
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
 
+import { LuceneSkill } from '#services/skills/lucene_skill'
+
 export class GeneratorAgentNode extends CommonAgentNode {
-  protected getSkills(_context: SkillContext) {
-    return [
-      new CoreAssistantSkill(),
+  protected getSkills(context: SkillContext) {
+    const skills = [
+      new CoreAssistantSkill({ excludeSubmission: true }),
       new DiscoverySkill(),
       new SecuritySkill(), // Self-correction capability
     ]
+
+    if (context.dbType === 'elasticsearch') {
+      skills.push(new LuceneSkill())
+    }
+
+    return skills
   }
 }
 

@@ -9,6 +9,10 @@ export class CoreAssistantSkill extends BaseSkill {
   readonly name = 'CoreAssistant'
   readonly description = 'Fundamental interaction, contextual memory, and task submission'
 
+  constructor(private options: { excludeSubmission?: boolean } = {}) {
+    super()
+  }
+
   getSystemPrompt(context: SkillContext): string {
     return CORE_ASSISTANT_SKILL_PROMPT(context.dbType || 'mysql', context.dataSourceId)
   }
@@ -19,10 +23,12 @@ export class CoreAssistantSkill extends BaseSkill {
       new GetCurrentTimeTool(),
     ]
 
-    if (context.dbType === 'elasticsearch') {
-      tools.push(new SubmitLuceneTool())
-    } else {
-      tools.push(new SubmitSqlTool())
+    if (this.options.excludeSubmission !== true) {
+      if (context.dbType === 'elasticsearch') {
+        tools.push(new SubmitLuceneTool())
+      } else {
+        tools.push(new SubmitSqlTool())
+      }
     }
 
     return tools

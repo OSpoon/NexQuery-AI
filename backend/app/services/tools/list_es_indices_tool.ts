@@ -29,12 +29,35 @@ export class ListEsIndicesTool extends StructuredTool {
       })
       // Use _cat/indices for a simpler list
       const indices: any = await esService.client.cat.indices({ format: 'json' })
-      // Filter out system indices (.kibana, .ds, etc.) and limit to 50 results to avoid context bloat
-      const filteredIndices = indices
-        .filter((i: any) => !i.index.startsWith('.') && i.index !== 'search-history')
-        .slice(0, 50)
 
-      return JSON.stringify(filteredIndices.map((i: any) => ({
+      const allCount = indices.length
+      const filteredIndices = indices.filter((i: any) => {
+        // Hide truly internal indices
+        const internalPrefixes = ['.kibana', '.security', '.monitoring', '.async-search', '.apm', '.tasks', '.reporting']
+        if (internalPrefixes.some(p => i.index.startsWith(p)))
+          return false
+        if (i.index === 'search-history')
+          return false
+
+        // Allow common data streams and business indices
+        // In ES, data streams often start with '.ds-' but contain real log data
+        if (i.index.startsWith('.ds-'))
+          return true
+
+        // Hide other generic dot-prefixed indices if they don't look like data streams
+        if (i.index.startsWith('.') && !i.index.startsWith('.ds-'))
+          return false
+
+        return true
+      })
+
+      if (filteredIndices.length === 0 && allCount > 0) {
+        return `No business indices found. Found ${allCount} system/internal indices (hidden).`
+      }
+
+      const limitedIndices = filteredIndices.slice(0, 50)
+
+      return JSON.stringify(limitedIndices.map((i: any) => ({
         index: i.index,
         docsCount: i['docs.count'],
         size: i['store.size'],

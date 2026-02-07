@@ -27,9 +27,13 @@ export abstract class CommonAgentNode {
     const promptTemplate = PROMPT_MAP[nodeName] || AGENT_SYSTEM_PROMPT_TEMPLATE
 
     // Provide intermediate results as context if they exist
-    const resultsStr = state.intermediate_results ? `\n\n**Intermediate Results from Previous Steps**:\n${JSON.stringify(state.intermediate_results, null, 2)}` : ''
+    const resultsStr = state.intermediate_results && Object.keys(state.intermediate_results).length > 0
+      ? `\n\n--- INTERMEDIATE RESULTS FROM PREVIOUS STEPS ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n-----------------------------------------------\n`
+      : ''
 
-    const systemPrompt = (typeof promptTemplate === 'function'
+    const envHeader = `\n\n[!!! STRICT ENVIRONMENT PROTOCOL !!!]\nCURRENT MODE: ${state.dbType.toUpperCase()} \nDATASOURCE ID: ${state.dataSourceId || 'UNKNOWN'}\n- YOU MUST ONLY USE ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'} SYNTAX.\n- DO NOT ASSUME THE EXISTENCE OF ${state.dbType === 'elasticsearch' ? 'TABLES OR COLUMNS' : 'INDICES OR MAPPINGS'}.\n- NEVER TRY TO GUESS OR SEARCH FOR OTHER DATASOURCE IDS.\n- YOUR TOOLS ARE STRICTLY FILTERED FOR THIS ENVIRONMENT ONLY.\n[!!! END PROTOCOL !!!]\n\n`
+
+    const systemPrompt = envHeader + (typeof promptTemplate === 'function'
       ? (promptTemplate as any)(state.dbType, skillPrompts)
       : promptTemplate) + resultsStr
 
@@ -122,12 +126,34 @@ export abstract class CommonAgentNode {
 
           let toolOutput = ''
           try {
-            if (!toolCall.args.dataSourceId)
+            // STRICT ENFORCEMENT: Never allow the LLM to guess or change the dataSourceId.
+            // Always use the one provided by the system/frontend context.
+            if (state.dataSourceId) {
               toolCall.args.dataSourceId = state.dataSourceId
+            }
 
             const tool = tools.find(t => t.name === toolCall.name)
             if (tool) {
               toolOutput = await tool.invoke(toolCall.args, config)
+
+              // AUTO-PERSISTENCE: Automatically save discovery/metadata results to intermediate_results
+              // This prevents subsequent agents from re-running the same discovery tools.
+              const metaTools = [
+                'list_tables',
+                'get_table_schema',
+                'search_tables',
+                'sample_table_data',
+                'search_column_values',
+                'list_es_indices',
+                'get_es_index_summary',
+                'get_es_mapping',
+                'get_es_field_stats',
+                'sample_es_data',
+              ]
+              if (metaTools.includes(toolCall.name)) {
+                const persistenceKey = `${toolCall.name}_${JSON.stringify(toolCall.args)}`
+                intermediateResults[persistenceKey] = toolOutput
+              }
             } else {
               toolOutput = `Error: Tool ${toolCall.name} not found.`
             }

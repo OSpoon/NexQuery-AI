@@ -4,7 +4,6 @@ import { supervisorNode } from '#services/agents/nodes/supervisor'
 import { discoveryAgentNode } from '#services/agents/nodes/discovery_agent'
 import { generatorAgentNode } from '#services/agents/nodes/generator_agent'
 import { securityAgentNode } from '#services/agents/nodes/security_agent'
-import { esAgentNode } from '#services/agents/nodes/es_agent'
 
 /**
  * Modern v1.x State Definition using Annotation API
@@ -58,7 +57,6 @@ export function createAgentGraph() {
   workflow.addNode('discovery_agent', discoveryAgentNode)
   workflow.addNode('generator_agent', generatorAgentNode)
   workflow.addNode('security_agent', securityAgentNode)
-  workflow.addNode('es_agent', esAgentNode)
 
   // Add Edges
   workflow.addEdge(START, 'supervisor' as any)
@@ -67,8 +65,7 @@ export function createAgentGraph() {
     'supervisor' as any,
     (state: AgentState) => state.next || 'respond_directly',
     {
-      sql_agent: 'discovery_agent',
-      es_agent: 'es_agent',
+      discovery_agent: 'discovery_agent',
       respond_directly: END,
     } as any,
   )
@@ -77,8 +74,6 @@ export function createAgentGraph() {
   workflow.addEdge('discovery_agent' as any, 'generator_agent' as any)
   workflow.addEdge('generator_agent' as any, 'security_agent' as any)
   workflow.addEdge('security_agent' as any, END)
-
-  workflow.addEdge('es_agent' as any, END)
 
   return workflow.compile()
 }
