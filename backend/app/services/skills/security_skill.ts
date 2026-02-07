@@ -10,7 +10,10 @@ export class SecuritySkill extends BaseSkill {
     return SECURITY_SKILL_PROMPT
   }
 
-  getTools(_context: SkillContext) {
+  getTools(context: SkillContext) {
+    if (context.dbType === 'elasticsearch') {
+      return [] // No dedicated Lucene validator yet, but it can use Discovery tools
+    }
     return [new ValidateSqlTool()]
   }
 }

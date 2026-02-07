@@ -10,10 +10,8 @@ export class GetCurrentTimeTool extends StructuredTool {
   schema = z.object({
     timezone: z
       .string()
-      .optional()
-      .describe(
-        'The timezone to format the time in, e.g. "Asia/Shanghai". Defaults to system time.',
-      ),
+      .describe('The timezone to format the time in, e.g. "Asia/Shanghai". Defaults to system time.')
+      .optional(),
   })
 
   async _call({ timezone }: z.infer<typeof this.schema>) {

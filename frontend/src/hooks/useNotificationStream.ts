@@ -1,19 +1,13 @@
 import { onMounted, onUnmounted } from 'vue'
 import { toast } from 'vue-sonner'
+import { useNotificationStore } from '@/stores/notification'
 
 export function useNotificationStream() {
+  const store = useNotificationStore()
   let eventSource: EventSource | null = null
 
   const connect = () => {
-    // We need to pass the auth token if we want it to be secure,
-    // but EventSource doesn't support headers by default.
-    // However, our backend stream route is under auth() middleware.
-    // Standard approach: Use a temporary token or session cookie.
-    // Since we are using session-based auth (likely), it might work.
-    // If using Bearer token, we need a workaround or a library like fetch-event-source.
-
     const token = localStorage.getItem('auth_token')
-    // Use relative path to leverage Vite proxy and avoid hostname issues
     const url = `/api/notifications/stream${token ? `?token=${token}` : ''}`
     eventSource = new EventSource(url, { withCredentials: true })
 
@@ -21,24 +15,29 @@ export function useNotificationStream() {
       try {
         const data = JSON.parse(event.data)
         if (data.type === 'notification') {
-          const { title, message, type } = data.payload
+          // data.data is the JSON of the Notification model
+          const notification = data.data
+          const { title, content, type } = notification
 
-          // 1. Show Toast (Sonner)
+          // 1. Add to Store
+          store.addNotification(notification)
+
+          // 2. Show Toast (Sonner)
           if (type === 'success')
-            toast.success(title, { description: message })
+            toast.success(title, { description: content })
           else if (type === 'error')
-            toast.error(title, { description: message })
+            toast.error(title, { description: content })
           else if (type === 'warning')
-            toast.warning(title, { description: message })
-          else toast.info(title, { description: message })
+            toast.warning(title, { description: content })
+          else toast.info(title, { description: content })
 
-          // 2. Show Browser Notification
+          // 3. Show Browser Notification
           if (Notification.permission === 'granted') {
-            const n = new Notification(title, {
-              body: message,
-              icon: '/favicon.ico', // Or any specific icon
+            // eslint-disable-next-line no-new
+            new Notification(title, {
+              body: content,
+              icon: '/favicon.ico',
             })
-            n.close() // Clean up immediately or manage lifecycle
           }
         }
       }

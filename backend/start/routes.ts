@@ -18,7 +18,6 @@ const TwoFactorAuthController = () => import('#controllers/two_factor_auth_contr
 const AiController = () => import('#controllers/ai_controller')
 const ScheduledQueriesController = () => import('#controllers/scheduled_queries_controller')
 const ApiKeysController = () => import('#controllers/api_keys_controller')
-const AiFeedbacksController = () => import('#controllers/ai_feedbacks_controller')
 const NotificationsController = () => import('#controllers/notifications_controller')
 const AiFinOpsController = () => import('#controllers/ai_fin_ops_controller')
 
@@ -118,16 +117,15 @@ router
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_TASKS }))
 
-        // AI Feedback
+        // Message Center (Notifications)
         router
           .group(() => {
-            router.get('feedback', [AiFeedbacksController, 'index'])
-            router.post('feedback', [AiFeedbacksController, 'store'])
-            router.post('feedback/:id/adopt', [AiFeedbacksController, 'adopt'])
-            router.delete('feedback/:id', [AiFeedbacksController, 'destroy'])
+            router.get('notifications', '#controllers/user_notifications_controller.index')
+            router.patch('notifications/:id/read', '#controllers/user_notifications_controller.markAsRead')
+            router.post('notifications/read-all', '#controllers/user_notifications_controller.markAllAsRead')
+            router.delete('notifications/:id', '#controllers/user_notifications_controller.destroy')
           })
-          .prefix('ai')
-          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_AI_FEEDBACK }))
+          .prefix('user')
 
         // Execution
         router.post('query-tasks/:id/execute', [ExecutionController, 'execute'])
@@ -139,9 +137,17 @@ router
         router.post('ai/chat/stream', [AiController, 'chatStream'])
         router.post('ai/preview', [AiController, 'preview'])
         router.post('ai/learn', [AiController, 'learn'])
+        router.get('ai/graph/visualize', [AiController, 'visualizeGraph'])
         router.get('ai/conversations', [AiController, 'getConversations'])
         router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])
         router.delete('ai/conversations/:id', [AiController, 'deleteConversation'])
+
+        // AI Feedback
+        const AiFeedbacksController = () => import('#controllers/ai_feedbacks_controller')
+        router.get('ai/feedback', [AiFeedbacksController, 'index'])
+        router.post('ai/feedback', [AiFeedbacksController, 'store'])
+        router.post('ai/feedback/:id/adopt', [AiFeedbacksController, 'adopt'])
+        router.delete('ai/feedback/:id', [AiFeedbacksController, 'destroy'])
 
         // Public Menu Access
         router.get('menus/route-permissions', [MenusController, 'getRoutePermissions'])

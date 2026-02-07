@@ -37,6 +37,7 @@
     "lucide-vue-next": "^0.562.0",
     "luxon": "^3.7.2",
     "markstream-vue": "0.0.6-beta.3",
+    "mermaid": "^11.12.2",
     "monaco-editor": "^0.37.1",
     "monaco-sql-languages": "^0.15.1",
     "pinia": "^3.0.4",

@@ -1,12 +1,13 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import AiFeedback from '#models/ai_feedback'
 import LangChainService from '#services/lang_chain_service'
+import NotificationService from '#services/notification_service'
 
 export default class AiFeedbacksController {
   /**
    * Store feedback
    */
-  async store({ request, response }: HttpContext) {
+  async store({ request, response, auth }: HttpContext) {
     const data = request.only([
       'question',
       'generatedSql',
@@ -26,11 +27,22 @@ export default class AiFeedbacksController {
       isAdopted: data.isHelpful === true, // Auto-adopt if helpful
     })
 
-    // If auto-adopted, promote to knowledge base immediately
+    // If auto-learned, notify user
     if (feedback.isAdopted) {
       try {
         const langChainService = new LangChainService()
         await langChainService.learnInteraction(feedback.question, feedback.generatedSql, undefined, feedback.sourceType)
+
+        // Notify user about the new knowledge
+        const userId = auth.user?.id
+        if (userId) {
+          NotificationService.push(
+            userId,
+            '知识库已更新',
+            'AI 已根据您的反馈学习了新的业务逻辑案例。',
+            'success',
+          )
+        }
       } catch (error) {
         console.error('Failed to auto-learn from helpful feedback:', error)
       }
@@ -43,7 +55,10 @@ export default class AiFeedbacksController {
    * List all feedbacks (Paginated)
    */
   async index({ request, auth, response }: HttpContext) {
-    if (!auth.user!.isAdmin) {
+    const user = auth.user!
+    await user.load('roles')
+
+    if (!user.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
@@ -66,7 +81,10 @@ export default class AiFeedbacksController {
    * Mark feedback as adopted
    */
   async adopt({ params, response, auth }: HttpContext) {
-    if (!auth.user!.isAdmin) {
+    const user = auth.user!
+    await user.load('roles')
+
+    if (!user.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
@@ -94,7 +112,10 @@ export default class AiFeedbacksController {
    * Delete feedback
    */
   async destroy({ params, response, auth }: HttpContext) {
-    if (!auth.user!.isAdmin) {
+    const user = auth.user!
+    await user.load('roles')
+
+    if (!user.isAdmin) {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
     const feedback = await AiFeedback.findOrFail(params.id)

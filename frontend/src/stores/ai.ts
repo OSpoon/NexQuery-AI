@@ -1,17 +1,19 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
 import i18n from '@/i18n'
 import api from '@/lib/api'
 
 export interface AgentStep {
-  type: 'thought' | 'tool'
+  type: 'thought' | 'tool' | 'node'
   content?: string // For thoughts
   toolName?: string
   toolInput?: any
   toolOutput?: string
   toolId?: string
-  status?: 'running' | 'done' | 'error'
+  nodeName?: string // For nodes
+  id?: string // For nodes/tools
+  status?: 'running' | 'done' | 'error' | 'completed'
 }
 
 export interface ChatMessage {
@@ -44,6 +46,7 @@ export const useAiStore = defineStore('ai', () => {
   const conversations = ref<any[]>([])
   const currentConversationId = ref<number | null>(null)
   const queryResults = ref<Record<number, { data: any[], duration: number }>>({})
+  const mermaidGraph = ref<string | null>(null)
 
   function toggleOpen() {
     isOpen.value = !isOpen.value
@@ -256,6 +259,23 @@ export const useAiStore = defineStore('ai', () => {
                   toolStep.status = 'done'
                 }
               }
+              else if (data.type === 'node_start') {
+                activeMessage.agentSteps.push({
+                  type: 'node',
+                  nodeName: data.node,
+                  status: 'running',
+                  id: data.id,
+                })
+              }
+              else if (data.type === 'node_end') {
+                const nodeStep = activeMessage.agentSteps
+                  .slice()
+                  .reverse()
+                  .find(s => s.type === 'node' && s.id === data.id)
+                if (nodeStep) {
+                  nodeStep.status = 'completed'
+                }
+              }
               else if (data.type === 'clarify') {
                 activeMessage.clarification = {
                   question: data.question,
@@ -301,6 +321,26 @@ export const useAiStore = defineStore('ai', () => {
     }
   }
 
+  async function fetchGraphVisual() {
+    try {
+      const res = await api.get('/ai/graph/visualize')
+      mermaidGraph.value = res.data.mermaid
+    }
+    catch (e) {
+      console.error('Failed to fetch graph visual', e)
+    }
+  }
+
+  const activeNodeName = computed(() => {
+    if (messages.value.length === 0)
+      return undefined
+    const lastMessage = messages.value[messages.value.length - 1]
+    if (!lastMessage.agentSteps)
+      return undefined
+    const runningNode = [...lastMessage.agentSteps].reverse().find(s => s.type === 'node' && s.status === 'running')
+    return runningNode?.nodeName
+  })
+
   return {
     isOpen,
     messages,
@@ -321,5 +361,8 @@ export const useAiStore = defineStore('ai', () => {
     deleteConversation,
     queryResults,
     previewSql,
+    fetchGraphVisual,
+    mermaidGraph,
+    activeNodeName,
   }
 })

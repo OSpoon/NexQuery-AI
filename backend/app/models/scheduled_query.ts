@@ -29,6 +29,12 @@ export default class ScheduledQuery extends BaseModel {
   @column({ columnName: 'is_active' })
   declare isActive: boolean
 
+  @column({
+    prepare: (value: any) => (value ? JSON.stringify(value) : null),
+    consume: (value: any) => (typeof value === 'string' ? JSON.parse(value) : value),
+  })
+  declare parameters: any | null
+
   @column({ columnName: 'created_by' })
   declare createdBy: number | null
 

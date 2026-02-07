@@ -71,7 +71,7 @@
     "ai_feedback": "AI 反馈"
   },
   "finops": {
-    "title": "FinOps 成本监控",
+    "title": "成本监控",
     "description": "实时监控 AI 模型 Token 消耗及估算成本。",
     "refresh": "刷新数据",
     "total_cost": "预估总支出",

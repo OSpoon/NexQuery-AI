@@ -4,7 +4,6 @@ import * as LucideIcons from 'lucide-vue-next'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import NavMain from '@/components/NavMain.vue'
-
 import NavUser from '@/components/NavUser.vue'
 import {
   Sidebar,

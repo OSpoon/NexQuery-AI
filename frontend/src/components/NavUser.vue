@@ -16,8 +16,9 @@ import {
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import MessageCenter from '@/components/common/MessageCenter.vue'
 
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,7 +101,13 @@ function setTheme(themeValue: string) {
               <span class="truncate font-medium">{{ user.name }}</span>
               <span class="truncate text-xs">{{ user.email }}</span>
             </div>
-            <ChevronsUpDown class="ml-auto size-4" />
+            <div class="relative flex items-center pr-1.5">
+              <div
+                v-if="useNotificationStore().unreadCount > 0"
+                class="absolute -top-1 -right-0.5 h-1.5 w-1.5 bg-destructive rounded-full border border-sidebar-background animate-in zoom-in shadow-sm"
+              />
+              <ChevronsUpDown class="ml-auto size-4 opacity-50" />
+            </div>
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
@@ -121,6 +128,7 @@ function setTheme(themeValue: string) {
                 <span class="truncate font-semibold">{{ user.name }}</span>
                 <span class="truncate text-xs">{{ user.email }}</span>
               </div>
+              <MessageCenter />
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
