@@ -156,6 +156,30 @@ export default class DiscoveryService {
   }
 
   /**
+   * Search for related business knowledge and few-shot examples (Vector Store)
+   */
+  static async searchRelatedKnowledge(query: string, limit: number = 3): Promise<string> {
+    const embeddingService = new EmbeddingService()
+    const vectorStore = new VectorStoreService()
+    const queryEmbedding = await embeddingService.generate(query)
+
+    const results = await vectorStore.searchKnowledge(queryEmbedding, limit)
+
+    if (results.length === 0) {
+      return 'No related business knowledge or examples found in the Knowledge Base.'
+    }
+
+    return JSON.stringify(
+      results.map(k => ({
+        topic: k.payload?.keyword,
+        logic: k.payload?.description,
+        example_code: k.payload?.exampleSql || k.payload?.exampleLucene,
+        relevance: k.score.toFixed(4),
+      })),
+    )
+  }
+
+  /**
    * Get detailed schema for an entity
    */
   static async getEntitySchema(dataSourceId: number, entityName: string): Promise<EntitySchema> {

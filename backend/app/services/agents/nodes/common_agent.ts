@@ -161,6 +161,7 @@ export abstract class CommonAgentNode {
                 'sample_entity_data',
                 'search_entities',
                 'search_field_values',
+                'search_related_knowledge',
                 'search_column_values', // Keep for safety if any agent still calls it
                 'search_tables', // Keep for safety
               ]

@@ -1,9 +1,10 @@
-export const DISCOVERY_SKILL_PROMPT = `### 1. 数据发现预览 (Discovery Capabilities)
-- **模糊搜索**: 通过 \`search_tables\` 快速定位相关表名及业务含义。
-- **结构检查**: 锁定目标后，使用 \`get_table_schema\` 获取精确字段列表。
-- **全量列表**: 使用 \`list_tables\` 浏览所有物理表。
-- **抽样分析**: 遇到不确定的枚举值或状态码，务必使用 \`sample_table_data\` 观察真实内容。
-- **值搜索**: 遇到具体的数值或名称查询，使用 \`search_column_values\` 检索索引数据。`
+export const DISCOVERY_SKILL_PROMPT = `### 1. 数据发现与知识参考 (Discovery & Knowledge)
+- **语义发现**: 通过 \`search_entities\` 基于自然语言描述快速定位相关表/索引。
+- **业务知识**: 遇到不确定的业务术语（如 "VIP"、"活跃度"）或复杂的计算逻辑，**务必使用** \`search_related_knowledge\` 检索知识库中的定义和历史优秀 SQL 案例。
+- **结构检查**: 锁定目标后，使用 \`get_entity_schema\` 获取精确字段列表。
+- **全量列表**: 使用 \`list_entities\` 浏览所有物理实体。
+- **抽样分析**: 遇到不确定的枚举值，使用 \`sample_entity_data\` 观察真实内容。
+- **值搜索**: 检索具体数值或名称在哪个字段中，使用 \`search_field_values\`。`
 
 export const ES_DISCOVERY_SKILL_PROMPT = `### 1. Elasticsearch 发现预览 (ES Discovery)
 - **索引列表**: 使用 \`list_es_indices\` 浏览所有业务索引。
