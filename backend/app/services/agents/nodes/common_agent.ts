@@ -2,7 +2,7 @@ import { AgentState } from '#services/agents/state'
 import AiProviderService from '#services/ai_provider_service'
 import { SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { SkillContext } from '#services/skills/skill_interface'
-import { AGENT_SYSTEM_PROMPT_TEMPLATE } from '#prompts/index'
+import { AGENT_SYSTEM_PROMPT_TEMPLATE, PROMPT_MAP } from '#prompts/index'
 import logger from '@adonisjs/core/services/logger'
 
 export abstract class CommonAgentNode {
@@ -22,14 +22,41 @@ export abstract class CommonAgentNode {
     const tools = skills.flatMap(s => s.getTools(context))
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
 
-    const planStr = state.plan ? JSON.stringify(state.plan, null, 2) : ''
-    const resultsStr = state.intermediate_results ? JSON.stringify(state.intermediate_results, null, 2) : ''
-    const systemPrompt = AGENT_SYSTEM_PROMPT_TEMPLATE(state.dbType, planStr, resultsStr, skillPrompts)
+    // Generate Specialized System Prompt based on node name
+    const nodeName = config?.nodeName || this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
+    const promptTemplate = PROMPT_MAP[nodeName] || AGENT_SYSTEM_PROMPT_TEMPLATE
+
+    // Provide intermediate results as context if they exist
+    const resultsStr = state.intermediate_results ? `\n\n**Intermediate Results from Previous Steps**:\n${JSON.stringify(state.intermediate_results, null, 2)}` : ''
+
+    const systemPrompt = (typeof promptTemplate === 'function'
+      ? (promptTemplate as any)(state.dbType, skillPrompts)
+      : promptTemplate) + resultsStr
 
     const modelWithTools = llm.bindTools(tools)
 
-    // Filter out previous system messages and keep only the latest 10 messages to avoid context bloat
-    const history = state.messages.filter(m => m._getType() !== 'system')
+    // Sanitize and filter history to avoid 400 "messages illegal parameters" errors
+    // LLMs (especially OpenAI) expect a strict AIMessage -> ToolMessage sequence for tool calls.
+    // In multi-agent flows or when slicing history, these sequences can break.
+    // We strip tool_calls and filter out ToolMessages to keep a clean User-Assistant conversation.
+    const sanitizeMessages = (msgs: any[]) => {
+      return msgs
+        .filter(m => m._getType() !== 'system' && m._getType() !== 'tool')
+        .map((m) => {
+          if (m._getType() === 'ai' && m.additional_kwargs?.tool_calls) {
+            // Create a copy and remove tool metadata
+            const cleanMsg = m.lc_id ? m : { ...m }
+            return {
+              ...cleanMsg,
+              tool_calls: [],
+              additional_kwargs: { ...cleanMsg.additional_kwargs, tool_calls: undefined },
+            }
+          }
+          return m
+        })
+    }
+
+    const history = sanitizeMessages(state.messages)
     const messages = [
       new SystemMessage(systemPrompt),
       ...history.slice(-10),
@@ -45,7 +72,7 @@ export abstract class CommonAgentNode {
       loopCount++
 
       const response = await modelWithTools.invoke(messages, config)
-      response.additional_kwargs = { ...response.additional_kwargs, node: state.next }
+      response.additional_kwargs = { ...response.additional_kwargs, node: nodeName }
       messages.push(response)
       newMessages.push(response)
 
@@ -112,7 +139,7 @@ export abstract class CommonAgentNode {
             content: toolOutput,
             tool_call_id: toolCall.id!,
             name: toolCall.name,
-            additional_kwargs: { node: state.next },
+            additional_kwargs: { node: nodeName },
           })
           messages.push(toolMessage)
           newMessages.push(toolMessage)
@@ -138,7 +165,7 @@ export abstract class CommonAgentNode {
     return {
       messages: newMessages,
       error: 'Max loops reached without solution.',
-      next: 'respond_directly',
+      next: 'respond_directly', // Final fallback for error
     }
   }
 
@@ -146,11 +173,12 @@ export abstract class CommonAgentNode {
    * Helper to mark plan step as completed and decide on next hop
    */
   private finalizeStep(_state: AgentState, newMessages: any[], updates: Partial<AgentState>, _isDone: boolean = false) {
-    // Return END to terminate the graph after an agent finishes
+    const nodeName = this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
+
     return {
       ...updates,
       messages: newMessages,
-      next: 'respond_directly',
+      next: updates.next || nodeName, // Preserve own name if no explicit next
     }
   }
 }

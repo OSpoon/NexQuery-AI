@@ -12,10 +12,21 @@ export async function supervisorNode(state: AgentState, config?: any) {
   const llm = await provider.getChatModel({ streaming: true })
 
   // 1. Build Context
-  const systemPrompt = SUPERVISOR_SYSTEM_PROMPT(state.dbType)
+  const systemPrompt = SUPERVISOR_SYSTEM_PROMPT(state.dbType, state.dataSourceId)
+
+  // Sanitize history for Supervisor as well
+  const history = state.messages
+    .filter(m => m._getType() !== 'system' && m._getType() !== 'tool')
+    .map((m) => {
+      if (m._getType() === 'ai' && m.additional_kwargs?.tool_calls) {
+        return { ...m, tool_calls: [], additional_kwargs: { ...m.additional_kwargs, tool_calls: undefined } }
+      }
+      return m
+    })
+
   const messages: any[] = [
     new SystemMessage(systemPrompt),
-    ...state.messages.slice(-5), // Keep a small sliding window of history
+    ...history.slice(-5), // Keep a small sliding window of history
   ]
 
   const routeSchema = z.object({

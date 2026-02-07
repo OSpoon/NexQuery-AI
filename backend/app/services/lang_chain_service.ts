@@ -224,7 +224,7 @@ export default class LangChainService {
       case 'on_chain_start':
         if (data.input && data.input.messages) {
           // Only track main nodes, skip internal branches or LangGraph internal chains
-          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'metadata_agent', 'data_analyst', 'reviewer_agent', 'respond_directly']
+          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'discovery_agent', 'generator_agent', 'security_agent', 'respond_directly']
           if (validNodes.includes(name)) {
             yield JSON.stringify({ type: 'node_start', node: name, id: run_id })
           }
@@ -233,7 +233,7 @@ export default class LangChainService {
 
       case 'on_chain_end':
         if (data.output && (data.output.messages || data.output.next)) {
-          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'metadata_agent', 'data_analyst', 'reviewer_agent', 'respond_directly']
+          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'discovery_agent', 'generator_agent', 'security_agent', 'respond_directly']
           if (validNodes.includes(name)) {
             yield JSON.stringify({ type: 'node_end', node: name, id: run_id })
           }

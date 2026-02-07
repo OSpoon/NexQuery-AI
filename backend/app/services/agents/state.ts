@@ -3,7 +3,7 @@ import { BaseMessage } from '@langchain/core/messages'
 export interface PlanStep {
   task: string
   status: 'pending' | 'in_progress' | 'completed' | 'failed'
-  assigned_to: 'sql_agent' | 'es_agent' | 'metadata_agent' | 'data_analyst'
+  assigned_to: 'sql_agent' | 'es_agent' | 'discovery_agent' | 'generator_agent' | 'security_agent'
   description?: string
 }
 
