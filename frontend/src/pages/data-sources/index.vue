@@ -217,7 +217,7 @@ onMounted(fetchDataSources)
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 gap-4 relative">
+  <div class="h-full flex flex-col p-8 gap-4 relative">
     <div class="flex justify-between items-center shrink-0">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">

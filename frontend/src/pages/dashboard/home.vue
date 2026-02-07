@@ -62,7 +62,7 @@ onActivated(fetchDashboardData)
 </script>
 
 <template>
-  <div class="p-6 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
+  <div class="p-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
     <div class="flex flex-col gap-1">
       <h1
         class="text-3xl font-black tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"

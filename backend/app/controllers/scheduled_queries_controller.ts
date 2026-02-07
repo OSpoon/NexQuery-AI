@@ -41,6 +41,7 @@ export default class ScheduledQueriesController {
       'recipients',
       'webhookUrl',
       'isActive',
+      'parameters',
     ])
 
     if (!data.queryTaskId || (!data.cronExpression && !data.runAt) || !data.recipients) {
@@ -58,6 +59,7 @@ export default class ScheduledQueriesController {
       recipients: data.recipients,
       webhookUrl: data.webhookUrl || null,
       isActive: data.isActive ?? true,
+      parameters: data.parameters || null,
       createdBy: auth.user!.id,
     })
 
@@ -78,7 +80,7 @@ export default class ScheduledQueriesController {
 
   async update({ params, request, response }: HttpContext) {
     const schedule = await ScheduledQuery.findOrFail(params.id)
-    const data = request.only(['cronExpression', 'runAt', 'recipients', 'webhookUrl', 'isActive'])
+    const data = request.only(['cronExpression', 'runAt', 'recipients', 'webhookUrl', 'isActive', 'parameters'])
 
     if (data.runAt) {
       data.runAt = DateTime.fromISO(data.runAt)

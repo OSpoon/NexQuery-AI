@@ -31,11 +31,8 @@ import {
 } from '@/components/ui/select'
 
 import { Switch } from '@/components/ui/switch'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
-
-import ScheduleManager from './ScheduleManager.vue'
 
 const props = defineProps<{
   initialValues?: QueryTask | null
@@ -45,8 +42,6 @@ const props = defineProps<{
 const emit = defineEmits(['success', 'cancel'])
 
 const { t } = useI18n()
-
-const activeTab = ref('definition')
 
 const dataSources = ref<Array<{ id: number, name: string, type: string }>>([])
 const sqlTemplate = ref(props.initialValues?.sqlTemplate || '')
@@ -315,189 +310,154 @@ onMounted(fetchDataSources)
 
 <template>
   <form class="h-full flex flex-col overflow-hidden" novalidate @submit="onSubmit">
-    <Tabs v-model="activeTab" class="flex-1 flex flex-col overflow-hidden">
-      <div class="px-6 pt-6 shrink-0">
-        <TabsList>
-          <TabsTrigger value="definition">
-            {{ t('query_tasks.definition') }}
-          </TabsTrigger>
-          <TabsTrigger value="schedules" :disabled="!isEditing">
-            {{
-              t('query_tasks.schedules')
-            }}
-          </TabsTrigger>
-        </TabsList>
+    <!-- Main Content Area -->
+    <div class="flex-1 overflow-y-auto p-6 space-y-6">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <FormField v-slot="{ componentField }" name="name" :validate-on-blur="false">
+            <FormItem>
+              <FormLabel>{{ t('query_tasks.task_name') }}</FormLabel>
+              <FormControl>
+                <Input placeholder="User Sales Report" v-bind="componentField" />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
+
+        <div>
+          <FormField v-slot="{ value }" name="dataSourceId" :validate-on-blur="false">
+            <FormItem>
+              <FormLabel>{{ t('query_tasks.data_source') }}</FormLabel>
+              <Select
+                :model-value="value?.toString()"
+                @update:model-value="
+                  (v) => form.setFieldValue('dataSourceId', parseInt((v as string) || '0'))
+                "
+              >
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue placeholder="Select data source" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem v-for="ds in dataSources" :key="ds.id" :value="ds.id.toString()">
+                    {{ ds.name }} ({{ ds.type }})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
+
+        <div class="col-span-2">
+          <FormField v-slot="{ value, handleChange }" name="storeResults">
+            <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
+              <div class="space-y-0.5">
+                <FormLabel class="text-base">
+                  {{ t('query_tasks.store_results') }}
+                </FormLabel>
+                <FormDescription>
+                  {{ t('query_tasks.store_results_desc') }}
+                </FormDescription>
+              </div>
+              <FormControl>
+                <Switch :model-value="!!value" @update:model-value="handleChange" />
+              </FormControl>
+            </FormItem>
+          </FormField>
+        </div>
+
+        <div class="col-span-2">
+          <FormField v-slot="{ value }" name="tags">
+            <FormItem>
+              <FormLabel>{{ t('query_tasks.tags') }} (Max 3)</FormLabel>
+              <div class="space-y-3">
+                <div class="flex gap-2">
+                  <Input
+                    v-model="tagInput"
+                    placeholder="Enter tag and press enter..."
+                    :disabled="(value || []).length >= 3"
+                    @keydown.enter.prevent="addTag"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    :disabled="(value || []).length >= 3"
+                    @click="addTag"
+                  >
+                    {{ t('common.add') || '添加' }}
+                  </Button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  <div
+                    v-for="(tag, idx) in value || []"
+                    :key="tag"
+                    class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm"
+                  >
+                    {{ tag }}
+                    <button type="button" class="hover:text-destructive" @click="removeTag(Number(idx))">
+                      <X class="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
       </div>
 
-      <!-- Definition Tab -->
-      <TabsContent
-        value="definition"
-        :force-mount="true"
-        class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden"
-      >
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <FormField v-slot="{ componentField }" name="name" :validate-on-blur="false">
-              <FormItem>
-                <FormLabel>{{ t('query_tasks.task_name') }}</FormLabel>
-                <FormControl>
-                  <Input placeholder="User Sales Report" v-bind="componentField" />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            </FormField>
-          </div>
+      <FormField v-slot="{ componentField }" name="description" :validate-on-blur="false">
+        <FormItem>
+          <FormLabel>{{ t('query_tasks.desc') }}</FormLabel>
+          <FormControl>
+            <Textarea :placeholder="t('query_tasks.desc')" v-bind="componentField" />
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      </FormField>
 
-          <div>
-            <FormField v-slot="{ value }" name="dataSourceId" :validate-on-blur="false">
-              <FormItem>
-                <FormLabel>{{ t('query_tasks.data_source') }}</FormLabel>
-                <Select
-                  :model-value="value?.toString()"
-                  @update:model-value="
-                    (v) => form.setFieldValue('dataSourceId', parseInt((v as string) || '0'))
-                  "
-                >
-                  <FormControl>
-                    <SelectTrigger class="w-full">
-                      <SelectValue placeholder="Select data source" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem v-for="ds in dataSources" :key="ds.id" :value="ds.id.toString()">
-                      {{ ds.name }} ({{ ds.type }})
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            </FormField>
-          </div>
-
-          <div class="col-span-2">
-            <FormField v-slot="{ value, handleChange }" name="storeResults">
-              <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-                <div class="space-y-0.5">
-                  <FormLabel class="text-base">
-                    {{ t('query_tasks.store_results') }}
-                  </FormLabel>
-                  <FormDescription>
-                    {{ t('query_tasks.store_results_desc') }}
-                  </FormDescription>
-                </div>
-                <FormControl>
-                  <Switch :model-value="!!value" @update:model-value="handleChange" />
-                </FormControl>
-              </FormItem>
-            </FormField>
-          </div>
-
-          <div class="col-span-2">
-            <FormField v-slot="{ value }" name="tags">
-              <FormItem>
-                <FormLabel>{{ t('query_tasks.tags') }} (Max 3)</FormLabel>
-                <div class="space-y-3">
-                  <div class="flex gap-2">
-                    <Input
-                      v-model="tagInput"
-                      placeholder="Enter tag and press enter..."
-                      :disabled="(value || []).length >= 3"
-                      @keydown.enter.prevent="addTag"
-                    />
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      :disabled="(value || []).length >= 3"
-                      @click="addTag"
-                    >
-                      {{ t('common.add') || '添加' }}
-                    </Button>
-                  </div>
-                  <div class="flex flex-wrap gap-2">
-                    <div
-                      v-for="(tag, idx) in value || []"
-                      :key="tag"
-                      class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm"
-                    >
-                      {{ tag }}
-                      <button type="button" class="hover:text-destructive" @click="removeTag(Number(idx))">
-                        <X class="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-                <FormMessage />
-              </FormItem>
-            </FormField>
-          </div>
-        </div>
-
-        <FormField v-slot="{ componentField }" name="description" :validate-on-blur="false">
-          <FormItem>
-            <FormLabel>{{ t('query_tasks.desc') }}</FormLabel>
-            <FormControl>
-              <Textarea :placeholder="t('query_tasks.desc')" v-bind="componentField" />
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <div v-if="currentDataSource" class="space-y-2">
-          <Label>{{
-            dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
-          }}</Label>
-          <div class="flex items-center justify-between">
-            <p v-if="dbType !== 'api'" class="text-xs text-muted-foreground">
-              {{ t('query_tasks.placeholders_hint') }}
-            </p>
-          </div>
-          <CurlEditor v-if="dbType === 'api'" v-model="sqlTemplate" :variables="variables" />
-          <LuceneEditor
-            v-else-if="dbType === 'elasticsearch'"
-            ref="luceneEditorRef"
-            v-model="sqlTemplate"
-            :variables="variables"
-            :fields="esFields"
-          />
-          <SqlEditor
-            v-else-if="dbType && dbType !== 'elasticsearch'"
-            ref="sqlEditorRef"
-            v-model="sqlTemplate"
-            :language="dbType === 'postgresql' ? 'pgsql' : 'sql'"
-            :db-type="dbType"
-            :variables="variables"
-            :data-source-id="form.values.dataSourceId"
-          />
-        </div>
-        <div
-          v-else
-          class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20"
-        >
-          <p class="text-sm text-muted-foreground">
-            {{ t('query_tasks.select_datasource_hint') }}
+      <div v-if="currentDataSource" class="space-y-2">
+        <Label>{{
+          dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
+        }}</Label>
+        <div class="flex items-center justify-between">
+          <p v-if="dbType !== 'api'" class="text-xs text-muted-foreground">
+            {{ t('query_tasks.placeholders_hint') }}
           </p>
         </div>
-      </TabsContent>
-
-      <!-- Schedules Tab -->
-      <TabsContent
-        value="schedules"
-        class="flex-1 overflow-y-auto p-6 space-y-6 data-[state=inactive]:hidden"
-      >
-        <ScheduleManager
-          v-if="isEditing && initialValues"
-          :query-task-id="initialValues.id"
-          :has-parameters="variables.length > 0"
+        <CurlEditor v-if="dbType === 'api'" v-model="sqlTemplate" :variables="variables" />
+        <LuceneEditor
+          v-else-if="dbType === 'elasticsearch'"
+          ref="luceneEditorRef"
+          v-model="sqlTemplate"
+          :variables="variables"
+          :fields="esFields"
         />
-        <div v-else class="text-center text-muted-foreground mt-10">
-          Please save the task before creating schedules.
-        </div>
-      </TabsContent>
-    </Tabs>
+        <SqlEditor
+          v-else-if="dbType && dbType !== 'elasticsearch'"
+          ref="sqlEditorRef"
+          v-model="sqlTemplate"
+          :language="dbType === 'postgresql' ? 'pgsql' : 'sql'"
+          :db-type="dbType"
+          :variables="variables"
+          :data-source-id="form.values.dataSourceId"
+        />
+      </div>
+      <div
+        v-else
+        class="flex flex-col items-center justify-center py-20 border-2 border-dashed rounded-lg bg-muted/20"
+      >
+        <p class="text-sm text-muted-foreground">
+          {{ t('query_tasks.select_datasource_hint') }}
+        </p>
+      </div>
+    </div>
 
     <!-- Fixed Footer -->
     <div
-      v-if="activeTab === 'definition'"
       class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
     >
       <Button type="button" variant="ghost" @click="emit('cancel')">

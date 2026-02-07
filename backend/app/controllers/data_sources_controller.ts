@@ -178,7 +178,16 @@ export default class DataSourcesController {
       // 1. List all tables
       await service.syncDataSource(Number(dataSourceId))
 
-      // Trigger PII Discovery in background to avoid hanging the UI
+      if (auth.user) {
+        NotificationService.push(
+          auth.user.id,
+          '结构同步成功',
+          `数据源 ID: ${dataSourceId} 的 Schema 信息已成功同步至向量数据库。`,
+          'success',
+        )
+      }
+
+      // Trigger PII Discovery in background
       this.runPiiDiscovery(Number(dataSourceId), auth.user?.id)
 
       return response.ok({ message: 'Schema sync started, PII discovery will run in the background' })

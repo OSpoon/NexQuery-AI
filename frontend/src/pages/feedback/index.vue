@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
 import { useDark } from '@vueuse/core'
-import { Eye, GraduationCap, MessageSquare, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-vue-next'
+import { Eye, GraduationCap, ThumbsDown, ThumbsUp, Trash2 } from 'lucide-vue-next'
 import { MarkdownRender } from 'markstream-vue'
 import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
@@ -300,7 +300,6 @@ onMounted(fetchFeedbacks)
     <div class="flex items-center justify-between space-y-2">
       <div>
         <h2 class="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <MessageSquare class="h-6 w-6 text-primary" />
           {{ t('feedback.title') }}
         </h2>
         <p class="text-muted-foreground text-sm">

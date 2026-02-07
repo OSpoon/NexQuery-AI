@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
-import { CalendarClock, Edit, Globe, Mail, Plus, Trash2 } from 'lucide-vue-next'
+import { CalendarClock, Edit, Globe, Mail, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { DateTime } from 'luxon'
 import { computed, onMounted, ref, watch } from 'vue'
 import { toast } from 'vue-sonner'
@@ -34,7 +34,6 @@ const props = defineProps<{
   hasParameters?: boolean
 }
 >()
-
 interface ScheduledQuery {
   id: number
   cronExpression: string | null
@@ -42,6 +41,7 @@ interface ScheduledQuery {
   recipients: string[]
   webhookUrl?: string
   isActive: boolean
+  parameters: Record<string, any> | null
   createdAt: string
   creator?: { fullName: string }
 }
@@ -61,9 +61,10 @@ const form = ref({
   recipients: '',
   webhookUrl: '',
   isActive: true,
+  parameters: {} as Record<string, any>,
 })
 
-// ...
+const task = ref<any>(null)
 
 const nextExecutions = ref<string[]>([])
 const cronError = ref('')
@@ -114,6 +115,16 @@ async function fetchSchedules() {
   }
 }
 
+async function fetchTask() {
+  try {
+    const response = await api.get(`/query-tasks/${props.queryTaskId}`)
+    task.value = response.data
+  }
+  catch {
+    toast.error('Failed to fetch task details')
+  }
+}
+
 function formatDate(dateStr: string) {
   return DateTime.fromISO(dateStr, { zone: 'utc' })
     .setZone(systemTimezone.value)
@@ -129,7 +140,18 @@ function openCreateDialog() {
     recipients: '',
     webhookUrl: '',
     isActive: true,
+    parameters: {},
   }
+
+  // Pre-fill parameters with default values from schema
+  if (task.value?.formSchema) {
+    task.value.formSchema.forEach((field: any) => {
+      if (field.defaultValue !== undefined) {
+        form.value.parameters[field.name] = field.defaultValue
+      }
+    })
+  }
+
   validateCron(form.value.cronExpression)
   isDialogOpen.value = true
 }
@@ -143,6 +165,7 @@ function openEditDialog(schedule: ScheduledQuery) {
     recipients: Array.isArray(schedule.recipients) ? schedule.recipients.join(', ') : '',
     webhookUrl: schedule.webhookUrl || '',
     isActive: schedule.isActive,
+    parameters: schedule.parameters || {},
   }
   if (form.value.executionType === 'recurring') {
     validateCron(form.value.cronExpression)
@@ -195,6 +218,7 @@ async function saveSchedule() {
         .filter(Boolean),
       webhookUrl: form.value.webhookUrl || null,
       isActive: form.value.isActive,
+      parameters: form.value.parameters,
     }
 
     if (editingId.value) {
@@ -244,44 +268,30 @@ async function toggleActive(schedule: ScheduledQuery) {
   }
 }
 
-onMounted(fetchSchedules)
+onMounted(async () => {
+  await Promise.all([fetchSchedules(), fetchTask()])
+})
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex justify-between items-center">
-      <div>
-        <h3 class="text-lg font-medium">
-          Scheduled Executions
-        </h3>
-        <p class="text-sm text-muted-foreground">
-          Automatically run this query and email the results.
-        </p>
-      </div>
-      <Button v-if="!hasParameters" type="button" size="sm" @click="openCreateDialog">
-        <Plus class="mr-2 h-4 w-4" /> Add Schedule
+  <div class="space-y-6 pb-20">
+    <div v-if="task" class="flex justify-between items-center">
+      <div />
+      <Button type="button" size="sm" class="h-9 gap-1.5" @click="openCreateDialog">
+        <Plus class="h-4 w-4" /> Add Schedule
       </Button>
     </div>
 
-    <div v-if="hasParameters" class="bg-yellow-500/10 border border-yellow-500/20 text-yellow-600 p-4 rounded-lg text-sm flex items-start gap-3">
-      <div class="mt-0.5 font-bold text-lg">
-        ⚠️
-      </div>
-      <div>
-        <p class="font-bold">
-          Scheduling Unavailable
-        </p>
-        <p>This query contains parameters ({{ '{' + '{' }} variable {{ '}' + '}' }}). Scheduled execution is only supported for static queries without parameters.</p>
-        <p class="text-xs mt-1 font-normal opacity-90">
-          Existing active schedules will fail to execute unless parameters are removed.
-        </p>
-      </div>
+    <div v-if="!task" class="py-10 text-center text-muted-foreground animate-pulse">
+      Loading task configuration...
     </div>
-    <div class="border rounded-md">
+
+    <div v-else class="border rounded-md">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Cron</TableHead>
+            <TableHead>Parameters</TableHead>
             <TableHead>Recipients</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Created By</TableHead>
@@ -307,6 +317,19 @@ onMounted(fetchSchedules)
               </div>
             </TableCell>
             <TableCell>
+              <div v-if="s.parameters && Object.keys(s.parameters).length > 0" class="flex flex-wrap gap-1">
+                <span
+                  v-for="(val, key) in s.parameters"
+                  :key="key"
+                  class="bg-secondary/50 text-[10px] px-1.5 py-0.5 rounded-full border border-secondary"
+                  :title="`${key}: ${val}`"
+                >
+                  {{ key }}: {{ val }}
+                </span>
+              </div>
+              <span v-else class="text-xs text-muted-foreground italic">No params</span>
+            </TableCell>
+            <TableCell>
               <div class="flex flex-col gap-1">
                 <div v-for="r in s.recipients" :key="r" class="text-xs flex items-center gap-1">
                   <Mail class="h-3 w-3 text-muted-foreground" /> {{ r }}
@@ -323,7 +346,6 @@ onMounted(fetchSchedules)
             <TableCell>
               <Switch
                 :model-value="s.isActive"
-                :disabled="hasParameters"
                 @update:model-value="() => toggleActive(s)"
               />
             </TableCell>
@@ -351,12 +373,12 @@ onMounted(fetchSchedules)
     </div>
 
     <Dialog v-model:open="isDialogOpen">
-      <DialogContent>
+      <DialogContent class="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>{{ editingId ? 'Edit Schedule' : 'New Schedule' }}</DialogTitle>
           <DialogDescription> Configure the execution frequency and recipients. </DialogDescription>
         </DialogHeader>
-        <div class="space-y-4 py-4">
+        <div class="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
           <Tabs v-model="form.executionType" class="w-full">
             <TabsList class="grid w-full grid-cols-2">
               <TabsTrigger value="recurring">
@@ -452,7 +474,27 @@ onMounted(fetchSchedules)
             </TabsContent>
           </Tabs>
 
-          <div class="space-y-2">
+          <!-- Dynamic Parameters Section -->
+          <div v-if="task?.formSchema && task.formSchema.length > 0" class="space-y-4 border-t pt-4">
+            <Label class="text-sm font-bold flex items-center gap-2">
+              <Settings class="h-4 w-4" />
+              Query Parameters
+            </Label>
+            <div class="grid grid-cols-1 gap-4">
+              <div v-for="field in task.formSchema" :key="field.name" class="space-y-1.5">
+                <Label :for="`param-${field.name}`" class="text-xs">{{ field.label || field.name }}</Label>
+                <Input
+                  :id="`param-${field.name}`"
+                  v-model="form.parameters[field.name]"
+                  :type="field.type === 'number' ? 'number' : 'text'"
+                  :placeholder="field.placeholder || `Enter ${field.name}`"
+                  class="h-8 text-xs"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-2 border-t pt-4">
             <Label>Recipients (comma separated)</Label>
             <Input v-model="form.recipients" placeholder="user@example.com, manager@example.com" />
             <p class="text-[10px] text-muted-foreground italic">

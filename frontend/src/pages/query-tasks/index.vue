@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { QueryTask } from '@nexquery/shared'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { ArrowUpDown, Edit, FileCode, Play, Plus, Trash2 } from 'lucide-vue-next'
+import { ArrowUpDown, Edit, FileCode, Play, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { defineAsyncComponent, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -16,6 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from '@/components/ui/sheet'
 
 import api from '@/lib/api'
 
@@ -26,11 +33,21 @@ const QueryTaskForm = defineAsyncComponent({
   },
 })
 
+const ScheduleManager = defineAsyncComponent({
+  loader: () => import('./components/ScheduleManager.vue'),
+  loadingComponent: {
+    template: '<div class="p-8 text-center text-muted-foreground">Loading schedules...</div>',
+  },
+})
+
 const router = useRouter()
 const { t } = useI18n()
 const tasks = ref<QueryTask[]>([])
 const isDialogOpen = ref(false)
 const editingTask = ref<QueryTask | null>(null)
+
+const isSheetOpen = ref(false)
+const schedulingTask = ref<QueryTask | null>(null)
 
 async function fetchTasks() {
   try {
@@ -50,6 +67,11 @@ function openCreateDialog() {
 function openEditDialog(task: any) {
   editingTask.value = task
   isDialogOpen.value = true
+}
+
+function openScheduleSheet(task: QueryTask) {
+  schedulingTask.value = task
+  isSheetOpen.value = true
 }
 
 async function deleteTask(id: number) {
@@ -144,7 +166,7 @@ const columns: ColumnDef<QueryTask>[] = [
     enableHiding: false,
     cell: ({ row }) => {
       const task = row.original
-      return h('div', { class: 'text-center space-x-2' }, [
+      return h('div', { class: 'text-center space-x-2 flex items-center justify-center' }, [
         h(
           Button,
           {
@@ -170,6 +192,17 @@ const columns: ColumnDef<QueryTask>[] = [
           {
             variant: 'ghost',
             size: 'icon',
+            title: t('query_tasks.schedules'),
+            onClick: () => openScheduleSheet(task),
+          },
+          () => h(Settings, { class: 'h-4 w-4' }),
+        ),
+
+        h(
+          Button,
+          {
+            variant: 'ghost',
+            size: 'icon',
             class: 'text-destructive',
             onClick: () => deleteTask(task.id),
           },
@@ -184,7 +217,7 @@ onMounted(fetchTasks)
 </script>
 
 <template>
-  <div class="h-full flex flex-col p-4 gap-4">
+  <div class="h-full flex flex-col p-8 gap-4">
     <div class="flex justify-between items-center shrink-0">
       <div>
         <h1 class="text-3xl font-bold tracking-tight">
@@ -236,5 +269,27 @@ onMounted(fetchTasks)
         />
       </DialogContent>
     </Dialog>
+
+    <!-- Schedule Management Sheet -->
+    <Sheet v-model:open="isSheetOpen">
+      <SheetContent side="right" class="sm:max-w-[600px] p-0 flex flex-col">
+        <SheetHeader class="p-6 pb-2 shrink-0">
+          <SheetTitle class="flex items-center gap-2">
+            <Settings class="h-5 w-5 text-primary" />
+            {{ t('query_tasks.schedules') }}
+          </SheetTitle>
+          <SheetDescription>
+            管理任务 "{{ schedulingTask?.name }}" 的自动化调度规则。
+          </SheetDescription>
+        </SheetHeader>
+        <div class="flex-1 overflow-y-auto px-6 py-4">
+          <ScheduleManager
+            v-if="isSheetOpen && schedulingTask"
+            :query-task-id="schedulingTask.id"
+            :has-parameters="!!(schedulingTask.formSchema && (Array.isArray(schedulingTask.formSchema) ? schedulingTask.formSchema.length > 0 : Object.keys(schedulingTask.formSchema as any).length > 0))"
+          />
+        </div>
+      </SheetContent>
+    </Sheet>
   </div>
 </template>

@@ -73,10 +73,29 @@ export default class SchedulerService {
       if (!task)
         return
 
+      logger.info(
+        {
+          scheduleId: scheduledQuery.id,
+          taskId: task.id,
+          cron: scheduledQuery.cronExpression,
+          runAt: scheduledQuery.runAt?.toISO(),
+          parameters: scheduledQuery.parameters,
+        },
+        'Executing scheduled query job',
+      )
+
       const result = await this.queryExecutionService.execute(
         task,
-        {},
+        scheduledQuery.parameters || {},
         { userId: scheduledQuery.createdBy || undefined },
+      )
+
+      logger.info(
+        {
+          scheduleId: scheduledQuery.id,
+          resultCount: Array.isArray(result.data) ? result.data.length : 1,
+        },
+        'Query execution finished',
       )
 
       const csv = this.jsonToCsv(result.data)
@@ -136,8 +155,30 @@ export default class SchedulerService {
       }
 
       logger.info(`Executed scheduled query ${scheduledQuery.id}`)
+
+      // Notification Center: Notify the creator
+      if (scheduledQuery.createdBy) {
+        const { default: NotificationService } = await import('#services/notification_service')
+        await NotificationService.push(
+          scheduledQuery.createdBy,
+          '计划任务执行成功',
+          `您订阅的任务 [${task.name}] 已于 ${new Date().toLocaleString()} 执行成功，结果已发送至您的邮箱。`,
+          'success',
+        )
+      }
     } catch (error: any) {
       logger.error(`Failed to execute scheduled query ${scheduledQuery.id}: ${error.message}`)
+
+      // Notify on failure
+      if (scheduledQuery.createdBy) {
+        const { default: NotificationService } = await import('#services/notification_service')
+        await NotificationService.push(
+          scheduledQuery.createdBy,
+          '计划任务执行失败',
+          `您订阅的任务 [${scheduledQuery.id}] 执行失败: ${error.message}`,
+          'error',
+        )
+      }
     }
   }
 
