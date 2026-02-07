@@ -133,11 +133,29 @@ watch(
   { immediate: true },
 )
 
+const isInternalChange = ref(false)
+
 onMounted(() => {
   dataSourceStore.fetchDataSources()
   store.fetchConversations()
   store.fetchGraphVisual()
 })
+
+// Bi-directional sync: Store -> UI
+// When a conversation is loaded (which updates store.dataSourceId),
+// we need to reflect that in the dropdown without triggering a reset.
+watch(
+  () => store.dataSourceId,
+  (newId) => {
+    if (newId && String(newId) !== selectedDataSource.value) {
+      isInternalChange.value = true
+      selectedDataSource.value = String(newId)
+      nextTick(() => {
+        isInternalChange.value = false
+      })
+    }
+  },
+)
 
 // Refresh data sources whenever chat is opened to ensure sync
 watch(
@@ -186,10 +204,20 @@ watch(
 // Sync selected data source with store context
 watch(selectedDataSource, (val) => {
   if (val && val !== 'none') {
-    store.dataSourceId = Number(val)
+    const newId = Number(val)
+
+    // If this is a manual user switch (not from loading history), start a new chat
+    if (!isInternalChange.value && store.dataSourceId !== newId) {
+      store.startNewChat()
+    }
+
+    store.dataSourceId = newId
     store.fetchGraphVisual()
   }
   else {
+    if (!isInternalChange.value && store.dataSourceId !== undefined) {
+      store.startNewChat()
+    }
     store.dataSourceId = undefined
   }
 })
