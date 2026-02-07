@@ -66,6 +66,7 @@ export function createAgentGraph() {
     (state: AgentState) => state.next || 'respond_directly',
     {
       discovery_agent: 'discovery_agent',
+      generator_agent: 'generator_agent',
       respond_directly: END,
     } as any,
   )

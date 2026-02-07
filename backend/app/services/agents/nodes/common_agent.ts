@@ -1,6 +1,6 @@
 import { AgentState } from '#services/agents/state'
 import AiProviderService from '#services/ai_provider_service'
-import { SystemMessage, ToolMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { SkillContext } from '#services/skills/skill_interface'
 import { AGENT_SYSTEM_PROMPT_TEMPLATE, PROMPT_MAP } from '#prompts/index'
 import logger from '@adonisjs/core/services/logger'
@@ -40,28 +40,45 @@ export abstract class CommonAgentNode {
     const modelWithTools = llm.bindTools(tools)
 
     // Sanitize and filter history to avoid 400 "messages illegal parameters" errors
-    // LLMs (especially OpenAI) expect a strict AIMessage -> ToolMessage sequence for tool calls.
-    // In multi-agent flows or when slicing history, these sequences can break.
-    // We strip tool_calls and filter out ToolMessages to keep a clean User-Assistant conversation.
-    const sanitizeMessages = (msgs: any[]) => {
-      return msgs
+    // LLMs (especially GLM/Zhipu and some versions of OpenAI) are strict about:
+    // 1. Roles must alternate (User -> Assistant -> User).
+    // 2. Content cannot be empty.
+    // 3. Tool messages must follow their AI message (but we strip them for a cleaner long-term history).
+    const sanitizeMessages = (msgs: any[]): any[] => {
+      const filtered = msgs
         .filter(m => m._getType() !== 'system' && m._getType() !== 'tool')
         .map((m) => {
+          const content = m.content
           if (m._getType() === 'ai' && m.additional_kwargs?.tool_calls) {
-            // Create a copy and remove tool metadata
-            const cleanMsg = m.lc_id ? m : { ...m }
-            return {
-              ...cleanMsg,
-              tool_calls: [],
-              additional_kwargs: { ...cleanMsg.additional_kwargs, tool_calls: undefined },
-            }
+            // Strip tool call metadata for history context
           }
-          return m
+          return {
+            type: m._getType(),
+            content: typeof content === 'string' ? content : JSON.stringify(content),
+          }
         })
+        .filter(m => m.content && m.content.trim() !== '')
+
+      // Collapse consecutive roles
+      const collapsed: any[] = []
+      for (const m of filtered) {
+        if (collapsed.length > 0 && collapsed[collapsed.length - 1].type === m.type) {
+          collapsed[collapsed.length - 1].content += `\n${m.content}`
+        } else {
+          collapsed.push(m)
+        }
+      }
+
+      // Convert back to LangChain message objects
+      return collapsed.map((m) => {
+        if (m.type === 'ai')
+          return new AIMessage({ content: m.content })
+        return new HumanMessage({ content: m.content })
+      })
     }
 
     const history = sanitizeMessages(state.messages)
-    const messages = [
+    const messages: any[] = [
       new SystemMessage(systemPrompt),
       ...history.slice(-10),
     ]
@@ -139,6 +156,9 @@ export abstract class CommonAgentNode {
               // AUTO-PERSISTENCE: Automatically save discovery/metadata results to intermediate_results
               // This prevents subsequent agents from re-running the same discovery tools.
               const metaTools = [
+                'list_entities',
+                'get_entity_schema',
+                'sample_entity_data',
                 'list_tables',
                 'get_table_schema',
                 'search_tables',

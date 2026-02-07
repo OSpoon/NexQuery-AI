@@ -10,7 +10,7 @@ import { LuceneSkill } from '#services/skills/lucene_skill'
 
 export class GeneratorAgentNode extends CommonAgentNode {
   protected getSkills(context: SkillContext) {
-    const skills = [
+    const skills: any[] = [
       new CoreAssistantSkill({ excludeSubmission: true }),
       new DiscoverySkill(),
       new SecuritySkill(), // Self-correction capability

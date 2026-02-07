@@ -104,9 +104,9 @@ onMounted(() => {
       useMaxWidth: false,
       htmlLabels: true,
       curve: 'basis',
-      nodeSpacing: 40,
-      rankSpacing: 40,
-      padding: 15,
+      nodeSpacing: 25,
+      rankSpacing: 25,
+      padding: 8,
     },
   })
   renderGraph()
@@ -138,7 +138,7 @@ watch(() => [props.mermaidString, props.activeNodeName], () => {
     <!-- Graph Surface -->
     <div
       ref="container"
-      class="flex justify-center items-center min-h-[200px] max-h-[400px] overflow-hidden touch-none p-8"
+      class="flex justify-center items-center min-h-[300px] max-h-[500px] overflow-hidden touch-none p-8"
       @mousedown="startDrag"
     >
       <div

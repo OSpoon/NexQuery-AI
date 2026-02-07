@@ -34,6 +34,28 @@ export default class ElasticsearchService {
   }
 
   /**
+   * List all indices
+   */
+  async listIndices(): Promise<Array<{ name: string, isDataStream: boolean, docsCount: string, storeSize: string }>> {
+    try {
+      const response = await this.client.cat.indices({
+        format: 'json',
+        h: ['index', 'docs.count', 'store.size'],
+      })
+
+      return (response as any).map((idx: any) => ({
+        name: idx.index,
+        isDataStream: idx.index.startsWith('.ds-'),
+        docsCount: idx['docs.count'] || '0',
+        storeSize: idx['store.size'] || '0b',
+      }))
+    } catch (error: any) {
+      logger.error({ err: error }, '[Elasticsearch] Failed to list indices')
+      throw error
+    }
+  }
+
+  /**
    * Search logs
    */
   async search(options: {
@@ -209,6 +231,29 @@ export default class ElasticsearchService {
       }
     } catch (error: any) {
       logger.error({ err: error, index }, '[Elasticsearch] Failed to get index summary')
+      throw error
+    }
+  }
+
+  /**
+   * Get sample data from an index
+   */
+  async sampleData(index: string, size: number = 3) {
+    try {
+      const res = await this.client.search({
+        index,
+        size,
+        body: {
+          query: { match_all: {} },
+        },
+      })
+
+      return res.hits.hits.map((hit: any) => ({
+        _id: hit._id,
+        ...hit._source,
+      }))
+    } catch (error: any) {
+      logger.error({ err: error, index }, '[Elasticsearch] Failed to get sample data')
       throw error
     }
   }

@@ -413,7 +413,7 @@ function selectOption(option: string) {
               </Button>
             </PopoverTrigger>
             <PopoverContent
-              class="w-[400px] max-w-[calc(100vw-32px)] max-h-[40vh] p-2 bg-background shadow-2xl border overflow-auto"
+              class="w-[450px] max-w-[calc(100vw-32px)] max-h-[50vh] p-2 bg-background shadow-2xl border overflow-auto"
               side="top"
               align="end"
             >
