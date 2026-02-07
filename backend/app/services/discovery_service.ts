@@ -1,5 +1,8 @@
 import DataSource from '#models/data_source'
 import DbHelper from '#services/db_helper'
+import EmbeddingService from '#services/embedding_service'
+import VectorStoreService from '#services/vector_store_service'
+import TableMetadata from '#models/table_metadata'
 
 export interface EntityMetadata {
   name: string
@@ -71,6 +74,85 @@ export default class DiscoveryService {
       name: row.name || Object.values(row)[0] as string,
       type: 'table',
     }))
+  }
+
+  /**
+   * Search for entities using semantic search (Vector Store)
+   */
+  static async searchEntities(dataSourceId: number, query: string): Promise<string> {
+    const embeddingService = new EmbeddingService()
+    const vectorStore = new VectorStoreService()
+    const queryEmbedding = await embeddingService.generate(query)
+
+    const results = await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+
+    if (results.length === 0) {
+      const hasData = await TableMetadata.query().where('dataSourceId', dataSourceId).first()
+      if (hasData) {
+        return 'No results found in Vector Database. Please Sync Schema to populate the Vector Database.'
+      }
+      return 'No metadata found. Please Sync Schema for this data source.'
+    }
+
+    return JSON.stringify(
+      results.map(t => ({
+        entity: t.payload?.tableName,
+        description: `${(t.payload?.fullSchema as string)?.slice(0, 200)}...`,
+        relevance: t.score.toFixed(4),
+      })),
+    )
+  }
+
+  /**
+   * Search for actual values in a specific field (fuzzy keyword)
+   */
+  static async searchFieldValues(
+    dataSourceId: number,
+    entityName: string,
+    fieldName: string,
+    keyword: string,
+    limit: number = 5,
+  ): Promise<string> {
+    const dataSource = await DataSource.findOrFail(dataSourceId)
+
+    if (dataSource.type === 'elasticsearch') {
+      const es = await DbHelper.getESService(dataSourceId)
+      // Elasticsearch fuzzy search on a field
+      const res = await es.client.search({
+        index: entityName,
+        size: limit,
+        body: {
+          query: {
+            wildcard: {
+              [`${fieldName}.keyword`]: `*${keyword}*`,
+            },
+          },
+        },
+      })
+      const values = res.hits.hits.map((hit: any) => hit._source[fieldName]).filter(Boolean)
+      return JSON.stringify({ found: values.length > 0, values })
+    }
+
+    // SQL Flow
+    const { client } = await DbHelper.getConnection(dataSourceId)
+    // Basic SQL Injection prevention for table/column names (already checked in tool usually, but good to be safe)
+    if (!/^\w+$/.test(entityName) || !/^\w+$/.test(fieldName)) {
+      throw new Error('Invalid active entity or field name format.')
+    }
+
+    const results = await client
+      .from(entityName)
+      .select(fieldName)
+      .where(fieldName, 'like', `%${keyword}%`)
+      .distinct(fieldName)
+      .limit(limit)
+
+    const values = results.map(row => row[fieldName])
+    return JSON.stringify({
+      found: values.length > 0,
+      values,
+      note: values.length === 0 ? 'No matches found.' : undefined,
+    })
   }
 
   /**

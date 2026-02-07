@@ -159,16 +159,10 @@ export abstract class CommonAgentNode {
                 'list_entities',
                 'get_entity_schema',
                 'sample_entity_data',
-                'list_tables',
-                'get_table_schema',
-                'search_tables',
-                'sample_table_data',
-                'search_column_values',
-                'list_es_indices',
-                'get_es_index_summary',
-                'get_es_mapping',
-                'get_es_field_stats',
-                'sample_es_data',
+                'search_entities',
+                'search_field_values',
+                'search_column_values', // Keep for safety if any agent still calls it
+                'search_tables', // Keep for safety
               ]
               if (metaTools.includes(toolCall.name)) {
                 const persistenceKey = `${toolCall.name}_${JSON.stringify(toolCall.args)}`
