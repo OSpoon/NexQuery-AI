@@ -41,23 +41,13 @@ async function renderGraph() {
 onMounted(() => {
   mermaid.initialize({
     startOnLoad: false,
-    theme: 'base',
-    themeVariables: {
-      primaryColor: '#f1f5f9',
-      primaryTextColor: '#1e293b',
-      primaryBorderColor: '#cbd5e1',
-      lineColor: '#94a3b8',
-      secondaryColor: '#f8fafc',
-      tertiaryColor: '#f1f5f9',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      fontSize: '12px',
-    },
+    theme: 'neutral',
     securityLevel: 'loose',
     flowchart: {
       useMaxWidth: true,
       htmlLabels: true,
       curve: 'basis',
-      nodeSpacing: 50,
+      nodeSpacing: 40,
       rankSpacing: 40,
       padding: 15,
     },
@@ -71,8 +61,8 @@ watch(() => [props.mermaidString, props.activeNodeName], () => {
 </script>
 
 <template>
-  <div class="mermaid-viewer w-full bg-muted/10 rounded-xl p-4 border border-border/40 shadow-sm overflow-hidden">
-    <div ref="container" class="flex justify-center items-center min-h-[180px] transition-all duration-500" v-html="svgContent" />
+  <div class="mermaid-viewer w-full bg-muted/5 rounded-[var(--radius)] p-4 border border-border/60 shadow-sm overflow-hidden">
+    <div ref="container" class="flex justify-center items-center min-h-[160px] transition-all duration-300" v-html="svgContent" />
   </div>
 </template>
 
@@ -80,7 +70,6 @@ watch(() => [props.mermaidString, props.activeNodeName], () => {
 .mermaid-viewer :deep(svg) {
   max-width: 100%;
   height: auto;
-  filter: drop-shadow(0 4px 6px -1px rgb(0 0 0 / 0.05));
 }
 
 /* Global Node Styling */
@@ -88,62 +77,78 @@ watch(() => [props.mermaidString, props.activeNodeName], () => {
 .mermaid-viewer :deep(.node circle),
 .mermaid-viewer :deep(.node polygon),
 .mermaid-viewer :deep(.node path) {
-  stroke-width: 1.5px !important;
-  transition: all 0.3s ease;
+  stroke-width: 1px !important;
+  rx: var(--radius-sm) !important;
+  ry: var(--radius-sm) !important;
+  fill: var(--card) !important;
+  stroke: var(--border) !important;
+  transition: all 0.2s ease-in-out;
 }
 
-/* Specialized Node Colors */
+/* Supervisor Node - Subtle Background */
 .mermaid-viewer :deep([id*="supervisor"] rect) {
-  fill: #f8fafc !important;
-  stroke: #64748b !important;
+  fill: var(--muted) !important;
+  stroke: var(--border) !important;
 }
 
+/* Specialist Agents */
 .mermaid-viewer :deep([id*="sql_agent"] rect),
 .mermaid-viewer :deep([id*="es_agent"] rect) {
-  fill: #eef2ff !important;
-  stroke: #6366f1 !important;
+  fill: var(--card) !important;
+  stroke: var(--border) !important;
 }
 
+/* Start/End Nodes */
+.mermaid-viewer :deep([id*="__start__"] rect),
+.mermaid-viewer :deep([id*="__end__"] rect) {
+  rx: 30 !important;
+  ry: 30 !important;
+  fill: var(--secondary) !important;
+  stroke: var(--border) !important;
+}
+
+/* Respond Directly */
 .mermaid-viewer :deep([id*="respond_directly"] rect) {
-  fill: #f9fafb !important;
-  stroke: #9ca3af !important;
+  fill: transparent !important;
+  stroke: var(--border) !important;
   stroke-dasharray: 4 !important;
 }
 
-/* Start/End Nodes Styling (Pills) */
-.mermaid-viewer :deep([id*="__start__"] rect),
-.mermaid-viewer :deep([id*="__end__"] rect) {
-  rx: 20 !important;
-  ry: 20 !important;
-  fill: #f1f5f9 !important;
-  stroke: #cbd5e1 !important;
+/* Highlight Active Node - Border Color Change Only, No Bold */
+.mermaid-viewer :deep(.node.activeNode rect),
+.mermaid-viewer :deep(.node.activeNode circle),
+.mermaid-viewer :deep(.node.activeNode polygon),
+.mermaid-viewer :deep(.node.activeNode path) {
+  fill: var(--card) !important;
+  stroke: var(--primary) !important;
+  stroke-width: 2px !important;
+  stroke-opacity: 1 !important;
 }
 
-/* Highlight Active Node */
-.mermaid-viewer :deep(.activeNode rect),
-.mermaid-viewer :deep(.activeNode circle),
-.mermaid-viewer :deep(.activeNode polygon),
-.mermaid-viewer :deep(.activeNode path) {
-  fill: #2563eb !important; /* Premium Blue */
-  stroke: #3b82f6 !important;
-  stroke-width: 3px !important;
-  filter: drop-shadow(0 0 12px rgba(37, 99, 235, 0.4));
+.mermaid-viewer :deep(.node.activeNode .nodeLabel),
+.mermaid-viewer :deep(.node.activeNode text) {
+  color: var(--primary) !important;
+  fill: var(--primary) !important;
+  font-weight: 500 !important;
 }
 
-.mermaid-viewer :deep(.activeNode .nodeLabel),
-.mermaid-viewer :deep(.activeNode text) {
-  fill: white !important;
-  color: white !important;
-  font-weight: 600 !important;
-}
-
-/* Smooth edges */
+/* Edges */
 .mermaid-viewer :deep(.edgePath .path) {
-  stroke: #94a3b8 !important;
+  stroke: var(--border) !important;
   stroke-width: 1.5px !important;
 }
 
 .mermaid-viewer :deep(.marker) {
-  fill: #94a3b8 !important;
+  fill: var(--border) !important;
+  stroke: var(--border) !important;
+}
+
+/* Text Consistency */
+.mermaid-viewer :deep(.nodeLabel),
+.mermaid-viewer :deep(text) {
+  color: var(--foreground) !important;
+  fill: var(--foreground) !important;
+  font-family: inherit !important;
+  font-weight: 500 !important;
 }
 </style>
