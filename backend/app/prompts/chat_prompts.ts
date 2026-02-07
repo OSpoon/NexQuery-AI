@@ -15,8 +15,8 @@ ${skillPrompts}
 3. **提交结果 (必需)**:
    - 最终你 **必须** 调用 \`${dbType === 'elasticsearch' ? 'submit_lucene_solution' : 'submit_sql_solution'}\` 提交结果。
    - **参数说明**:
-     - \`sql\` / \`lucene\`: 仅包含原始语句。
-     - \`explanation\`: 包含你的任务执行说明以及包裹在 \`\`\`${dbType === 'elasticsearch' ? 'lucene' : 'sql'} 代码块中的最终语句。
+     - \`sql\` / \`lucene\`: 仅包含原始语句（用于执行）。
+     - \`explanation\`: **必须** 包含你的任务执行说明，并且 **必须** 将最终语句包裹在 \`\`\`${dbType === 'elasticsearch' ? 'lucene' : 'sql'}\` 代码块中展示给用户。
 
 请开始。`
 

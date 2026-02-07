@@ -4,11 +4,11 @@ import { StructuredTool } from '@langchain/core/tools'
 export class SubmitLuceneTool extends StructuredTool {
   name = 'submit_lucene_solution'
   description
-    = 'Use this tool to submit your final Lucene query solution. The `explanation` field MUST follow this format: ### 优化分析\n(Your analysis)\n\n### 查询语句\n```lucene\n(Lucene query)\n```'
+    = 'Use this tool to submit your final Lucene solution. [IMPORTANT] The `explanation` field is what the user sees - it MUST contain the Lucene query inside a ```lucene code block.'
 
   schema = z.object({
-    lucene: z.string().describe('The final Lucene query string (e.g., "level:ERROR AND message:failed").'),
-    explanation: z.string().describe('The complete, formatted Markdown response. MUST include: ### 优化分析\n(content)\n\n### 查询语句\n```lucene\n(lucene)\n```'),
+    lucene: z.string().describe('The final Lucene query string (used for execution).'),
+    explanation: z.string().describe('The formatted response for the user. MUST include a ```lucene code block containing the final query.'),
     index: z.string().describe('The index name to search against.').optional(),
   })
 

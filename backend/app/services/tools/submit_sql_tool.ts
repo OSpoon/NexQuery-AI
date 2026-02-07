@@ -4,11 +4,11 @@ import { StructuredTool } from '@langchain/core/tools'
 export class SubmitSqlTool extends StructuredTool {
   name = 'submit_sql_solution'
   description
-    = 'Use this tool to submit your final SQL solution. The `explanation` field MUST follow this format: ### 优化分析\n(Your analysis)\n\n### 查询语句\n```sql\n(SQL query)\n```'
+    = 'Use this tool to submit your final SQL solution. [IMPORTANT] The `explanation` field is what the user sees - it MUST contain the SQL query inside a ```sql code block.'
 
   schema = z.object({
-    sql: z.string().describe('The final, valid SQL query.'),
-    explanation: z.string().describe('The complete, formatted Markdown response. MUST include: ### 优化分析\n(content)\n\n### 查询语句\n```sql\n(sql)\n```'),
+    sql: z.string().describe('The final, valid SQL query (used for execution).'),
+    explanation: z.string().describe('The formatted response for the user. MUST include a ```sql code block containing the final query.'),
     risk_level: z
       .enum(['safe', 'modification'])
       .describe('Set to \'modification\' if the query changes data (UPDATE/DELETE/INSERT).'),
