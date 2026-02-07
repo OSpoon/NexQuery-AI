@@ -29,9 +29,13 @@ export class ListEsIndicesTool extends StructuredTool {
       })
       // Use _cat/indices for a simpler list
       const indices: any = await esService.client.cat.indices({ format: 'json' })
-      return JSON.stringify(indices.map((i: any) => ({
+      // Filter out system indices (.kibana, .ds, etc.) and limit to 50 results to avoid context bloat
+      const filteredIndices = indices
+        .filter((i: any) => !i.index.startsWith('.') && i.index !== 'search-history')
+        .slice(0, 50)
+
+      return JSON.stringify(filteredIndices.map((i: any) => ({
         index: i.index,
-        status: i.status,
         docsCount: i['docs.count'],
         size: i['store.size'],
       })))

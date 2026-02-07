@@ -26,9 +26,14 @@ export class GetEsMappingTool extends StructuredTool {
       })
       const mapping: any = await esService.getMapping(input.index)
 
-      // Simplify mapping structure for AI context
+      // Simplify mapping structure to reduce context size: only return field name and type
       const properties = mapping[input.index]?.mappings?.properties || {}
-      return JSON.stringify(properties)
+      const simplified: Record<string, string> = {}
+      for (const [key, value] of Object.entries(properties)) {
+        const fieldInfo = value as any
+        simplified[key] = fieldInfo.type || (fieldInfo.properties ? 'object' : 'unknown')
+      }
+      return JSON.stringify(simplified)
     } catch (error: any) {
       return `Failed to get mapping: ${error.message}`
     }

@@ -28,10 +28,11 @@ export abstract class CommonAgentNode {
 
     const modelWithTools = llm.bindTools(tools)
 
-    // Filter out previous system messages to replace with current specialized one
+    // Filter out previous system messages and keep only the latest 10 messages to avoid context bloat
+    const history = state.messages.filter(m => m._getType() !== 'system')
     const messages = [
       new SystemMessage(systemPrompt),
-      ...state.messages.filter(m => m._getType() !== 'system'),
+      ...history.slice(-10),
     ]
 
     const newMessages: any[] = []
