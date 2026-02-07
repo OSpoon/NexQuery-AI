@@ -169,6 +169,7 @@ export default class LangChainService {
       // Use streamEvents to capture tokens and tool events
       const stream = app.streamEvents(inputs, {
         version: 'v2',
+        recursionLimit: 10,
       })
 
       const streamState: StreamState = {
@@ -220,7 +221,23 @@ export default class LangChainService {
         this.captureModelResponse(data, state)
         break
 
+      case 'on_chain_start':
+        if (data.input && data.input.messages) {
+          // Only track main nodes, skip internal branches or LangGraph internal chains
+          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'metadata_agent', 'data_analyst', 'reviewer_agent', 'respond_directly']
+          if (validNodes.includes(name)) {
+            yield JSON.stringify({ type: 'node_start', node: name, id: run_id })
+          }
+        }
+        break
+
       case 'on_chain_end':
+        if (data.output && (data.output.messages || data.output.next)) {
+          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'metadata_agent', 'data_analyst', 'reviewer_agent', 'respond_directly']
+          if (validNodes.includes(name)) {
+            yield JSON.stringify({ type: 'node_end', node: name, id: run_id })
+          }
+        }
         this.captureChainState(data, state)
         break
 
@@ -333,5 +350,11 @@ export default class LangChainService {
       } catch (e) {}
     }
     return finalSql
+  }
+
+  async getGraphVisual() {
+    const { createAgentGraph } = await import('#services/agents/graph')
+    const app = createAgentGraph()
+    return app.getGraph().drawMermaid()
   }
 }

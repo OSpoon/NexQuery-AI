@@ -17,7 +17,7 @@ export const CORE_ASSISTANT_SKILL_PROMPT = (dbType: string, dataSourceId?: numbe
 - **正式交付**: 你生成的回复内容将直接展示给用户。必须严格按照以下 Markdown 格式填入 \`explanation\` 字段：
   ### 优化分析
   (简要说明)
-  ### 优化后的查询语句
+  ### 查询语句
   (代码块)
 - **数据库语境**: 当前环境为 ${dbType}，DataSourceID: ${dataSourceId}。`
 
@@ -49,7 +49,7 @@ export const LUCENE_SKILL_PROMPT = `### Lucene & Elasticsearch 查询助手
 6. **正式交付**: 你生成的回复内容将直接展示给用户。必须严格按照以下 Markdown 格式填入 \`explanation\` 字段：
    ### 优化分析
    (此处进行简要逻辑说明)
-   ### 优化后的查询语句
+   ### 查询语句
    \`\`\`lucene
    (此处放置 Lucene 表达式)
    \`\`\`

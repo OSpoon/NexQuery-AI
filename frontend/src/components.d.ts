@@ -175,6 +175,7 @@ declare module 'vue' {
     FormLabel: typeof import('./components/ui/form/FormLabel.vue')['default']
     FormMessage: typeof import('./components/ui/form/FormMessage.vue')['default']
     GlobalWatermark: typeof import('./components/common/GlobalWatermark.vue')['default']
+    GraphVisualizer: typeof import('./components/shared/GraphVisualizer.vue')['default']
     HoverCard: typeof import('./components/ui/hover-card/HoverCard.vue')['default']
     HoverCardContent: typeof import('./components/ui/hover-card/HoverCardContent.vue')['default']
     HoverCardTrigger: typeof import('./components/ui/hover-card/HoverCardTrigger.vue')['default']

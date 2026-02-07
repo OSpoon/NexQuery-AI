@@ -29,6 +29,14 @@ export const AgentStateAnnotation = Annotation.Root({
     reducer: (_, y) => y,
     default: () => 'respond_directly',
   }),
+  plan: Annotation<any[]>({
+    reducer: (_, y) => y,
+    default: () => [],
+  }),
+  intermediate_results: Annotation<Record<string, any>>({
+    reducer: (x, y) => ({ ...x, ...y }),
+    default: () => ({}),
+  }),
   userId: Annotation<number | undefined>({
     reducer: (_, y) => y,
   }),
@@ -49,10 +57,8 @@ export function createAgentGraph() {
   workflow.addNode('es_agent', esAgentNode)
 
   // Add Edges
-  // Start -> Supervisor
   workflow.addEdge(START, 'supervisor' as any)
 
-  // Supervisor -> [SqlAgent, EsAgent, End]
   workflow.addConditionalEdges(
     'supervisor' as any,
     (state: AgentState) => state.next || 'respond_directly',
@@ -63,7 +69,7 @@ export function createAgentGraph() {
     } as any,
   )
 
-  // Agents -> End
+  // Agents -> Terminate immediately (Linear flow)
   workflow.addEdge('sql_agent' as any, END)
   workflow.addEdge('es_agent' as any, END)
 

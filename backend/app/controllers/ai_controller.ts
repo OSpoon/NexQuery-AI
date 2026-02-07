@@ -240,6 +240,18 @@ export default class AiController {
               toolStep.toolOutput = data.output
               toolStep.status = 'done'
             }
+          } else if (data.type === 'node_start') {
+            agentSteps.push({
+              type: 'node',
+              nodeName: data.node,
+              status: 'running',
+              id: data.id,
+            })
+          } else if (data.type === 'node_end') {
+            const nodeStep = agentSteps.find(s => s.type === 'node' && s.id === data.id)
+            if (nodeStep) {
+              nodeStep.status = 'completed'
+            }
           } else if (data.type === 'response') {
             // Final Answer: Overwrite content (thoughts are already captured in agentSteps)
             // This ensures the main message body contains the clean final output
@@ -317,6 +329,19 @@ export default class AiController {
     } catch (error: any) {
       return response.internalServerError({
         message: 'Preview failed',
+        error: error.message,
+      })
+    }
+  }
+
+  async visualizeGraph({ response }: HttpContext) {
+    try {
+      const langChainService = new LangChainService()
+      const mermaid = await langChainService.getGraphVisual()
+      return response.ok({ mermaid })
+    } catch (error: any) {
+      return response.internalServerError({
+        message: 'Failed to generate graph visualization',
         error: error.message,
       })
     }

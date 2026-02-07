@@ -5,6 +5,7 @@ import {
   Download,
   HelpCircle,
   History,
+  Map,
   MessageCircle,
   Play,
   Plus,
@@ -21,6 +22,7 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
+import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -36,6 +38,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import {
   Select,
@@ -58,6 +61,7 @@ import { useAiStore } from '@/stores/ai'
 import { useDataSourceStore } from '@/stores/dataSource'
 import { useSettingsStore } from '@/stores/settings'
 import AgentSteps from './AgentSteps.vue'
+import GraphVisualizer from './shared/GraphVisualizer.vue'
 // CSS is now imported in style.css inside @layer components
 
 const { t } = useI18n()
@@ -132,6 +136,7 @@ watch(
 onMounted(() => {
   dataSourceStore.fetchDataSources()
   store.fetchConversations()
+  store.fetchGraphVisual()
 })
 
 // Refresh data sources whenever chat is opened to ensure sync
@@ -182,11 +187,19 @@ watch(
 watch(selectedDataSource, (val) => {
   if (val && val !== 'none') {
     store.dataSourceId = Number(val)
+    store.fetchGraphVisual()
   }
   else {
     store.dataSourceId = undefined
   }
 })
+
+function getActiveNode(msg: any) {
+  if (!msg.agentSteps)
+    return undefined
+  const runningNode = [...msg.agentSteps].reverse().find(s => s.type === 'node' && s.status === 'running')
+  return runningNode?.nodeName
+}
 
 function handleSend() {
   if (!input.value.trim() || store.isLoading)
@@ -359,6 +372,36 @@ function selectOption(option: string) {
           <span class="font-medium">NexQuery AI</span>
         </div>
         <div class="flex items-center gap-1">
+          <!-- Graph Visual Popover -->
+          <Popover v-if="store.mermaidGraph">
+            <PopoverTrigger as-child>
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+                title="View Execution Graph"
+              >
+                <Map class="h-4 w-4" />
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent
+              class="w-[500px] p-2 bg-background shadow-2xl border"
+              side="top"
+              align="end"
+            >
+              <div class="text-[10px] text-muted-foreground mb-2 font-medium flex items-center justify-between px-1">
+                <span>Execution Path Visual</span>
+                <Badge variant="outline" class="h-4 text-[9px] px-1 opacity-70">
+                  Mermaid
+                </Badge>
+              </div>
+              <GraphVisualizer
+                :mermaid-string="store.mermaidGraph"
+                :active-node-name="store.activeNodeName"
+              />
+            </PopoverContent>
+          </Popover>
+
           <!-- History Dropdown -->
           <DropdownMenu>
             <DropdownMenuTrigger as-child>
@@ -488,6 +531,8 @@ function selectOption(option: string) {
                   <AgentSteps
                     v-if="msg.agentSteps && msg.agentSteps.length > 0"
                     :steps="msg.agentSteps"
+                    :mermaid-graph="store.mermaidGraph"
+                    :active-node-name="getActiveNode(msg)"
                   />
 
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />

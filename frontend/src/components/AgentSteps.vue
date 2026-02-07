@@ -7,22 +7,26 @@ import {
   ChevronRight,
   Terminal,
 } from 'lucide-vue-next'
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 interface AgentStep {
-  type: 'thought' | 'tool'
+  type: 'thought' | 'tool' | 'node'
   content?: string
   toolName?: string
   toolInput?: any
   toolOutput?: string
-  status?: 'running' | 'done' | 'error'
+  status?: 'running' | 'done' | 'error' | 'completed'
 }
 
-defineProps<{
+const props = defineProps<{
   steps: AgentStep[]
+  mermaidGraph?: string | null
+  activeNodeName?: string
 }>()
+
+const visibleSteps = computed(() => props.steps.filter(s => s.type !== 'node'))
 
 const isOpen = ref(true)
 
@@ -43,12 +47,14 @@ function formatToolInput(input: any) {
         class="flex items-center justify-between px-3 py-2 bg-muted/50 cursor-pointer"
         @click="isOpen = !isOpen"
       >
-        <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-          <Brain class="h-3.5 w-3.5" />
-          <span>Agent Reasoning ({{ steps.length }} Steps)</span>
+        <div class="flex items-center gap-2">
+          <div class="flex items-center gap-2 text-xs font-medium text-muted-foreground mr-2">
+            <Brain class="h-3.5 w-3.5" />
+            <span>Agent Reasoning ({{ visibleSteps.length }} Steps)</span>
+          </div>
         </div>
         <CollapsibleTrigger as-child>
-          <div class="hover:bg-muted p-1 rounded">
+          <div class="hover:bg-muted p-1 rounded" @click.stop>
             <ChevronDown v-if="isOpen" class="h-3 w-3 text-muted-foreground" />
             <ChevronRight v-else class="h-3 w-3 text-muted-foreground" />
           </div>
@@ -58,7 +64,7 @@ function formatToolInput(input: any) {
       <CollapsibleContent>
         <div class="p-3 space-y-3 text-xs font-mono">
           <div
-            v-for="(step, index) in steps"
+            v-for="(step, index) in visibleSteps"
             :key="index"
             class="relative pl-4 border-l-2 ml-1"
             :class="step.type === 'tool' ? 'border-blue-500/30' : 'border-zinc-500/30'"

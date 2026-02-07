@@ -139,6 +139,7 @@ router
         router.post('ai/chat/stream', [AiController, 'chatStream'])
         router.post('ai/preview', [AiController, 'preview'])
         router.post('ai/learn', [AiController, 'learn'])
+        router.get('ai/graph/visualize', [AiController, 'visualizeGraph'])
         router.get('ai/conversations', [AiController, 'getConversations'])
         router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])
         router.delete('ai/conversations/:id', [AiController, 'deleteConversation'])
