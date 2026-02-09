@@ -5,7 +5,7 @@ import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import DataTable from '@/components/common/DataTable.vue'
-import MonacoEditor from '@/components/shared/MonacoEditor.vue'
+import SqlEditor from '@/components/shared/SqlEditor.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -284,9 +284,10 @@ onMounted(fetchItems)
           </div>
           <div class="grid gap-2">
             <Label for="exampleSql"> {{ t('common.query_example') }} </Label>
-            <MonacoEditor
+            <SqlEditor
               v-model="formData.exampleSql"
               class="h-64 border rounded-md overflow-hidden"
+              :db-type="formData.sourceType === 'elasticsearch' ? 'elasticsearch' : 'mysql'"
               :language="formData.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
             />
           </div>

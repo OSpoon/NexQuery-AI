@@ -8,7 +8,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import AgentSteps from '@/components/AgentSteps.vue'
 import DataTable from '@/components/common/DataTable.vue'
-import MonacoEditor from '@/components/shared/MonacoEditor.vue'
+import SqlEditor from '@/components/shared/SqlEditor.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Button } from '@/components/ui/button'
 import {
@@ -338,9 +338,10 @@ onMounted(fetchFeedbacks)
           </div>
           <div class="grid gap-2">
             <Label>{{ t('common.query_example') }}</Label>
-            <MonacoEditor
+            <SqlEditor
               v-model="promoteForm.exampleSql"
               class="h-64 border rounded-md overflow-hidden"
+              :db-type="promoteForm.sourceType === 'elasticsearch' ? 'elasticsearch' : 'mysql'"
               :language="promoteForm.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
             />
           </div>
@@ -471,11 +472,12 @@ onMounted(fetchFeedbacks)
             <!-- User Correction -->
             <div v-if="selectedItem?.userCorrection" class="space-y-2 pt-2 border-t">
               <Label class="text-sm font-semibold text-primary uppercase tracking-wider">{{ t('feedback.detail_dialog.user_expected') }}</Label>
-              <MonacoEditor
+              <SqlEditor
                 v-model="selectedItem.userCorrection"
-                readonly
                 class="h-[200px] border rounded-md overflow-hidden"
+                :db-type="selectedItem.sourceType === 'elasticsearch' ? 'elasticsearch' : 'mysql'"
                 :language="selectedItem.sourceType === 'elasticsearch' ? 'lucene' : 'sql'"
+                readonly
               />
             </div>
           </div>

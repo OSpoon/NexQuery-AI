@@ -35,11 +35,9 @@ test('create and execute query task', async ({ page }) => {
   await page.getByRole('option', { name: 'Test DB (mysql)' }).click()
 
   // Fill SQL
-  // The SQL Editor is hard to interact with directly due to Monaco.
-  // We can try to paste into it or bypass if possible.
-  // Assuming the editor has a textarea fallback or accessible input:
-  // Usually Monaco captures keyboard.
-  await page.locator('.monaco-editor').click()
+  // The SQL Editor uses CodeMirror 6.
+  // We can click into the editor and type.
+  await page.locator('.cm-editor').click()
   await page.keyboard.type('SELECT 1 as val')
 
   // Mock Task List refresh after save
@@ -134,7 +132,7 @@ test('ai optimization for sql', async ({ page }) => {
   await page.getByRole('option', { name: 'Test DB (mysql)' }).click()
 
   // Input some SQL to optimize
-  await page.locator('.monaco-editor').click()
+  await page.locator('.cm-editor').click()
   await page.keyboard.type('SELECT * FROM users')
 
   // Mock AI Stream response

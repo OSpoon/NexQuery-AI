@@ -421,7 +421,11 @@ onMounted(fetchDataSources)
 
       <div v-if="currentDataSource" class="space-y-2">
         <Label>{{
-          dbType === 'api' ? t('query_tasks.command_template') : t('query_tasks.sql_template')
+          dbType === 'api'
+            ? t('query_tasks.command_template')
+            : dbType === 'elasticsearch'
+              ? '查询模板'
+              : t('query_tasks.sql_template')
         }}</Label>
         <div class="flex items-center justify-between">
           <p v-if="dbType !== 'api'" class="text-xs text-muted-foreground">

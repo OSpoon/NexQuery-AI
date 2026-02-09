@@ -8,7 +8,6 @@ import router from './router'
 import '@/style.css'
 import 'vue-sonner/style.css'
 
-import '@/lib/monaco'
 import 'stream-markdown'
 
 import 'shiki'

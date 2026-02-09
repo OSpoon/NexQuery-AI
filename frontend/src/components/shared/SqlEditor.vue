@@ -1,19 +1,14 @@
 <script setup lang="ts">
-import { AlertCircle, Braces, CheckCircle2, Eraser } from 'lucide-vue-next'
-import * as monaco from 'monaco-editor'
+import { AlertCircle, Braces as BracesIcon, CheckCircle2, Eraser } from 'lucide-vue-next'
 import { format } from 'sql-formatter'
 import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
 import api from '@/lib/api'
 
-import {
-  registerSchema,
-  setupMonacoSql,
-  unregisterSchema,
-} from '@/lib/monaco-sql-init'
-import MonacoEditor from './MonacoEditor.vue'
+import { getSqlExtensions } from '@/lib/codemirror-extensions'
+import CodeMirrorEditor from './CodeMirrorEditor.vue'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   modelValue: string
   language?: string
   variables?: Array<{ name: string, description?: string }>
@@ -21,223 +16,116 @@ const props = defineProps<{
   dataSourceId?: number
   readonly?: boolean
   hideToolbar?: boolean
-}>()
+}>(), {
+})
 const emit = defineEmits(['update:modelValue', 'run'])
 
 const fullWidthChars = /[；，。“”（）]/
 
-const monacoEditorRef = ref<any>(null)
+const editorRef = ref<any>(null)
 const currentSchema = ref<any>([])
 const syntaxError = ref<string | null>(null)
 
-// Compute Language ID for Monaco
-const monacoLanguage = computed(() => {
-  if (props.language && props.language !== 'sql')
-    return props.language // shell, json
-  if (props.dbType === 'postgresql')
-    return 'pgsql'
-  return 'mysql' // Default to mysql for SQL
+// Compute Extensions for CodeMirror
+const extensions = computed(() => {
+  if (props.language === 'shell' || props.language === 'json') {
+    return []
+  }
+  return getSqlExtensions(props.dbType || 'mysql', currentSchema.value, props.variables, formatSql)
 })
 
+const isLoadingSchema = ref(false)
 async function fetchSchema() {
-  if (!props.dataSourceId || props.language === 'shell' || props.language === 'json')
+  if (!props.dataSourceId || props.language === 'shell' || props.language === 'json' || isLoadingSchema.value)
     return
+
+  isLoadingSchema.value = true
   try {
     const response = await api.get(`/data-sources/${props.dataSourceId}/schema`)
     currentSchema.value = response.data
-    // Update Registry if editor exists
-    const editor = monacoEditorRef.value?.getEditor()
-    if (editor) {
-      registerSchema(editor.getModel()!.uri.toString(), currentSchema.value)
-    }
   }
   catch (error) {
     console.error('Failed to fetch schema:', error)
   }
+  finally {
+    isLoadingSchema.value = false
+  }
 }
 
-function onEditorMount(editor: monaco.editor.IStandaloneCodeEditor) {
-  setupMonacoSql()
-  fetchSchema()
-
-  const uri = monacoEditorRef.value?.getUri()
-  if (uri && currentSchema.value.length > 0) {
-    registerSchema(uri, currentSchema.value)
-  }
-
-  // Listen for Model Markers (Errors) to update UI
-  const model = editor.getModel()
-  if (model) {
-    monaco.editor.onDidChangeMarkers(([mUri]) => {
-      if (mUri && mUri.toString() === model.uri.toString()) {
-        const markers = monaco.editor.getModelMarkers({ resource: mUri })
-        const error = markers.find(m => m.severity === monaco.MarkerSeverity.Error)
-        if (error && !syntaxError.value) {
-          syntaxError.value = error.message
-        }
-        else if (!error && !fullWidthChars.test(editor.getValue())) {
-          syntaxError.value = null
-        }
-      }
-    })
-  }
-
-  editor.onDidChangeModelContent(() => {
-    validateSql()
-  })
-}
-
-function onEditorUnmount(_editor: monaco.editor.IStandaloneCodeEditor | null) {
-  const uri = monacoEditorRef.value?.getUri()
-  if (uri) {
-    unregisterSchema(uri)
+function onEditorMount(_view: any) {
+  if (currentSchema.value.length === 0) {
+    fetchSchema()
   }
 }
 
 function formatSql() {
-  const editor = monacoEditorRef.value?.getEditor()
-  if (!editor)
-    return
   try {
-    let value = editor.getValue()
-
-    // Mask {{variables}} to avoid formatter errors
-    // We replace {{var}} with "var_PLACEHOLDER" (identifier) to keep SQL valid
-    const placeholders: Record<string, string> = {}
-    let placeholderIdx = 0
-
-    // Regex to capture {{...}}
-    value = value.replace(/\{\{.*?\}\}/g, (match) => {
-      const key = `__TEMPLATE_VAR_${placeholderIdx++}__`
-      placeholders[key] = match
-      // Return a valid SQL identifier
-      return key
+    // Mask variables with a placeholder that SQL formatter handles safely
+    const variables: string[] = []
+    const maskedValue = props.modelValue.replace(/\{\{.*?\}\}/g, (match) => {
+      variables.push(match)
+      return `__TPL_VAR_${variables.length - 1}__`
     })
 
-    let formatted = format(value, {
+    const formatted = format(maskedValue, {
       language: props.dbType === 'postgresql' ? 'postgresql' : 'mysql',
       keywordCase: 'upper',
       linesBetweenQueries: 2,
     })
 
-    // Restore {{variables}}
-    Object.keys(placeholders).forEach((key) => {
-      // Formatter might upper case the identifier if likely
-      // We need to match case insensitive just in case, or simpler:
-      // Since we used __TEMPLATE_VAR_...__ which is distinct, plain replace should work
-      // unless formatter put spaces? identifiers usually stick together.
-      formatted = formatted.replace(new RegExp(key, 'g'), placeholders[key]!)
+    // Unmask variables
+    const finalValue = formatted.replace(/__TPL_VAR_(\d+)__/g, (_, index) => {
+      return variables[Number(index)] || `__TPL_VAR_${index}__`
     })
 
-    editor.setValue(formatted)
+    emit('update:modelValue', finalValue)
   }
   catch (e) {
     console.error('Format failed:', e)
-    // Fallback to basic monaco format if available (though likely failed)
-    editor.getAction('editor.action.formatDocument')?.run()
   }
 }
 
 function validateSql() {
-  const editor = monacoEditorRef.value?.getEditor()
-  if (!editor)
-    return
-  const value = editor.getValue()
-
-  // 1. Check for Chinese Punctuation (Strict Error)
-  const fullWidthChars = /[；，。“”（）]/
-  if (fullWidthChars.test(value)) {
-    const match = value.match(fullWidthChars)
-    const char = match ? match[0] : ''
-    syntaxError.value = `检测到非法的中文字符: "${char}"，请使用英文标点符号。`
-    return
+  if (fullWidthChars.test(props.modelValue)) {
+    syntaxError.value = '检测到中文全角符号（如 ：，。），请切换到英文输入法。'
   }
-
-  // 2. Safety Check (Warning)
-  // Simple heuristic: DELETE/UPDATE without WHERE
-  const upperVal = value.toUpperCase()
-  // Strip comments and strings for better accuracy? (Simplified for now)
-  if ((/\bDELETE\b/.test(upperVal) || /\bUPDATE\b/.test(upperVal)) && !/\bWHERE\b/.test(upperVal)) {
-    syntaxError.value = '⚠️ 高风险警告: 检测到 DELETE/UPDATE 语句缺失 WHERE 子句！'
-    return
+  else {
+    syntaxError.value = null
   }
-
-  // 3. Check Monaco Internal Markers (Syntax Errors from Parser)
-  const model = editor.getModel()
-  if (model) {
-    const markers = monaco.editor.getModelMarkers({ resource: model.uri })
-    const filteredErrors = markers.filter((m) => {
-      if (m.severity !== monaco.MarkerSeverity.Error)
-        return false
-
-      // Ignore common syntax errors caused by template placeholders {{ }}
-      const message = m.message.toLowerCase()
-      if (
-        message.includes('unexpected \'{\'')
-        || message.includes('unexpected \'}\'')
-        || (message.includes('expected') && (message.includes('{\'') || message.includes('}\'')))
-      ) {
-        return false
-      }
-
-      // Check the text at the error location
-      const errText = model.getValueInRange({
-        startLineNumber: m.startLineNumber,
-        startColumn: m.startColumn,
-        endLineNumber: m.endLineNumber,
-        endColumn: m.endColumn,
-      })
-
-      if (errText.includes('{{') || errText.includes('}}'))
-        return false
-
-      // Fallback: If it's a generic "dt-sql-parser" error and the current line has placeholders
-      const lineContent = model.getLineContent(m.startLineNumber)
-      if (lineContent.includes('{{') && lineContent.includes('}}')) {
-        // Only ignore if the error message is generic or related to symbols
-        if (message.includes('dt-sql-parser') || /unexpected|expected/.test(message)) {
-          return false
-        }
-      }
-
-      return true
-    })
-
-    if (filteredErrors.length > 0) {
-      syntaxError.value = filteredErrors[0].message
-      return
-    }
-  }
-
-  // Reset if no manual errors and no parser errors
-  syntaxError.value = null
 }
 
-watch(
-  () => [props.dataSourceId],
-  () => {
-    fetchSchema()
-  },
-)
-
 function clearSql() {
-  monacoEditorRef.value?.getEditor()?.setValue('')
+  emit('update:modelValue', '')
 }
 
 function insertVariable(variableName: string) {
-  const editor = monacoEditorRef.value?.getEditor()
-  if (!editor)
+  const view = editorRef.value?.getView()
+  if (!view)
     return
-  const selection = editor.getSelection()
+
+  const selection = view.state.selection.main
   const text = `{{${variableName}}}`
-  const op = { range: selection!, text, forceMoveMarkers: true }
-  editor.executeEdits('insert-variable', [op])
-  editor.focus()
+
+  view.dispatch({
+    changes: { from: selection.from, to: selection.to, insert: text },
+    selection: { anchor: selection.from + text.length },
+    userEvent: 'input.type',
+  })
+  view.focus()
 }
 
-// Monaco lifecycle is managed by MonacoEditor.vue
+watch(() => props.modelValue, () => {
+  validateSql()
+})
+
+watch(() => props.dataSourceId, () => {
+  fetchSchema()
+})
 
 defineExpose({
+  formatSql,
+  validateSql,
+  insertVariable,
   validate: () => {
     validateSql()
     return !syntaxError.value
@@ -247,91 +135,135 @@ defineExpose({
 
 <template>
   <div
-    class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px]"
-    :class="{ 'min-h-[150px]': hideToolbar }"
+    class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px] font-mono text-sm shadow-inner group transition-colors duration-200 bg-white border-zinc-200"
+    :class="[
+      { 'min-h-[150px]': hideToolbar, 'border-red-900/50': syntaxError },
+    ]"
   >
+    <!-- Toolbar -->
     <div
       v-if="!hideToolbar"
-      class="flex items-center justify-between px-2 py-1 bg-muted/30 border-b"
+      class="flex h-10 items-center justify-between border-b px-3 py-1 transition-colors bg-zinc-50 border-zinc-200"
     >
-      <div class="flex items-center gap-1">
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          title="Format"
-          class="h-8 w-8"
-          @click="formatSql"
-        >
-          <Braces class="h-4 w-4" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          title="Clear"
-          class="h-8 w-8 text-destructive"
-          @click="clearSql"
-        >
-          <Eraser class="h-4 w-4" />
-        </Button>
-        <div class="h-4 w-px bg-border mx-1" />
+      <div class="flex items-center gap-2">
         <div
-          v-if="syntaxError"
-          class="flex items-center text-destructive text-[10px] gap-1 px-1 max-w-[300px] truncate"
-          :title="syntaxError"
+          class="flex h-6 items-center gap-1.5 rounded-md border px-2 text-[10px] font-bold tracking-wider bg-white border-zinc-200 text-zinc-500"
         >
-          <AlertCircle class="h-3 w-3 shrink-0" />
-          <span class="truncate">Error</span>
+          <div class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          {{ language === 'shell' ? 'SHELL' : language === 'json' ? 'JSON' : 'SQL' }}
         </div>
-        <div v-else class="flex items-center text-green-600 text-[10px] gap-1 px-1">
-          <CheckCircle2 class="h-3 w-3 shrink-0" />
-          <span>{{ language === 'shell' ? 'Ready' : language === 'json' ? 'JSON' : 'SQL' }}</span>
+        <div v-if="dbType && language !== 'shell'" class="text-[10px] text-zinc-500 uppercase tracking-tighter opacity-60">
+          {{ dbType }}
         </div>
       </div>
-      <div v-if="variables && variables.length > 0" class="flex items-center gap-2">
-        <span class="text-xs text-muted-foreground">Insert:</span>
-        <div class="flex gap-1">
-          <Button
-            v-for="v in variables"
-            :key="v.name"
-            type="button"
-            variant="outline"
-            size="sm"
-            class="h-6 text-xs px-2"
-            @click="insertVariable(v.name)"
-          >
-            {{ v.name }}
-          </Button>
+
+      <div class="flex items-center gap-1.5 opacity-0 transition-opacity group-hover:opacity-100">
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="h-7 w-7 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200"
+          title="Format SQL"
+          @click="formatSql"
+        >
+          <BracesIcon class="h-3.5 w-3.5" />
+        </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          class="h-7 w-7 text-zinc-500 hover:text-zinc-900 hover:bg-zinc-200"
+          title="Clear"
+          @click="clearSql"
+        >
+          <Eraser class="h-3.5 w-3.5" />
+        </Button>
+      </div>
+    </div>
+
+    <!-- Variable Hints (Read-only) -->
+    <div
+      v-if="variables && variables.length > 0 && !hideToolbar"
+      class="flex items-center gap-2 px-3 py-1.5 border-b overflow-x-auto no-scrollbar bg-zinc-50/50 border-zinc-200"
+    >
+      <span class="text-[10px] text-zinc-500 uppercase font-bold whitespace-nowrap">Variables:</span>
+      <div class="flex gap-1.5">
+        <span
+          v-for="v in variables"
+          :key="v.name"
+          class="inline-flex items-center h-5 px-2 text-[10px] font-medium rounded border select-all cursor-default bg-white border-zinc-300 text-zinc-600 shadow-sm"
+          :title="v.description || v.name"
+        >
+          {{ v.name }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Editor Container -->
+    <div class="relative flex-1 overflow-hidden min-h-[120px]">
+      <CodeMirrorEditor
+        ref="editorRef"
+        :model-value="modelValue"
+        :readonly="readonly"
+        :extensions="extensions"
+        :dark="false"
+        @update:model-value="emit('update:modelValue', $event)"
+        @mount="onEditorMount"
+      />
+
+      <!-- Error Overlay -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="translate-y-2 opacity-0"
+        enter-to-class="translate-y-0 opacity-100"
+        leave-active-class="transition duration-150 ease-in"
+        leave-from-class="translate-y-0 opacity-100"
+        leave-to-class="translate-y-1 opacity-0"
+      >
+        <div v-if="syntaxError" class="absolute bottom-2 left-2 right-2 flex items-start gap-2 rounded border p-2 text-[11px] backdrop-blur-md shadow-xl z-50 transition-all duration-300 border-red-200 bg-red-50/95 text-red-700 shadow-red-200/20">
+          <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
+          <span class="leading-relaxed">{{ syntaxError }}</span>
+        </div>
+      </Transition>
+
+      <!-- Empty State Hint -->
+      <div v-if="!modelValue && !readonly" class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10 select-none">
+        <div class="flex flex-col items-center gap-3">
+          <div class="flex flex-col items-center gap-3">
+            <BracesIcon class="h-10 w-10 text-zinc-200" />
+            <p v-pre class="text-[11px] font-medium text-zinc-300">
+              输入 SQL 或使用 {{变量}}
+            </p>
+          </div>
         </div>
       </div>
     </div>
-    <MonacoEditor
-      ref="monacoEditorRef"
-      :model-value="modelValue"
-      :language="monacoLanguage"
-      :readonly="readonly"
-      :variables="variables"
-      class="flex-1 h-full"
 
-      @update:model-value="emit('update:modelValue', $event)"
-      @mount="onEditorMount"
-      @unmount="onEditorUnmount"
-    />
+    <!-- Footer Status -->
+    <div v-if="!hideToolbar" class="flex h-6 items-center justify-between border-t px-2 text-[10px] transition-colors bg-zinc-50 border-zinc-200 text-zinc-500">
+      <div class="flex items-center gap-3">
+        <div v-if="dataSourceId" class="flex items-center gap-1">
+          <CheckCircle2 class="h-3 w-3 text-emerald-500/70" />
+          <span class="font-medium text-zinc-600">Schema Sync</span>
+        </div>
+        <div v-if="variables?.length" class="flex items-center gap-1">
+          <BracesIcon class="h-3 w-3 text-amber-500/70" />
+          <span class="font-medium text-zinc-600">{{ variables.length }} Vars</span>
+        </div>
+      </div>
+      <div class="opacity-60 italic text-zinc-400">
+        Powered by CodeMirror 6
+      </div>
+    </div>
   </div>
 </template>
 
-<style>
-.monaco-editor {
-  padding-top: 8px;
+<style scoped>
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
-
-/* Limit hover widget height */
-.monaco-editor .monaco-hover {
-  max-height: 180px !important;
-}
-
-.monaco-editor .monaco-hover .monaco-scrollable-element {
-  max-height: 180px !important;
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 </style>

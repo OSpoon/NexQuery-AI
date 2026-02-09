@@ -2,7 +2,7 @@
 import { Braces, Copy, ExternalLink } from 'lucide-vue-next'
 import { computed, ref } from 'vue'
 import { toast } from 'vue-sonner'
-import MonacoEditor from '@/components/shared/MonacoEditor.vue'
+import CodeMirrorEditor from '@/components/shared/CodeMirrorEditor.vue'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -12,13 +12,18 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import { getJsonExtensions } from '@/lib/codemirror-extensions'
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   value: any
   maxPreviewLength?: number
-}>()
+  dark?: boolean
+}>(), {
+  dark: false,
+})
 
 const isDialogOpen = ref(false)
+const extensions = getJsonExtensions()
 
 const parsedValue = computed(() => {
   if (typeof props.value === 'string') {
@@ -67,26 +72,41 @@ function copyToClipboard() {
             <ExternalLink class="h-3 w-3" />
           </Button>
         </DialogTrigger>
-        <DialogContent class="sm:max-w-5xl h-[80vh] flex flex-col p-0 overflow-hidden">
-          <DialogHeader class="p-6 pb-2 flex flex-row items-center justify-between space-y-0">
+        <DialogContent
+          class="sm:max-w-5xl h-[80vh] flex flex-col p-0 overflow-hidden shadow-2xl transition-colors duration-200"
+          :class="dark ? 'bg-zinc-950 border-zinc-800' : 'bg-white border-zinc-200'"
+        >
+          <DialogHeader
+            class="p-6 pb-2 flex flex-row items-center justify-between space-y-0 border-b"
+            :class="dark ? 'bg-zinc-900/10 border-zinc-800' : 'bg-zinc-50 border-zinc-200'"
+          >
             <div class="flex items-center gap-2">
-              <Braces class="h-5 w-5 text-primary" />
-              <DialogTitle>JSON Viewer</DialogTitle>
+              <Braces class="h-5 w-5 text-emerald-500" />
+              <DialogTitle :class="dark ? 'text-zinc-100' : 'text-zinc-900'">
+                JSON Viewer
+              </DialogTitle>
               <DialogDescription class="sr-only">
                 View full JSON details
               </DialogDescription>
             </div>
-            <Button variant="outline" size="sm" @click="copyToClipboard">
+            <Button
+              variant="outline"
+              size="sm"
+              :class="dark ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white' : 'bg-white border-zinc-200 text-zinc-700 hover:text-zinc-950'"
+              @click="copyToClipboard"
+            >
               <Copy class="mr-2 h-4 w-4" />
               Copy JSON
             </Button>
           </DialogHeader>
-          <MonacoEditor
-            :model-value="formattedJson"
-            language="json"
-            readonly
-            class="flex-1 min-h-[300px] m-6 mt-2"
-          />
+          <div class="flex-1 overflow-hidden m-6 mt-2 border rounded-md" :class="dark ? 'border-zinc-800' : 'border-zinc-200'">
+            <CodeMirrorEditor
+              :model-value="formattedJson"
+              :extensions="extensions"
+              readonly
+              :dark="dark"
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
