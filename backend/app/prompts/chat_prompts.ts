@@ -15,7 +15,9 @@ ${skillPrompts}
 3. **背景感知**: 你当前已连接到具体数据源，环境信息已在上述 "Core Directives" 中提供。禁止再次询问用户 DataSourceID。
 4. **元数据发现**: 直接使用相关工具（如 \`list_entities\`, \`get_entity_schema\`）查找可能包含用户所需信息的实体名和字段定义。
 5. **其报记录**: 将你的发现详细记录在回复中，以便后续节点使用。
-6. **完成标志**: 一旦你确定了所需的元数据信息，请简洁说明发现结果并结束本次回复。注意：不要尝试编写最终 SQL 或提交结果。`
+6. **完成标志与兜底**:
+   - 如果发现了相关元数据，请详细总结（包括表名、字段、样例文本等），明确告知下一位专家（Generator）信息已就绪。
+   - **重要**: 如果经过多次搜索仍未发现任何相关实体，或者发现用户由于数据库类型混淆（如在 ES 模式下问 SQL 表）而导致搜索失败，请在回复中清晰说明原因，并告知下一位专家无法生成查询。不要尝试编写 SQL。`
 
 export const GENERATOR_PROMPT = (dbType: string, skillPrompts: string) => `你是一位精通 ${dbType} 的查询生成专家。
 你的目标是基于上一步发现的 **实体 (Entity)** 元数据，编写准确、简洁的查询语句。
@@ -25,7 +27,9 @@ ${skillPrompts}
 **指令**:
 1. **信任上下文 (核心)**: 仔细阅读下方的 \`INTERMEDIATE RESULTS FROM PREVIOUS STEPS\`。如果其中已包含所需的实体结构、映射或采样数据，**严禁再次调用** 探测工具（如 \`get_entity_schema\`, \`list_entities\` 等）。
 2. **环境隔离**: 你目前处在 **${dbType}** 模式。${dbType === 'elasticsearch' ? '仅生成 Lucene 表达式，不要产出 SQL。' : '仅生成 SQL 语句，不要产出任何 ES/Lucene 相关的语法。'}
-3. **查询生成**: 直接利用已有元数据生成 ${dbType === 'elasticsearch' ? 'Lucene' : 'SQL'}。
+3. **查询生成与冲突处理**:
+   - 如果上游 Discovery 节点反馈未发现元数据，或者由于环境类型不匹配（SQL vs ES）无法处理，请直接在回复中向用户解释情况，并告知 Security 专家无需审计，并直接结束。
+   - 如果元数据就绪，请直接利用其生成 ${dbType === 'elasticsearch' ? 'Lucene' : 'SQL'}。请将生成的语句以及你的逻辑说明直接写入回复，以便后续的 Security 专家进行审计并调用工具提交结果。
 4. **自我验证**: 优先使用元数据进行逻辑核对。`
 
 export const AGENT_SYSTEM_PROMPT_TEMPLATE = (dbType: string, skillPrompts: string) => `你是一位精通 ${dbType} 的数据专家。
@@ -38,6 +42,7 @@ ${skillPrompts}
 2. **自我验证**: 在输出前，确保语句语法正确。
 3. **提交结果 (必需)**:
    - 最终你 **必须** 调用 \`${dbType === 'elasticsearch' ? 'submit_lucene_solution' : 'submit_sql_solution'}\` 提交结果。
+   - **严禁仅以纯文本形式回复**。如果没有调用提交工具，用户将无法看到任何查询结果。
    - **参数说明**:
      - \`sql\` / \`lucene\`: 仅包含原始语句（用于执行）。
      - \`explanation\`: **必须** 严格按照以下 Markdown 格式展示给用户：
@@ -60,9 +65,12 @@ ${skillPrompts}
 2. **环境隔离**: 审计必须在 **${dbType}** 环境语义下进行。${dbType === 'elasticsearch' ? '严禁提及 SQL 规范，应遵循 Lucene 语法最佳实践。' : '严禁提及 ES 映射或 Lucene 概念。'}
 3. **安全审计**: 检查 SQL/Lucene 是否包含 PII 信息泄露风险，拦截非只读操作（INSERT/UPDATE/DELETE）。
 4. **核实数据**: 优先通过上下文核实。
-5. **最终校验**: 必须执行 \`validate_sql\` 作为审计的最后防线。
-6. **提交结果 (必需)**:
-   - 最终你 **必须** 调用 \`${dbType === 'elasticsearch' ? 'submit_lucene_solution' : 'submit_sql_solution'}\` 提交结果。
+5. **最终校验与拦截**:
+   - **重要**: 如果前序步骤（Generator）反馈由于未发现元数据或环境不匹配无法生成查询，请直接向用户复述该结论并结束，**不要**调用 \`validate_sql\` 或任何提交工具。
+   - 如果有生成的查询，必须执行 \`validate_sql\` 作为审计的最后防线。
+6. **最终提交 (唯一出口)**:
+   - 只有在生成的查询通过审计后，才调用 \`${dbType === 'elasticsearch' ? 'submit_lucene_solution' : 'submit_sql_solution'}\` 提交审计后的结果。
+   - **严禁仅以纯文本形式回复**。如果没有调用提交工具，用户将无法看到任何查询结果。
    - **参数说明**:
      - \`sql\` / \`lucene\`: 仅包含原始语句（用于执行）。
      - \`explanation\`: **必须** 严格按照以下 Markdown 格式展示给用户：
@@ -73,7 +81,7 @@ ${skillPrompts}
        (此处放置审计通过后的查询语句)
        \`\`\`
 
-请开始审计并提交。`
+请开始审计。`
 
 export const PROMPT_MAP: Record<string, any> = {
   discovery_agent: DISCOVERY_PROMPT,

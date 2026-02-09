@@ -28,10 +28,10 @@ export abstract class CommonAgentNode {
 
     // Provide intermediate results as context if they exist
     const resultsStr = state.intermediate_results && Object.keys(state.intermediate_results).length > 0
-      ? `\n\n--- INTERMEDIATE RESULTS FROM PREVIOUS STEPS ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n-----------------------------------------------\n`
+      ? `\n\n--- 前序步骤的探测结果 (中间结果) ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n-----------------------------------------------\n`
       : ''
 
-    const envHeader = `\n\n[!!! STRICT ENVIRONMENT PROTOCOL !!!]\nCURRENT MODE: ${state.dbType.toUpperCase()} \nDATASOURCE ID: ${state.dataSourceId || 'UNKNOWN'}\n- YOU MUST ONLY USE ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'} SYNTAX.\n- DO NOT ASSUME THE EXISTENCE OF ${state.dbType === 'elasticsearch' ? 'TABLES OR COLUMNS' : 'INDICES OR MAPPINGS'}.\n- NEVER TRY TO GUESS OR SEARCH FOR OTHER DATASOURCE IDS.\n- YOUR TOOLS ARE STRICTLY FILTERED FOR THIS ENVIRONMENT ONLY.\n[!!! END PROTOCOL !!!]\n\n`
+    const envHeader = `\n\n[!!! 数据环境协议 !!!]\n当前数据库类型: ${state.dbType.toUpperCase()} \n数据源 ID: ${state.dataSourceId || '未知'}\n- 系统默认期望 ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'} 语法。如果用户的问题使用了不匹配的术语（如在 ES 模式下提到“表”或“SQL”），请根据当前环境进行语义映射或友好解释，不要直接拒绝。\n- 严禁猜测或尝试访问其他数据源 ID。\n- 你的工具库已针对此环境进行了预过滤。\n[!!! 协议结束 !!!]\n\n`
 
     const systemPrompt = envHeader + (typeof promptTemplate === 'function'
       ? (promptTemplate as any)(state.dbType, skillPrompts)

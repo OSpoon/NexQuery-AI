@@ -7,6 +7,7 @@ import {
   History,
   Map,
   MessageCircle,
+  Minus,
   Play,
   Plus,
   Send,
@@ -484,6 +485,17 @@ function selectOption(option: string) {
             <Plus class="h-4 w-4" />
           </Button>
 
+          <!-- Minimize Button -->
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+            title="Minimize"
+            @click="store.toggleOpen"
+          >
+            <Minus class="h-4 w-4" />
+          </Button>
+
           <Button
             variant="ghost"
             size="icon"
@@ -716,14 +728,34 @@ function selectOption(option: string) {
     </div>
 
     <!-- Toggle Button -->
-    <Button
-      v-else
-      size="lg"
-      class="h-14 w-14 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90 transition-transform hover:scale-105"
-      @click="store.toggleOpen"
-    >
-      <MessageCircle class="h-7 w-7" />
-    </Button>
+    <div v-else class="relative group">
+      <!-- Background HUD (Loading Ring) -->
+      <div
+        v-if="store.isLoading"
+        class="absolute -inset-1.5 bg-primary/20 rounded-full animate-ping pointer-events-none"
+      />
+      <div
+        v-if="store.isLoading"
+        class="absolute -inset-1 border-2 border-primary border-t-transparent rounded-full animate-spin pointer-events-none"
+      />
+
+      <Button
+        size="lg"
+        class="h-14 w-14 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90 transition-all hover:scale-105 relative z-10"
+        @click="store.toggleOpen"
+      >
+        <MessageCircle v-if="!store.isLoading" class="h-7 w-7" />
+        <Sparkles v-else class="h-7 w-7 animate-pulse" />
+
+        <!-- Progress Badge -->
+        <div
+          v-if="store.isLoading"
+          class="absolute -top-1 -right-1 h-5 w-5 bg-destructive rounded-full border-2 border-background flex items-center justify-center animate-bounce shadow-sm"
+        >
+          <div class="w-1.5 h-1.5 bg-white rounded-full" />
+        </div>
+      </Button>
+    </div>
 
     <!-- Correction Dialog -->
     <Dialog v-model:open="isCorrectionOpen">
