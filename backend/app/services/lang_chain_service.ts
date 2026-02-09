@@ -175,6 +175,10 @@ export default class LangChainService {
 
     // Create Trace Handler
     const aiProvider = new AiProviderService()
+    const config = await aiProvider.getConfig()
+    const modelName = config.chatModel
+
+    // Create Trace Handler
     const traceHandler = aiProvider.getLangfuseHandler({
       sessionId: context.conversationId ? `conv_${context.conversationId}` : undefined,
       userId: context.userId ? `user_${context.userId}` : undefined,
@@ -198,7 +202,11 @@ export default class LangChainService {
       }
 
       for await (const event of stream) {
-        yield* this.handleStreamEvent(event, streamState)
+        yield* this.handleStreamEvent(event, streamState, {
+          userId: context.userId,
+          conversationId: context.conversationId,
+          modelName,
+        })
       }
 
       // Extract variables back for final response logic (to keep that part unchanged for now)
@@ -223,7 +231,7 @@ export default class LangChainService {
   /**
    * Main Dispatcher for Stream Events
    */
-  private async* handleStreamEvent(event: any, state: StreamState): AsyncGenerator<string> {
+  private async* handleStreamEvent(event: any, state: StreamState, context: { userId?: number, conversationId?: number, modelName?: string }): AsyncGenerator<string> {
     const { data, name, run_id, event: eventType } = event
 
     switch (eventType) {
@@ -237,6 +245,13 @@ export default class LangChainService {
 
       case 'on_chat_model_end':
         this.captureModelResponse(data, state)
+        // Record AI Usage for each model call in the graph
+        await AiUsageService.recordFromLangChain(data.output, {
+          userId: context.userId,
+          conversationId: context.conversationId,
+          context: 'agent_graph',
+          modelName: context.modelName,
+        })
         break
 
       case 'on_chain_start':
@@ -335,8 +350,9 @@ export default class LangChainService {
       tags: ['sql_optimization'],
     })
 
+    const config = await aiProvider.getConfig()
+    const modelName = config.chatModel
     const { llm } = await this.getModel(false, undefined, [traceHandler])
-    const modelName = (llm as any).modelName || 'gpt-4o'
     const dbType = context.dbType || 'mysql'
 
     const prompt = SQL_OPTIMIZATION_PROMPT_TEMPLATE(dbType, JSON.stringify(context.schema || {}), sql)

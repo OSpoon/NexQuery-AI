@@ -52,10 +52,10 @@ export default class AiUsageService {
 
       const stats = await AiUsageLog.query()
         .where('createdAt', '>=', today!)
-        .sum('estimatedCost as totalCost')
+        .sum('estimated_cost as total_cost')
         .first()
 
-      const dailyCost = Number.parseFloat(stats?.$extras.totalCost || '0')
+      const dailyCost = Number.parseFloat(stats?.$extras.total_cost || '0')
 
       // Get threshold from Settings (fallback to 10 USD)
       const Setting = (await import('#models/setting')).default
@@ -111,7 +111,10 @@ export default class AiUsageService {
     if (!usage)
       return
 
-    const actualModelName = response.response_metadata?.model_name || options.modelName || 'gpt-4o'
+    const actualModelName = response.response_metadata?.model_name
+      || response.response_metadata?.modelName
+      || options.modelName
+      || 'unknown'
 
     await this.recordUsage({
       userId: options.userId,

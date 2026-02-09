@@ -14,7 +14,7 @@ import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
 
-const encryptionKey = import.meta.env.API_ENCRYPTION_KEY
+const encryptionKey = import.meta.env.VITE_API_ENCRYPTION_KEY
 const cryptoService = encryptionKey ? new CryptoService(encryptionKey) : null
 
 const settings = ref([
@@ -203,6 +203,10 @@ async function saveSettings() {
 onMounted(() => {
   fetchSettings()
   fetchRoles()
+
+  // Ensure global store is refreshed too
+  const settingsStore = useSettingsStore()
+  settingsStore.fetchSettings()
 })
 </script>
 

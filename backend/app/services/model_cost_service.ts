@@ -38,7 +38,7 @@ export default class ModelCostService {
     if (!rate) {
       // Try fuzzy matching (prefix) to handle versioned model names (e.g., gpt-4o-2024-08-06)
       const baseModel = Object.keys(this.RATES).find(k => modelName.startsWith(k))
-      rate = baseModel ? this.RATES[baseModel] : { inputPricePer1M: 1.0, outputPricePer1M: 1.0 }
+      rate = baseModel ? this.RATES[baseModel] : { inputPricePer1M: 0, outputPricePer1M: 0 }
     }
 
     const inputCost = (usage.promptTokens / 1000000) * rate.inputPricePer1M

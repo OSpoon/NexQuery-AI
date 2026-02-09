@@ -4,33 +4,9 @@ import { computed, ref } from 'vue'
 
 import api from '@/lib/api'
 import router from '@/router'
+import { useSettingsStore } from '@/stores/settings'
 
 export type { Menu, Permission, Role, User }
-
-/*
-export interface Permission {
-  id: number
-  name: string
-  slug: string
-}
-
-export interface Role {
-  id: number
-  name: string
-  slug: string
-  permissions: Permission[]
-}
-
-export interface User {
-  id: number
-  fullName: string
-  email: string
-  roles?: Role[]
-  isActive: boolean
-  createdAt: string
-  updatedAt?: string
-}
-*/
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -75,10 +51,11 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_token', token.value!)
       localStorage.setItem('user', JSON.stringify(user.value))
 
-      // Fetch permissions immediately after login
+      const settingsStore = useSettingsStore()
       await fetchPermissions()
       await fetchMenus()
       await fetchRoutePermissions()
+      await settingsStore.fetchSettings()
 
       if (data.requiresPasswordChange) {
         return data
@@ -102,9 +79,11 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_token', token.value!)
       localStorage.setItem('user', JSON.stringify(user.value))
 
+      const settingsStore = useSettingsStore()
       await fetchPermissions()
       await fetchMenus()
       await fetchRoutePermissions()
+      await settingsStore.fetchSettings()
     }
     catch (error: any) {
       throw new Error(error.response?.data?.message || 'Verification failed')
@@ -149,9 +128,11 @@ export const useAuthStore = defineStore('auth', () => {
     if (savedToken && savedUser) {
       token.value = savedToken
       user.value = JSON.parse(savedUser)
+      const settingsStore = useSettingsStore()
       await fetchPermissions()
       await fetchMenus()
       await fetchRoutePermissions()
+      await settingsStore.fetchSettings()
     }
   }
 
