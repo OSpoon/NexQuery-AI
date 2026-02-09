@@ -90,13 +90,12 @@ const trendChartData = computed(() => {
 
 // Chart Data: Model Distribution
 const modelChartData = computed(() => {
-  if (!stats.value?.modelDistribution)
-    return { labels: [], datasets: [] }
+  const filteredData = (stats.value.modelDistribution || []).filter((m: any) => m.cost > 0)
   return {
-    labels: stats.value.modelDistribution.map((m: any) => m.model_name),
+    labels: filteredData.map((m: any) => m.model_name),
     datasets: [
       {
-        data: stats.value.modelDistribution.map((m: any) => m.cost),
+        data: filteredData.map((m: any) => m.cost),
         backgroundColor: [
           '#3b82f6',
           '#10b981',
