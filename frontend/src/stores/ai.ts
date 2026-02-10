@@ -335,7 +335,7 @@ export const useAiStore = defineStore('ai', () => {
     if (messages.value.length === 0)
       return undefined
     const lastMessage = messages.value[messages.value.length - 1]
-    if (!lastMessage.agentSteps)
+    if (!lastMessage || !lastMessage.agentSteps)
       return undefined
     const runningNode = [...lastMessage.agentSteps].reverse().find(s => s.type === 'node' && s.status === 'running')
     return runningNode?.nodeName

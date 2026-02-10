@@ -103,7 +103,7 @@ const dbType = computed(() => {
 
 const updateSchemaFromSql = useDebounceFn((sql: string) => {
   const variableRegex = /\{\{\s*(\w+)\s*\}\}/g
-  const matches = [...sql.matchAll(variableRegex)].map(m => m[1])
+  const matches = [...sql.matchAll(variableRegex)].map(m => m[1] as string)
 
   const isEs = dbType.value === 'elasticsearch'
   const uniqueVars = [...new Set(matches.filter(v => isEs ? !['index', 'query', 'size'].includes(v) : true))]

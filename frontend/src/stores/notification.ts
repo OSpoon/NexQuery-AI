@@ -21,7 +21,7 @@ export const useNotificationStore = defineStore('notification', () => {
   const total = ref(0)
 
   async function fetchNotifications(page = 1, limit = 20) {
-    loading.ref = true
+    loading.value = true
     try {
       const response = await api.get('/user/notifications', {
         params: { page, limit },
@@ -43,9 +43,9 @@ export const useNotificationStore = defineStore('notification', () => {
   async function markAsRead(id: number) {
     try {
       await api.patch(`/user/notifications/${id}/read`)
-      const index = notifications.value.findIndex(n => n.id === id)
-      if (index !== -1 && !notifications.value[index].isRead) {
-        notifications.value[index].isRead = true
+      const notification = notifications.value.find(n => n.id === id)
+      if (notification && !notification.isRead) {
+        notification.isRead = true
         unreadCount.value = Math.max(0, unreadCount.value - 1)
       }
     }

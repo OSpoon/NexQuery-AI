@@ -16,8 +16,6 @@ const props = withDefaults(defineProps<{
   fields?: Array<{ name: string, type: string }>
   readonly?: boolean
   hideToolbar?: boolean
-  readonly?: boolean
-  hideToolbar?: boolean
 }>(), {
 })
 
@@ -114,7 +112,7 @@ defineExpose({
                 />
               </div>
               <div class="mt-1 pt-2 border-t px-2 text-[10px] italic border-zinc-200 text-zinc-400">
-                提示: 使用 <code class="text-emerald-600">{{ variable }}</code> 引用动态变量。
+                提示: 使用 <code v-pre class="text-emerald-600">{{ variable }}</code> 引用动态变量。
               </div>
             </div>
           </PopoverContent>

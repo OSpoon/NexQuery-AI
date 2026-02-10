@@ -320,7 +320,7 @@ async function handleRunSql(msg: any, index: number) {
 
   isRunningSql.value[index] = true
   try {
-    const query = msg.generatedLucene || msg.generatedSql || msg.sql
+    const query = msg.generatedLucene || msg.generatedSql
     await store.previewSql(store.dataSourceId, query, index)
     toast.success(t('common.success'))
   }
@@ -579,7 +579,7 @@ function selectOption(option: string) {
 
                   <!-- Run Button -->
                   <!-- SQL/Lucene Run Button -->
-                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.sql || msg.generatedLucene)" class="mt-2 flex items-center gap-2">
+                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.generatedLucene)" class="mt-2 flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
