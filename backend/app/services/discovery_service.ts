@@ -46,6 +46,15 @@ export default class DiscoveryService {
    * List all discoverable entities (tables or indices)
    */
   static async listEntities(dataSourceId: number): Promise<EntityMetadata[]> {
+    if (dataSourceId === 9999) {
+      const { client } = await DbHelper.getConnection(dataSourceId)
+      const results = await client.rawQuery('SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\'')
+      return results.map((row: any) => ({
+        name: row.name,
+        type: 'table',
+      }))
+    }
+
     const dataSource = await DataSource.findOrFail(dataSourceId)
 
     if (dataSource.type === 'elasticsearch') {
@@ -113,6 +122,9 @@ export default class DiscoveryService {
     keyword: string,
     limit: number = 5,
   ): Promise<string> {
+    if (dataSourceId === 9999) {
+      return 'Vector search is not supported for evaluation data source.'
+    }
     const dataSource = await DataSource.findOrFail(dataSourceId)
 
     if (dataSource.type === 'elasticsearch') {
@@ -183,6 +195,19 @@ export default class DiscoveryService {
    * Get detailed schema for an entity
    */
   static async getEntitySchema(dataSourceId: number, entityName: string): Promise<EntitySchema> {
+    if (dataSourceId === 9999) {
+      const { client } = await DbHelper.getConnection(dataSourceId)
+      const result = await client.rawQuery(`PRAGMA table_info(\`${entityName}\`)`)
+      const fields = result.map((r: any) => ({
+        name: r.name,
+        type: r.type,
+        isPrimary: r.pk === 1,
+        isNullable: r.notnull === 0,
+        isSensitive: this.isSensitive(r.name),
+      }))
+      return { entityName, fields }
+    }
+
     const dataSource = await DataSource.findOrFail(dataSourceId)
 
     if (dataSource.type === 'elasticsearch') {
@@ -246,6 +271,11 @@ export default class DiscoveryService {
    * Sample data from an entity
    */
   static async sampleData(dataSourceId: number, entityName: string, limit: number = 3): Promise<any[]> {
+    if (dataSourceId === 9999) {
+      const { client } = await DbHelper.getConnection(dataSourceId)
+      return await client.from(entityName).limit(limit)
+    }
+
     const dataSource = await DataSource.findOrFail(dataSourceId)
 
     if (dataSource.type === 'elasticsearch') {

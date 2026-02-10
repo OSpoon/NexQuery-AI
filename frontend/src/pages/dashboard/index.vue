@@ -40,6 +40,7 @@ function getRouteTitle(name: string): string {
     'admin-menus': 'sidebar.admin.menus',
     'admin-api-keys': 'sidebar.admin.api_keys',
     'admin-settings': 'sidebar.admin.settings',
+    'admin-evaluations': 'sidebar.spider_evaluation',
     'ai-feedback': 'sidebar.ai_feedback',
   }
 
@@ -76,6 +77,7 @@ function translateTitle(title: string): string {
     'AI Intelligence': 'sidebar.ai_intelligence',
     'AI Feedback': 'sidebar.ai_feedback',
     'FinOps Monitoring': 'sidebar.admin.finops',
+    'Spider Evaluation': 'sidebar.spider_evaluation',
   }
   const key = keyMap[title]
   return key ? t(key) : title

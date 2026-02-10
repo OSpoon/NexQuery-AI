@@ -3,3 +3,5 @@ packages/e2e/playwright-report/
 packages/e2e/test-results/
 backend/uploads/
 .env
+backend/storage/eval/spider/*
+!backend/storage/eval/spider/README.md

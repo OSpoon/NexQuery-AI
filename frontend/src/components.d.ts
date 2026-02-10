@@ -332,6 +332,7 @@ declare module 'vue' {
     Slider: typeof import('./components/ui/slider/Slider.vue')['default']
     Sonner: typeof import('./components/ui/sonner/Sonner.vue')['default']
     Spinner: typeof import('./components/ui/spinner/Spinner.vue')['default']
+    SqlDiffView: typeof import('./components/SqlDiffView.vue')['default']
     SqlEditor: typeof import('./components/shared/SqlEditor.vue')['default']
     Stepper: typeof import('./components/ui/stepper/Stepper.vue')['default']
     StepperDescription: typeof import('./components/ui/stepper/StepperDescription.vue')['default']

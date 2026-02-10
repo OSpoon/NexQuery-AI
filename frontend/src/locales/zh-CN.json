@@ -68,7 +68,8 @@
     },
     "knowledge_base": "知识库",
     "ai_intelligence": "AI 助手",
-    "ai_feedback": "AI 反馈"
+    "ai_feedback": "AI 反馈",
+    "spider_evaluation": "数据评测"
   },
   "finops": {
     "title": "成本监控",
@@ -566,5 +567,36 @@
   "ai_chat": {
     "greeting": "你好！我是你的 AI 助手。今天我能帮你做什么？",
     "error": "抱歉，在生成查询时遇到了错误。"
+  },
+  "eval": {
+    "spider": {
+      "title": "数据评测仪表盘",
+      "desc": "监控 Text-to-SQL 智能体的性能表现与评估历史记录。",
+      "back": "返回历史列表",
+      "history": "评估历史记录",
+      "run_date": "评测时间",
+      "samples": "样本总数",
+      "correct": "正确个数",
+      "accuracy": "准确率",
+      "actions": "操作",
+      "view_details": "查看详情",
+      "no_reports": "未发现评测报告。",
+      "total_samples": "总样本数",
+      "run_time": "运行时间",
+      "detailed_results": "详细评测结果",
+      "error_prefix": "错误信息：",
+      "diff": {
+        "expected": "标准查询 (Expected)",
+        "actual": "智能体生成 (Actual)",
+        "no_sql": "-- 未生成 SQL --"
+      },
+      "difficulty": {
+        "easy": "简单",
+        "medium": "中等",
+        "hard": "困难",
+        "extra": "极难",
+        "unknown": "未知"
+      }
+    }
   }
 }

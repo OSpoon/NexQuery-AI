@@ -143,7 +143,7 @@ export default class extends BaseSeeder {
         icon: 'Database',
         permission: PERMISSIONS.MANAGE_DATA_SOURCES,
         component: '@/pages/data-sources/index.vue',
-        sortOrder: 30,
+        sortOrder: 40,
         parentId: null,
       },
       {
@@ -152,7 +152,7 @@ export default class extends BaseSeeder {
         icon: 'History',
         permission: PERMISSIONS.VIEW_HISTORY,
         component: '@/pages/history/index.vue',
-        sortOrder: 25,
+        sortOrder: 30,
         parentId: null,
       },
       {
@@ -190,7 +190,7 @@ export default class extends BaseSeeder {
         path: '#admin-group',
         icon: 'ShieldCheck',
         permission: PERMISSIONS.MANAGE_USERS,
-        sortOrder: 90,
+        sortOrder: 100,
       },
     )
 
@@ -201,7 +201,7 @@ export default class extends BaseSeeder {
         icon: 'Key',
         permission: PERMISSIONS.MANAGE_API_KEYS,
         component: '@/pages/admin/api-keys/index.vue',
-        sortOrder: 91,
+        sortOrder: 10,
       },
       {
         title: 'FinOps Monitoring',
@@ -209,7 +209,7 @@ export default class extends BaseSeeder {
         icon: 'Wallet',
         permission: PERMISSIONS.MANAGE_AI_FINOPS,
         component: '@/pages/admin/finops/index.vue',
-        sortOrder: 95,
+        sortOrder: 60,
         isActive: true,
       },
       {
@@ -218,7 +218,7 @@ export default class extends BaseSeeder {
         icon: 'Users',
         permission: PERMISSIONS.MANAGE_USERS,
         component: '@/pages/admin/users/index.vue',
-        sortOrder: 92,
+        sortOrder: 20,
       },
       {
         title: 'Roles',
@@ -226,7 +226,7 @@ export default class extends BaseSeeder {
         icon: 'Shield',
         permission: PERMISSIONS.MANAGE_ROLES,
         component: '@/pages/admin/roles/index.vue',
-        sortOrder: 93,
+        sortOrder: 30,
       },
       {
         title: 'Menus',
@@ -234,7 +234,7 @@ export default class extends BaseSeeder {
         icon: 'Menu',
         permission: PERMISSIONS.MANAGE_MENUS,
         component: '@/pages/admin/menus/index.vue',
-        sortOrder: 94,
+        sortOrder: 40,
       },
       {
         title: 'Permissions',
@@ -242,7 +242,7 @@ export default class extends BaseSeeder {
         icon: 'Lock',
         permission: PERMISSIONS.MANAGE_ROLES, // Sharing role management permission for now
         component: '@/pages/admin/permissions/index.vue',
-        sortOrder: 95,
+        sortOrder: 50,
       },
       {
         title: 'Settings',
@@ -250,7 +250,7 @@ export default class extends BaseSeeder {
         icon: 'Settings',
         permission: PERMISSIONS.MANAGE_SETTINGS,
         component: '@/pages/admin/settings/index.vue',
-        sortOrder: 96,
+        sortOrder: 80,
       },
     ]
 

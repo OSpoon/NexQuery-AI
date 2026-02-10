@@ -20,6 +20,7 @@ const ScheduledQueriesController = () => import('#controllers/scheduled_queries_
 const ApiKeysController = () => import('#controllers/api_keys_controller')
 const NotificationsController = () => import('#controllers/notifications_controller')
 const AiFinOpsController = () => import('#controllers/ai_fin_ops_controller')
+const EvaluationReportsController = () => import('#controllers/evaluation_reports_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
 const PasswordResetsController = () => import('#controllers/password_resets_controller')
@@ -180,6 +181,15 @@ router
             router.get('finops/logs', [AiFinOpsController, 'getLogs'])
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_AI_FINOPS }))
+
+        // Spider Evaluation Reports
+        router
+          .group(() => {
+            router.get('eval/spider/reports', [EvaluationReportsController, 'index'])
+            router.get('eval/spider/reports/:filename', [EvaluationReportsController, 'show'])
+            router.get('eval/spider/summary', [EvaluationReportsController, 'summary'])
+          })
+          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_EVALUATIONS }))
       })
       .use([
         middleware.auth(),

@@ -66,7 +66,8 @@
     },
     "knowledge_base": "Knowledge Base",
     "ai_intelligence": "AI Intelligence",
-    "ai_feedback": "AI Feedback"
+    "ai_feedback": "AI Feedback",
+    "spider_evaluation": "Data Evaluation"
   },
   "finops": {
     "title": "FinOps Monitoring",
@@ -564,5 +565,36 @@
   "ai_chat": {
     "greeting": "Hello! I am your AI Copilot. How can I help you today?",
     "error": "Sorry, I encountered an error creating that query."
+  },
+  "eval": {
+    "spider": {
+      "title": "Data Evaluation Dashboard",
+      "desc": "Monitor Text-to-SQL agent performance and evaluation history.",
+      "back": "Back to History",
+      "history": "Evaluation History",
+      "run_date": "Run Date",
+      "samples": "Samples",
+      "correct": "Correct",
+      "accuracy": "Accuracy",
+      "actions": "Actions",
+      "view_details": "View Details",
+      "no_reports": "No reports found.",
+      "total_samples": "Total Samples",
+      "run_time": "Run Time",
+      "detailed_results": "Detailed Evaluation Results",
+      "error_prefix": "Error:",
+      "diff": {
+        "expected": "Expected SQL",
+        "actual": "Agent Generated",
+        "no_sql": "-- No SQL Generated --"
+      },
+      "difficulty": {
+        "easy": "Easy",
+        "medium": "Medium",
+        "hard": "Hard",
+        "extra": "Extra",
+        "unknown": "Unknown"
+      }
+    }
   }
 }

@@ -11,6 +11,9 @@ export abstract class CommonAgentNode {
   async run(state: AgentState, config?: any) {
     const provider = new AiProviderService()
     const llm = await provider.getChatModel({ streaming: true })
+    const nodeName = config?.nodeName || this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
+
+    logger.info(`[Agent: ${nodeName}] Starting execution loop...`)
 
     const context: SkillContext = {
       dataSourceId: state.dataSourceId,
@@ -23,7 +26,6 @@ export abstract class CommonAgentNode {
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
 
     // Generate Specialized System Prompt based on node name
-    const nodeName = config?.nodeName || this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
     const promptTemplate = PROMPT_MAP[nodeName] || AGENT_SYSTEM_PROMPT_TEMPLATE
 
     // Provide intermediate results as context if they exist
@@ -94,6 +96,12 @@ export abstract class CommonAgentNode {
 
       const response = await modelWithTools.invoke(messages, config)
       response.additional_kwargs = { ...response.additional_kwargs, node: nodeName }
+
+      const responseContent = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
+      if (responseContent.trim()) {
+        logger.info(`[Agent: ${nodeName}] Cycle ${loopCount} Thought: ${responseContent.slice(0, 100)}...`)
+      }
+
       messages.push(response)
       newMessages.push(response)
 
@@ -143,6 +151,7 @@ export abstract class CommonAgentNode {
 
           let toolOutput = ''
           try {
+            logger.info(`[Agent: ${nodeName}] Tool Call: ${toolCall.name}(${JSON.stringify(toolCall.args)})`)
             // STRICT ENFORCEMENT: Never allow the LLM to guess or change the dataSourceId.
             // Always use the one provided by the system/frontend context.
             if (state.dataSourceId) {

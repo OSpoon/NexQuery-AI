@@ -11,6 +11,7 @@ export const PERMISSIONS = {
   MANAGE_KNOWLEDGE_BASE: 'manage_knowledge_base',
   MANAGE_SETTINGS: 'manage_settings',
   MANAGE_AI_FINOPS: 'manage_ai_finops',
+  MANAGE_EVALUATIONS: 'manage_evaluations',
 } as const
 
 export const PERMISSION_DETAILS = [
@@ -73,5 +74,10 @@ export const PERMISSION_DETAILS = [
     name: 'Manage AI FinOps',
     slug: PERMISSIONS.MANAGE_AI_FINOPS,
     description: 'Can monitor AI token usage and costs',
+  },
+  {
+    name: 'Manage Evaluations',
+    slug: PERMISSIONS.MANAGE_EVALUATIONS,
+    description: 'Can view and manage agent evaluation reports and trends',
   },
 ]

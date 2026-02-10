@@ -31,10 +31,13 @@ export default class QueryExecutionService {
     const timeout = 30000 // Number.parseInt(timeoutSetting?.value || '30000')
 
     // Load dataSource if not already loaded
-    if (!task.dataSource) {
+    let ds: any = task.dataSource
+    if (task.dataSourceId === 9999) {
+      ds = { id: 9999, type: 'sqlite', database: 'spider_eval' }
+    } else if (!ds) {
       await task.load('dataSource')
+      ds = task.dataSource
     }
-    const ds = task.dataSource
     const startTime = Date.now()
     let executedSql = ''
     let queryResults: any = null
@@ -123,6 +126,12 @@ export default class QueryExecutionService {
         const esResults = await esService.search({ index, query, size })
         executedSql = `ES SEARCH: index=${index} query="${query}" size=${size}`
         queryResults = esResults
+      } else if (ds.type === 'sqlite' || ds.id === 9999) {
+        const { result, values } = replaceVars(sql, inputParams, 'sql')
+        executedSql = result
+        const { client } = await DbHelper.getRawConnection(ds.id, timeout)
+        const rows = await client.all(executedSql, values)
+        queryResults = rows
       } else {
         throw new Error(`Unsupported database type: ${ds.type}`)
       }
@@ -203,7 +212,10 @@ export default class QueryExecutionService {
     }
 
     try {
-      if (dataSource.type === 'mysql') {
+      if (dataSource.type === 'sqlite' || dataSource.id === 9999) {
+        const { client } = await DbHelper.getRawConnection(dataSource.id, timeout)
+        queryResults = await client.all(finalSql)
+      } else if (dataSource.type === 'mysql') {
         const { client } = await DbHelper.getRawConnection(dataSource.id, timeout)
         const [rows] = await (client as any).execute({ sql: finalSql, timeout })
         await client.end()

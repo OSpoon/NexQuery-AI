@@ -5,9 +5,18 @@ import logger from '@adonisjs/core/services/logger'
 
 import mysql from 'mysql2/promise'
 import pg from 'pg'
+import sqlite3 from 'sqlite3'
 
 export default class DbHelper {
   private static registeredAt = new Map<string, number>()
+  private static evaluationSqlitePath: string | null = null
+
+  /**
+   * [EVALUATION ONLY] Set the SQLite path for evaluation
+   */
+  static setEvaluationPath(path: string) {
+    this.evaluationSqlitePath = path
+  }
 
   /**
    * Ensures a database connection exists for the given data source ID.
@@ -16,6 +25,18 @@ export default class DbHelper {
   static async getDataSourceConnection(
     dataSourceId: number,
   ): Promise<{ connectionName: string, dbType: string }> {
+    if (dataSourceId === 9999 && this.evaluationSqlitePath) {
+      const connName = 'eval_sqlite'
+      if (!db.manager.has(connName)) {
+        db.manager.add(connName, {
+          client: 'sqlite3',
+          connection: { filename: this.evaluationSqlitePath },
+          useNullAsDefault: true,
+        })
+      }
+      return { connectionName: connName, dbType: 'sqlite' }
+    }
+
     const ds = await DataSource.findOrFail(dataSourceId)
     const connectionName = `ds_${ds.id}`
 
@@ -29,49 +50,71 @@ export default class DbHelper {
       await db.manager.close(connectionName)
     }
 
-    const host = ds.host
-    const decryptedPassword = encryption.decrypt(ds.password)
+    const decryptedPassword = (encryption.decrypt(ds.password) || '') as string
 
     logger.info(`[DbHelper] Adding new connection for ${ds.name} (${ds.type})`)
 
-    db.manager.add(connectionName, {
-      client: ds.type === 'postgresql' ? 'pg' : 'mysql2',
-      connection: {
-        host,
-        port: ds.port,
-        user: ds.username,
-        password: (decryptedPassword || '') as string,
-        database: ds.database,
-        // Safety: Query Timeout (Circuit Breaker) - 15 seconds
-        ...(ds.type === 'postgresql' ? { statement_timeout: 15000 } : {}),
-        // MySQL settings
-        ...(ds.type === 'mysql'
-          ? {
-              enableKeepAlive: true,
-              dateStrings: true,
-              connectTimeout: 10000,
-              // mysql2 'timeout' is for idle connection usually, generic query timeout on driver level is tricky without wrapper.
-              // We rely on backend-level cancellation or 'max_execution_time' if session set.
-              // But setting connectTimeout is good start.
-            }
-          : {}),
-      },
-      pool: {
-        min: 0,
-        max: 10,
-        idleTimeoutMillis: 30000,
-        afterCreate: (conn: any, done: any) => {
-          if (ds.type === 'mysql') {
-            // Enforce execution timeout via Session Variable (15000ms)
-            // Note: max_execution_time is for read-only SELECTs in newer MySQL.
+    /**
+     * Build Configuration based on type to stay type-safe
+     */
+    let config: any = {}
+
+    if (ds.type === 'postgresql') {
+      config = {
+        client: 'pg',
+        connection: {
+          host: ds.host,
+          port: ds.port,
+          user: ds.username,
+          password: decryptedPassword,
+          database: ds.database,
+          statement_timeout: 15000,
+        },
+      }
+    } else if (ds.type === 'mysql') {
+      config = {
+        client: 'mysql2',
+        connection: {
+          host: ds.host,
+          port: ds.port,
+          user: ds.username,
+          password: decryptedPassword,
+          database: ds.database,
+          enableKeepAlive: true,
+          dateStrings: true,
+          connectTimeout: 10000,
+        },
+        pool: {
+          afterCreate: (conn: any, done: any) => {
             conn.query('SET NAMES utf8mb4; SET SESSION max_execution_time=15000;', (err: any) =>
               done(err, conn))
-          } else {
-            done(null, conn)
-          }
+          },
         },
-      },
-    })
+      }
+    } else if (ds.type === 'sqlite') {
+      /**
+       * [EVALUATION ONLY]
+       */
+      config = {
+        client: 'sqlite3',
+        connection: {
+          filename: ds.database,
+        },
+        useNullAsDefault: true,
+      }
+    }
+
+    if (config.client) {
+      db.manager.add(connectionName, {
+        ...config,
+        pool: {
+          min: 0,
+          max: 10,
+          idleTimeoutMillis: 30000,
+          ...config.pool,
+        },
+      })
+    }
 
     this.registeredAt.set(connectionName, Date.now())
 
@@ -90,22 +133,26 @@ export default class DbHelper {
   }
 
   /**
-   * Get raw driver connection (mysql2 connection or pg client)
-   * This is used when Lucid's rawQuery is not sufficient or we need specific driver features.
+   * Get raw driver connection
    */
   static async getRawConnection(
     dataSourceId: number,
     timeout: number = 30000,
   ): Promise<{ client: any, dbType: string }> {
+    if (dataSourceId === 9999 && this.evaluationSqlitePath) {
+      const dbInstance = new sqlite3.Database(this.evaluationSqlitePath)
+      return { client: dbInstance, dbType: 'sqlite' }
+    }
+
     const ds = await DataSource.findOrFail(dataSourceId)
-    const decryptedPassword = encryption.decrypt(ds.password)
+    const decryptedPassword = (encryption.decrypt(ds.password) || '') as string
 
     if (ds.type === 'mysql') {
       const connection = await mysql.createConnection({
         host: ds.host,
         port: ds.port,
         user: ds.username,
-        password: (decryptedPassword || '') as string,
+        password: decryptedPassword,
         database: ds.database,
         connectTimeout: timeout,
       })
@@ -115,15 +162,29 @@ export default class DbHelper {
         host: ds.host,
         port: ds.port,
         user: ds.username,
-        password: (decryptedPassword || '') as string,
+        password: decryptedPassword,
         database: ds.database,
         connectionTimeoutMillis: timeout,
       })
       await client.connect()
       return { client, dbType: 'postgresql' }
+    } else if (ds.type === 'sqlite') {
+      /**
+       * [EVALUATION ONLY]
+       */
+      const dbInstance = new sqlite3.Database(ds.database)
+      return { client: dbInstance, dbType: 'sqlite' }
     }
 
     throw new Error(`Raw connection not supported for type: ${ds.type}`)
+  }
+
+  /**
+   * [EVALUATION ONLY] Get raw sqlite connection from a direct file path
+   */
+  static async getRawConnectionFromPath(filePath: string): Promise<{ client: any, dbType: string }> {
+    const dbInstance = new sqlite3.Database(filePath)
+    return { client: dbInstance, dbType: 'sqlite' }
   }
 
   /**
@@ -147,8 +208,9 @@ export default class DbHelper {
    * Universal connection validator
    */
   static async testConnection(config: any): Promise<{ success: boolean, message: string }> {
-    if (!config.host || (!config.username && config.type !== 'api')) {
-      return { success: false, message: 'Missing connection details' }
+    // Basic validation: SQLite doesn't need host/username, APIs don't need username
+    if (config.type !== 'sqlite' && config.type !== 'api' && !config.host) {
+      return { success: false, message: 'Missing host' }
     }
 
     if (config.type === 'mysql') {
@@ -182,6 +244,20 @@ export default class DbHelper {
       } catch (error: any) {
         return { success: false, message: `Connection failed: ${error.message}` }
       }
+    } else if (config.type === 'sqlite') {
+      /**
+       * [EVALUATION ONLY]
+       */
+      return new Promise((resolve) => {
+        const dbInstance = new sqlite3.Database(config.database, sqlite3.OPEN_READONLY, (err) => {
+          if (err) {
+            resolve({ success: false, message: `SQLite connection failed: ${err.message}` })
+          } else {
+            dbInstance.close()
+            resolve({ success: true, message: 'SQLite connection successful' })
+          }
+        })
+      })
     } else if (config.type === 'api') {
       return { success: true, message: 'API connection configured (no validation performed)' }
     } else if (config.type === 'elasticsearch') {

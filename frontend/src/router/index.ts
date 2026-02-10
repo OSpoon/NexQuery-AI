@@ -81,6 +81,12 @@ const router = createRouter({
           component: () => import('@/pages/query-execution/index.vue'),
           meta: { requiresAuth: true },
         },
+        {
+          path: 'admin/evaluations',
+          name: 'admin-evaluations',
+          component: () => import('@/pages/admin/evaluations/index.vue'),
+          meta: { requiresAuth: true, permission: 'manage_evaluations' },
+        },
       ],
     },
     {

@@ -86,6 +86,7 @@ const navData = computed(() => {
       'AI Intelligence': 'sidebar.ai_intelligence',
       'AI Feedback': 'sidebar.ai_feedback',
       'FinOps Monitoring': 'sidebar.admin.finops',
+      'Spider Evaluation': 'sidebar.spider_evaluation',
     }
     const key = keyMap[title]
     // If translation exists, use it. Otherwise use title as-is (allow user-defined strings)
