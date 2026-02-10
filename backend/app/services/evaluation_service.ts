@@ -11,7 +11,6 @@ export interface SpiderSample {
   db_id: string
   query: string
   question: string
-  difficulty: string
 }
 
 export interface EvalResult {
@@ -19,7 +18,6 @@ export interface EvalResult {
   expectedSql: string
   generatedSql: string
   isCorrect: boolean
-  difficulty: string
   error?: string
 }
 
@@ -57,6 +55,7 @@ export default class EvaluationService {
     const graph = createAgentGraph()
     let generatedSql = ''
     let errorMsg = ''
+    let isCorrect = false
 
     try {
       // Get Langfuse Trace Handler
@@ -65,7 +64,6 @@ export default class EvaluationService {
         tags: ['spider_evaluation', sample.db_id],
         metadata: {
           db_id: sample.db_id,
-          difficulty: sample.difficulty,
           question: sample.question,
         },
       })
@@ -77,23 +75,15 @@ export default class EvaluationService {
       }
 
       const result = await graph.invoke(inputs, { callbacks: [traceHandler] })
-      generatedSql = result.sql || ''
+      generatedSql = (result.sql || '').trim()
 
-      if (!generatedSql) {
-        errorMsg = 'Agent failed to generate SQL'
+      if (generatedSql) {
+        isCorrect = await this.compareResults(sample.query, generatedSql)
+      } else {
+        errorMsg = `Agent failed to generate SQL${result.error ? `: ${result.error}` : ''}`
       }
     } catch (error: any) {
-      errorMsg = error.message
-    }
-
-    // 2. Execution Accuracy (EX) directly on SQLite (Evaluation Path Only)
-    let isCorrect = false
-    if (generatedSql) {
-      try {
-        isCorrect = await this.compareResults(sample.query, generatedSql)
-      } catch (error: any) {
-        errorMsg = `Execution error: ${error.message}`
-      }
+      errorMsg = generatedSql ? `Execution error: ${error.message}` : error.message
     }
 
     return {
@@ -101,7 +91,6 @@ export default class EvaluationService {
       expectedSql: sample.query,
       generatedSql,
       isCorrect,
-      difficulty: sample.difficulty || 'unknown',
       error: errorMsg,
     }
   }

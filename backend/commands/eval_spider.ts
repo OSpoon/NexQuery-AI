@@ -49,9 +49,6 @@ export default class EvalSpider extends BaseCommand {
       }
       this.logger.info(`  [Expected]  : ${result.expectedSql}`)
       this.logger.info(`  [Generated] : ${result.generatedSql}`)
-      if (result.difficulty) {
-        this.logger.info(`  [Difficulty]: ${result.difficulty}`)
-      }
       this.logger.log('') // Add empty line between samples
     }
 

@@ -1,0 +1,22 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Debug Spider Eval",
+      "program": "${workspaceFolder}/backend/ace.js",
+      "args": [
+        "eval:spider",
+        "--limit",
+        "5",
+        "--offset",
+        "100"
+      ],
+      "cwd": "${workspaceFolder}/backend",
+      "console": "integratedTerminal",
+      "sourceMaps": true,
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ]
+}
