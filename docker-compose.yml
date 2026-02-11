@@ -6,11 +6,11 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-nexquery_ai}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root123}
-      PGDATA: /var/lib/postgresql/data
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
-      - db_data:/var/lib/postgresql
+      - db_base:/var/lib/postgresql
+      - db_data:/var/lib/postgresql/data
     networks:
       - nexquery_network
   qdrant:
@@ -140,6 +140,7 @@ networks:
     driver: bridge
 
 volumes:
+  db_base:
   db_data:
   qdrant_data:
   es_data:
