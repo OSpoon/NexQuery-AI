@@ -209,6 +209,8 @@ export default class AiController {
       })
 
       let fullAssistantContent = ''
+      let generatedSql: string | null = null
+      let generatedLucene: string | null = null
       const agentSteps: any[] = []
 
       for await (const chunk of stream) {
@@ -234,6 +236,12 @@ export default class AiController {
               toolId: data.id,
               status: 'running',
             })
+            // Optimization: If the tool itself is a submission, we can pre-capture
+            if (data.tool === 'submit_sql_solution' && data.input?.sql) {
+              generatedSql = data.input.sql
+            } else if (data.tool === 'submit_lucene_solution' && data.input?.lucene) {
+              generatedLucene = data.input.lucene
+            }
           } else if (data.type === 'tool_end') {
             const toolStep = agentSteps.find(s => s.type === 'tool' && s.toolId === data.id)
             if (toolStep) {
@@ -256,6 +264,10 @@ export default class AiController {
             // Final Answer: Overwrite content (thoughts are already captured in agentSteps)
             // This ensures the main message body contains the clean final output
             fullAssistantContent = data.content
+            if (data.sql)
+              generatedSql = data.sql
+            if (data.lucene)
+              generatedLucene = data.lucene
           }
         } catch (e) {
           // Chunk parsing failed
@@ -269,6 +281,8 @@ export default class AiController {
           role: 'assistant',
           content: fullAssistantContent,
           prompt: question,
+          generatedSql,
+          generatedLucene,
           agentSteps,
         })
 

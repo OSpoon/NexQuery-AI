@@ -77,6 +77,8 @@ export const useAiStore = defineStore('ai', () => {
         content: m.content,
         prompt: m.prompt,
         agentSteps: m.agentSteps,
+        generatedSql: m.generatedSql,
+        generatedLucene: m.generatedLucene,
       }))
       // Restore data source context if saved
       if (res.data.dataSourceId) {
