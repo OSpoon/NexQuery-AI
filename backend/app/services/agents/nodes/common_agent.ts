@@ -49,7 +49,7 @@ export abstract class CommonAgentNode {
 
     const systemPrompt = envHeader + (typeof promptTemplate === 'function'
       ? (promptTemplate as any)(state.dbType, skillPrompts)
-      : promptTemplate) + resultsStr
+      : promptTemplate) + this.renderKnowledgeBase(state.intermediate_results || {})
 
     const modelWithTools = llm.bindTools(tools)
 
@@ -99,7 +99,7 @@ export abstract class CommonAgentNode {
 
     const newMessages: any[] = []
     let loopCount = 0
-    const MAX_LOOPS = 15
+    const MAX_LOOPS = 25
     const attemptedSqls = new Set<string>()
     const intermediateResults: Record<string, any> = { ...(state.intermediate_results || {}) }
 
@@ -259,6 +259,55 @@ export abstract class CommonAgentNode {
       error: 'Max loops reached without solution.',
       next: 'respond_directly', // Final fallback for error
     }
+  }
+
+  /**
+   * Render intermediate results into a clean, hierarchical Knowledge Base summary.
+   */
+  private renderKnowledgeBase(results: Record<string, any>): string {
+    if (!results || Object.keys(results).length === 0)
+      return ''
+
+    let output = '\n\n### 🧠 当前已掌握的数据库知识 (KNOWLEDGE BASE)\n'
+    output += '> 请优先参考以下信息，**严禁**重复调用已获取信息的探测工具。\n\n'
+
+    // 1. Entities & Basic Discovery
+    if (results.list_entities_any) {
+      output += '#### 📋 已知实体列表\n已获取全库实体清单，请从中选择目标表。\n\n'
+    }
+
+    // 2. Compass & Relationships
+    const compassKey = Object.keys(results).find(k => k.startsWith('get_database_compass'))
+    if (compassKey) {
+      output += '#### 🧭 数据库全域罗盘 (FK Topology)\n已掌握全库拓扑关系，多表关联路径已明确。\n\n'
+    }
+
+    // 3. Detailed Schemas
+    const schemas = Object.keys(results).filter(k => k.startsWith('get_entity_schema'))
+    if (schemas.length > 0) {
+      output += '#### 📐 已掌握的表结构 (Schemas)\n'
+      for (const k of schemas) {
+        const tableName = k.match(/"entityName":"([^"]+)"/)?.[1] || k
+        output += `- **\`${tableName}\`**: 字段定义已就绪。\n`
+      }
+      output += '\n'
+    }
+
+    // 4. Sample Data & Stats
+    const samples = Object.keys(results).filter(k => k.startsWith('sample_entity_data') || k.startsWith('get_entity_statistics'))
+    if (samples.length > 0) {
+      output += '#### 🧪 已获取的数据样本/统计\n'
+      for (const k of samples) {
+        const tableName = k.match(/"entityName":"([^"]+)"/)?.[1] || k
+        output += `- **\`${tableName}\`**: 样本数据/分布特征已掌握。\n`
+      }
+    }
+
+    output += '\n--- 原始探测细节 (供精确参考) ---\n'
+    output += JSON.stringify(results, null, 2)
+    output += '\n----------------------------\n'
+
+    return output
   }
 
   /**

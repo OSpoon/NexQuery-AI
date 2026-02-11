@@ -10,7 +10,7 @@ export class SecurityAgentNode extends CommonAgentNode {
   protected getSkills(_context: SkillContext) {
     return [
       new SecuritySkill(),
-      new DiscoverySkill(), // Verification capability
+      new DiscoverySkill({ lite: true }), // Verification only
       new CoreAssistantSkill(), // Mandatory for submit_sql_solution
     ]
   }

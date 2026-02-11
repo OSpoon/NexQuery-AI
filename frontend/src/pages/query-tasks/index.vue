@@ -26,22 +26,23 @@ import {
 
 import api from '@/lib/api'
 
+const { t } = useI18n()
+const router = useRouter()
+
 const QueryTaskForm = defineAsyncComponent({
   loader: () => import('./components/QueryTaskForm.vue'),
   loadingComponent: {
-    template: '<div class="p-8 text-center text-muted-foreground">Loading editor...</div>',
+    template: `<div class="p-8 text-center text-muted-foreground">${t('query_tasks.loading_editor')}</div>`,
   },
 })
 
 const ScheduleManager = defineAsyncComponent({
   loader: () => import('./components/ScheduleManager.vue'),
   loadingComponent: {
-    template: '<div class="p-8 text-center text-muted-foreground">Loading schedules...</div>',
+    template: `<div class="p-8 text-center text-muted-foreground">${t('query_tasks.loading_schedules')}</div>`,
   },
 })
 
-const router = useRouter()
-const { t } = useI18n()
 const tasks = ref<QueryTask[]>([])
 const isDialogOpen = ref(false)
 const editingTask = ref<QueryTask | null>(null)
@@ -55,7 +56,7 @@ async function fetchTasks() {
     tasks.value = response.data
   }
   catch {
-    toast.error('Failed to fetch tasks')
+    toast.error(t('query_tasks.fetch_failed'))
   }
 }
 
@@ -84,7 +85,7 @@ async function deleteTask(id: number) {
     fetchTasks()
   }
   catch {
-    toast.error('Failed to delete task')
+    toast.error(t('query_tasks.delete_failed'))
   }
 }
 
@@ -151,7 +152,7 @@ const columns: ColumnDef<QueryTask>[] = [
     accessorKey: 'creator',
     header: () => t('query_tasks.created_by'),
     cell: ({ row }) => {
-      return row.original.creator?.fullName || 'System'
+      return row.original.creator?.fullName || t('history.anonymous')
     },
   },
   {
@@ -238,7 +239,7 @@ onMounted(fetchTasks)
         :data="tasks"
         search-key="name"
         storage-key="query-tasks-columns"
-        empty-message="No query tasks found. Create one to get started."
+        :empty-message="t('query_tasks.empty_state')"
       />
     </div>
 

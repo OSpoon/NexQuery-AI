@@ -408,7 +408,7 @@ function selectOption(option: string) {
                 variant="ghost"
                 size="icon"
                 class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
-                title="View Execution Graph"
+                :title="t('ai_chat.view_graph')"
               >
                 <Map class="h-4 w-4" />
               </Button>
@@ -419,7 +419,7 @@ function selectOption(option: string) {
               align="end"
             >
               <div class="text-[10px] text-muted-foreground mb-2 font-medium flex items-center justify-between px-1">
-                <span>Execution Path Visual</span>
+                <span>{{ t('ai_chat.execution_graph') }}</span>
                 <Badge variant="outline" class="h-4 text-[9px] px-1 opacity-70">
                   Mermaid
                 </Badge>
@@ -438,7 +438,7 @@ function selectOption(option: string) {
                 variant="ghost"
                 size="icon"
                 class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
-                title="History"
+                :title="t('history.title')"
               >
                 <History class="h-4 w-4" />
               </Button>
@@ -448,7 +448,7 @@ function selectOption(option: string) {
                 v-if="store.conversations.length === 0"
                 class="p-4 text-center text-xs text-muted-foreground"
               >
-                No history yet
+                {{ t('ai_chat.no_history') }}
               </div>
               <DropdownMenuItem
                 v-for="conv in store.conversations"
@@ -479,7 +479,7 @@ function selectOption(option: string) {
             variant="ghost"
             size="icon"
             class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
-            title="New Chat"
+            :title="t('ai_chat.new_chat')"
             @click="store.startNewChat"
           >
             <Plus class="h-4 w-4" />
@@ -490,7 +490,7 @@ function selectOption(option: string) {
             variant="ghost"
             size="icon"
             class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
-            title="Minimize"
+            :title="t('ai_chat.minimize')"
             @click="store.toggleOpen"
           >
             <Minus class="h-4 w-4" />
@@ -524,11 +524,11 @@ function selectOption(option: string) {
 
         <Select v-model="selectedDataSource">
           <SelectTrigger class="h-8 text-xs">
-            <SelectValue placeholder="Select Data Source (Context)" />
+            <SelectValue :placeholder="t('ai_chat.select_datasource')" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="none">
-              No Context (General Chat)
+              {{ t('ai_chat.no_context') }}
             </SelectItem>
             <SelectItem
               v-for="ds in dataSourceStore.databaseSources"
@@ -589,7 +589,7 @@ function selectOption(option: string) {
                     >
                       <Play v-if="!isRunningSql[index]" class="h-3 w-3" />
                       <div v-else class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      {{ isRunningSql[index] ? 'Running...' : (msg.generatedLucene ? 'Run Search' : 'Run SQL') }}
+                      {{ isRunningSql[index] ? t('ai_chat.running') : (msg.generatedLucene ? t('ai_chat.run_search') : t('ai_chat.run_sql')) }}
                     </Button>
                   </div>
 
@@ -597,7 +597,7 @@ function selectOption(option: string) {
                   <div v-if="store.queryResults[index]" class="mt-4 border rounded-md overflow-hidden bg-background">
                     <div class="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between text-[10px] text-muted-foreground">
                       <div class="flex items-center gap-2">
-                        <span>Results ({{ store.queryResults[index].data?.length || 0 }} rows)</span>
+                        <span>{{ t('ai_chat.results_count', { count: store.queryResults[index].data?.length || 0 }) }}</span>
                         <span class="opacity-50">|</span>
                         <span>{{ store.queryResults[index].duration }}ms</span>
                       </div>
@@ -629,7 +629,7 @@ function selectOption(option: string) {
                         </TableBody>
                       </Table>
                       <div v-else class="p-4 text-center text-xs text-muted-foreground">
-                        No data returned.
+                        {{ t('ai_chat.no_data') }}
                       </div>
                     </div>
                   </div>
@@ -699,7 +699,7 @@ function selectOption(option: string) {
                 <Sparkles class="h-4 w-4 animate-pulse" />
               </div>
               <div class="p-3 rounded-lg bg-muted text-xs text-muted-foreground italic">
-                {{ store.dataSourceId && dataSourceStore.dataSources.find(ds => ds.id === store.dataSourceId)?.type === 'elasticsearch' ? 'Generating Lucene...' : 'Generating SQL...' }}
+                {{ store.dataSourceId && dataSourceStore.dataSources.find(ds => ds.id === store.dataSourceId)?.type === 'elasticsearch' ? t('ai_chat.generating_lucene') : t('ai_chat.generating_sql') }}
               </div>
             </div>
           </div>
@@ -714,7 +714,7 @@ function selectOption(option: string) {
             v-model="input"
             rows="1"
             :placeholder="
-              settingsStore.hasAiKey ? 'Ask a question... (Shift+Enter for new line)' : t('settings.keys.ai_key_missing')
+              settingsStore.hasAiKey ? t('ai_chat.input_placeholder') : t('settings.keys.ai_key_missing')
             "
             class="flex-1 min-h-[40px] max-h-[200px] resize-none py-3"
             :disabled="store.isLoading || !settingsStore.hasAiKey"
@@ -761,9 +761,9 @@ function selectOption(option: string) {
     <Dialog v-model:open="isCorrectionOpen">
       <DialogContent class="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>帮助我们改进</DialogTitle>
+          <DialogTitle>{{ t('ai_chat.improvement_title') }}</DialogTitle>
           <DialogDescription>
-            如果您觉得 AI 的回答不对，请提供您预期的 SQL 语句：
+            {{ t('ai_chat.improvement_desc') }}
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
@@ -771,10 +771,10 @@ function selectOption(option: string) {
         </div>
         <DialogFooter>
           <Button variant="outline" @click="isCorrectionOpen = false">
-            取消
+            {{ t('common.cancel') }}
           </Button>
           <Button @click="submitCorrection">
-            提交反馈
+            {{ t('ai_chat.submit_feedback') }}
           </Button>
         </DialogFooter>
       </DialogContent>

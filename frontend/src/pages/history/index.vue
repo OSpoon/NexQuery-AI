@@ -99,7 +99,7 @@ async function fetchLogs() {
     logs.value = response.data.data
   }
   catch {
-    toast.error('Failed to fetch logs')
+    toast.error(t('history.fetch_failed'))
   }
   finally {
     loading.value = false
@@ -136,7 +136,7 @@ const columns: ColumnDef<QueryLog>[] = [
       const user = row.original.user
       return h('div', { class: 'flex items-center' }, [
         h(UserIcon, { class: 'mr-2 h-4 w-4 text-muted-foreground' }),
-        user?.fullName || 'Anonymous',
+        user?.fullName || t('history.anonymous'),
       ])
     },
   },
@@ -147,7 +147,7 @@ const columns: ColumnDef<QueryLog>[] = [
       const task = row.original.task
       return h('div', { class: 'flex items-center' }, [
         h(FileCode, { class: 'mr-2 h-4 w-4 text-primary' }),
-        task?.name || 'Deleted Task',
+        task?.name || t('history.deleted_task'),
       ])
     },
   },
@@ -219,7 +219,7 @@ const columns: ColumnDef<QueryLog>[] = [
               openLogDetails(log)
             },
           },
-          () => 'View',
+          () => t('history.view_log'),
         ),
       ]
 
@@ -271,7 +271,7 @@ onMounted(() => {
         :columns="columns"
         :data="logs"
         search-key="status"
-        empty-message="No history found."
+        :empty-message="t('history.empty_state')"
         @row-click="openLogDetails"
       />
     </div>
@@ -289,7 +289,7 @@ onMounted(() => {
             <div>
               <span class="text-muted-foreground">{{ t('history.executed_by') }}:</span>
               <p class="font-medium">
-                {{ selectedLog.user?.fullName || 'Anonymous' }}
+                {{ selectedLog.user?.fullName || t('history.anonymous') }}
               </p>
             </div>
             <div>
@@ -320,7 +320,7 @@ onMounted(() => {
                   <span class="text-xs text-muted-foreground">{{ t('history.ip_address') }}:</span>
                   <p class="font-mono text-sm">
                     {{ selectedLog.ipAddress }}
-                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground">(Internal)</span>
+                    <span v-if="selectedLog.isInternalIp" class="text-xs text-muted-foreground">({{ t('history.source_info') }})</span>
                   </p>
                 </div>
                 <div>

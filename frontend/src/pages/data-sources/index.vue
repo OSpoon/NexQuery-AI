@@ -48,10 +48,10 @@ async function refreshStatuses() {
   try {
     await api.post('/data-sources/refresh')
     await fetchDataSources()
-    toast.success('Status refresh complete')
+    toast.success(t('data_sources.refresh_success'))
   }
   catch {
-    toast.error('Failed to refresh statuses')
+    toast.error(t('data_sources.refresh_failed'))
   }
   finally {
     isRefreshing.value = false
@@ -81,20 +81,20 @@ async function deleteDataSource(id: number) {
 
   try {
     await api.delete(`/data-sources/${id}`)
-    toast.success('Deleted successfully')
+    toast.success(t('common.success'))
     fetchDataSources()
   }
   catch {
-    toast.error('Failed to delete')
+    toast.error(t('common.error'))
   }
 }
 
 async function syncSchema(id: number) {
   const promise = api.post(`/data-sources/${id}/sync-schema`)
   toast.promise(promise, {
-    loading: 'Syncing schema to vector store...',
-    success: 'Schema synced successfully',
-    error: (err: any) => `Failed to sync: ${err.message || 'Unknown error'}`,
+    loading: t('data_sources.syncing'),
+    success: t('data_sources.sync_success'),
+    error: (err: any) => t('data_sources.sync_failed', { error: err.message || t('common.unknown') }),
   })
 }
 
@@ -143,17 +143,17 @@ const columns: ColumnDef<DataSource>[] = [
   },
   {
     accessorKey: 'isActive',
-    header: 'Status',
+    header: () => t('history.status'),
     cell: ({ row }) => {
       const isActive = row.getValue('isActive')
       return isActive
         ? h('div', { class: 'flex items-center text-green-600' }, [
             h(CheckCircle2, { class: 'mr-1 h-4 w-4' }),
-            'Active',
+            t('data_sources.status_active'),
           ])
         : h('div', { class: 'flex items-center text-red-600' }, [
             h(XCircle, { class: 'mr-1 h-4 w-4' }),
-            'Inactive',
+            t('data_sources.status_inactive'),
           ])
     },
   },
@@ -180,7 +180,7 @@ const columns: ColumnDef<DataSource>[] = [
               {
                 variant: 'ghost',
                 size: 'icon',
-                title: 'Sync Schema (Text-to-SQL)',
+                title: t('data_sources.sync_schema'),
                 onClick: () => syncSchema(ds.id),
               },
               () => h(RefreshCw, { class: 'h-4 w-4 text-blue-500' }),
@@ -192,7 +192,7 @@ const columns: ColumnDef<DataSource>[] = [
               {
                 variant: 'ghost',
                 size: 'icon',
-                title: 'Advanced Configuration',
+                title: t('data_sources.advanced_settings'),
                 onClick: () => openAdvancedDialog(ds),
               },
               () => h(Settings, { class: 'h-4 w-4' }),
@@ -230,7 +230,7 @@ onMounted(fetchDataSources)
       <div class="flex gap-2">
         <Button variant="outline" :disabled="isRefreshing" @click="refreshStatuses">
           <RefreshCcw class="mr-2 h-4 w-4" :class="{ 'animate-spin': isRefreshing }" />
-          Refresh Status
+          {{ t('data_sources.refresh_status') }}
         </Button>
         <Button @click="openCreateDialog">
           <Plus class="mr-2 h-4 w-4" /> {{ t('data_sources.add_new') }}
@@ -243,7 +243,7 @@ onMounted(fetchDataSources)
         :columns="columns"
         :data="dataSourceStore.dataSources"
         search-key="name"
-        empty-message="No data sources found. Click 'Add Data Source' to create one."
+        :empty-message="t('data_sources.empty_state')"
       />
     </div>
 
@@ -255,7 +255,7 @@ onMounted(fetchDataSources)
               editingDataSource ? t('data_sources.edit_title') : t('data_sources.add_title')
             }}
           </DialogTitle>
-          <DialogDescription> Configure your database connection details below. </DialogDescription>
+          <DialogDescription> {{ t('data_sources.desc') }} </DialogDescription>
         </DialogHeader>
         <DataSourceForm
           v-if="isDialogOpen"

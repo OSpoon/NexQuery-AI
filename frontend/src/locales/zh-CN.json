@@ -225,7 +225,17 @@
     "enum_mapping": "枚举映射 (值 -> 标签)",
     "add_enum": "添加映射",
     "no_advanced_config": "尚未添加进阶治理配置。",
-    "save_config": "保存配置"
+    "save_config": "保存配置",
+    "refresh_status": "刷新状态",
+    "refresh_success": "状态刷新完成",
+    "refresh_failed": "状态刷新失败",
+    "empty_state": "未发现数据源。点击“添加数据源”开始创建。",
+    "status_active": "活跃",
+    "status_inactive": "未激活",
+    "sync_schema": "同步 Schema 到向量库 (Text-to-SQL)",
+    "sync_success": "Schema 同步成功",
+    "sync_failed": "同步失败：{error}",
+    "syncing": "正在同步 Schema..."
   },
   "query_tasks": {
     "title": "查询任务",
@@ -240,8 +250,11 @@
     "run": "立即运行",
     "delete_confirm": "确定要删除此任务吗？",
     "delete_success": "任务已删除",
+    "delete_failed": "删除任务失败",
+    "fetch_failed": "获取任务列表失败",
     "definition": "任务定义",
     "schedules": "调度配置",
+    "schedules_desc": "管理任务 \"{name}\" 的自动化调度规则。",
     "store_results": "暂存执行结果",
     "store_results_desc": "启用后，系统将保存最近一次执行的前 50 行镜像（仅限安全数据）。",
     "sql_template": "SQL 模板",
@@ -255,7 +268,10 @@
     "save_task": "保存任务",
     "save_changes": "保存修改",
     "select_datasource_hint": "请先选择数据源以开始编写",
-    "tags": "标签分类"
+    "tags": "标签分类",
+    "empty_state": "未发现查询任务。点击“新建任务”开始创作。",
+    "loading_editor": "编辑器加载中...",
+    "loading_schedules": "调度配置加载中..."
   },
   "history": {
     "title": "执行历史",
@@ -269,6 +285,7 @@
     "source": "数据源",
     "success": "成功",
     "failed": "失败",
+    "fetch_failed": "获取日志失败",
     "details_title": "执行详情审计",
     "log_id": "日志 ID",
     "executed_by": "操作人",
@@ -280,7 +297,11 @@
     "no_parameters": "本次执行未使用参数。",
     "executed_sql": "物理执行语句",
     "results_snapshot": "结果镜像 (Snapshot)",
-    "snapshot_note": "* 历史镜像仅保留前 50 条记录。"
+    "snapshot_note": "* 历史镜像仅保留前 50 条记录。",
+    "empty_state": "暂无执行历史记录。",
+    "anonymous": "匿名用户",
+    "deleted_task": "已删除任务",
+    "view_log": "查看"
   },
   "users": {
     "title": "用户管理",
@@ -566,7 +587,25 @@
   },
   "ai_chat": {
     "greeting": "你好！我是你的 AI 助手。今天我能帮你做什么？",
-    "error": "抱歉，在生成查询时遇到了错误。"
+    "error": "抱歉，在生成查询时遇到了错误。",
+    "input_placeholder": "提问... (Shift+Enter 换行)",
+    "no_history": "暂无对话历史",
+    "execution_graph": "执行路径可视化",
+    "view_graph": "查看执行图",
+    "new_chat": "开启新对话",
+    "minimize": "最小化",
+    "no_context": "无上下文 (通用对话)",
+    "select_datasource": "选择数据源 (上下文)",
+    "generating_sql": "正在生成 SQL...",
+    "generating_lucene": "正在生成 Lucene...",
+    "run_sql": "执行 SQL",
+    "run_search": "执行搜索",
+    "running": "执行中...",
+    "results_count": "查询结果 ({count} 行)",
+    "no_data": "未返回数据。",
+    "improvement_title": "帮助我们改进",
+    "improvement_desc": "如果您觉得 AI 的回答不对，请提供您预期的 SQL 语句：",
+    "submit_feedback": "提交反馈"
   },
   "eval": {
     "spider": {

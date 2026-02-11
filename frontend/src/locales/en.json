@@ -223,7 +223,17 @@
     "enum_mapping": "Enum Mappings (Value -> Label)",
     "add_enum": "Add Enum",
     "no_advanced_config": "No advanced configurations added.",
-    "save_config": "Save Configuration"
+    "save_config": "Save Configuration",
+    "refresh_status": "Refresh Status",
+    "refresh_success": "Status refresh complete",
+    "refresh_failed": "Failed to refresh statuses",
+    "empty_state": "No data sources found. Click 'Add Data Source' to create one.",
+    "status_active": "Active",
+    "status_inactive": "Inactive",
+    "sync_schema": "Sync Schema to Vector Store (Text-to-SQL)",
+    "sync_success": "Schema synced successfully",
+    "sync_failed": "Failed to sync: {error}",
+    "syncing": "Syncing schema to vector store..."
   },
   "query_tasks": {
     "title": "Query Tasks",
@@ -238,8 +248,11 @@
     "run": "Run",
     "delete_confirm": "Are you sure you want to delete this task?",
     "delete_success": "Task deleted",
+    "delete_failed": "Failed to delete task",
+    "fetch_failed": "Failed to fetch tasks",
     "definition": "Definition",
     "schedules": "Schedules",
+    "schedules_desc": "Manage automation schedules for task \"{name}\".",
     "store_results": "Store Execution Results",
     "store_results_desc": "If enabled, a snapshot (first 50 rows) of the result will be saved in history. Keep disabled for sensitive data.",
     "sql_template": "Query Template",
@@ -253,7 +266,10 @@
     "save_task": "Save Task",
     "save_changes": "Save Changes",
     "select_datasource_hint": "Please select a data source to start editing",
-    "tags": "Tags"
+    "tags": "Tags",
+    "empty_state": "No query tasks found. Create one to get started.",
+    "loading_editor": "Loading editor...",
+    "loading_schedules": "Loading schedules..."
   },
   "history": {
     "title": "Execution History",
@@ -267,6 +283,7 @@
     "source": "Source",
     "success": "Success",
     "failed": "Failed",
+    "fetch_failed": "Failed to fetch logs",
     "details_title": "Execution Details",
     "log_id": "Log ID",
     "executed_by": "Executed By",
@@ -278,7 +295,11 @@
     "no_parameters": "No parameters used.",
     "executed_sql": "Executed Statement",
     "results_snapshot": "Results (Snapshot)",
-    "snapshot_note": "* Stored history is limited to the first 50 rows."
+    "snapshot_note": "* Stored history is limited to the first 50 rows.",
+    "empty_state": "No history found.",
+    "anonymous": "Anonymous",
+    "deleted_task": "Deleted Task",
+    "view_log": "View"
   },
   "users": {
     "title": "User Management",
@@ -564,7 +585,25 @@
   },
   "ai_chat": {
     "greeting": "Hello! I am your AI Copilot. How can I help you today?",
-    "error": "Sorry, I encountered an error creating that query."
+    "error": "Sorry, I encountered an error creating that query.",
+    "input_placeholder": "Ask a question... (Shift+Enter for new line)",
+    "no_history": "No history yet",
+    "execution_graph": "Execution Path Visual",
+    "view_graph": "View Execution Graph",
+    "new_chat": "New Chat",
+    "minimize": "Minimize",
+    "no_context": "No Context (General Chat)",
+    "select_datasource": "Select Data Source (Context)",
+    "generating_sql": "Generating SQL...",
+    "generating_lucene": "Generating Lucene...",
+    "run_sql": "Run SQL",
+    "run_search": "Run Search",
+    "running": "Running...",
+    "results_count": "Results ({count} rows)",
+    "no_data": "No data returned.",
+    "improvement_title": "Help us improve",
+    "improvement_desc": "If you think the AI's answer is incorrect, please provide your expected SQL statement:",
+    "submit_feedback": "Submit Feedback"
   },
   "eval": {
     "spider": {

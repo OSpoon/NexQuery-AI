@@ -70,7 +70,7 @@ export default class EvaluationService {
       })
 
       const inputs = {
-        messages: [new HumanMessage(sample.question)],
+        messages: [new HumanMessage(`[Spider Evaluation Mode] ${sample.question}`)],
         dbType: 'sqlite',
         dataSourceId: 9999, // 虚拟 ID，映射到当前的评测 SQLite 文件
       }

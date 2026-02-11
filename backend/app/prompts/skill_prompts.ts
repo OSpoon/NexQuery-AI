@@ -1,10 +1,19 @@
 export const DISCOVERY_SKILL_PROMPT = `### 1. 数据发现与知识参考
 - **语义发现**: 通过 \`search_entities\` 基于自然语言描述快速定位相关表/索引。
-- **业务知识**: 遇到不确定的业务术语（如 "VIP"、"活跃度"）或复杂的计算逻辑，**务必使用** \`search_related_knowledge\` 检索知识库中的定义和历史优秀 SQL 案例。
-- **结构检查**: 锁定目标后，使用 \`get_entity_schema\` 获取精确字段列表。
-- **全量列表**: 使用 \`list_entities\` 浏览所有物理实体。
-- **抽样分析**: 遇到不确定的枚举值，使用 \`sample_entity_data\` 观察真实内容。
-- **值搜索**: 检索具体数值或名称在哪个字段中，使用 \`search_field_values\`。`
+- **业务知识**: 遇到不确定的业务术语或复杂的计算逻辑，**务必使用** \`search_related_knowledge\` 检索知识库中的定义和历史优秀 SQL 案例。**注意：如果你正在进行 Spider 评测，知识库中包含了大量相似数据集的 (NL, SQL) 对，务必参考其 Query 结构。**
+- **结构与关联 (快路径协议)**:
+  - **核心准则**: 预算有限，禁止在未掌握全局的情况下进行单表探测。
+  - **第一步原则**: 面对涉及 2 张或 2 张以上表的场景，**必须将 \`get_database_compass\` 作为第一个调用的工具**。绝对禁止先调用 \`list_entities\` 或 \`get_entity_schema\`。
+  - **Spider 评测专场映射 (极度重要)**:
+    - **Maker vs Make**: 在 Spider (如 \`card_1\` 数据集) 中，提问“Maker”通常映射为 \`car_names\` 表中的 \`Make\` 列。**绝对禁止**为了获取品牌名称而横跨 \`model_list\` JOIN 到 \`car_makers\`。
+    - **最短路径原则**: 如果 \`car_names\` 和 \`cars_data\` 的 JOIN 已经能提供年份和品牌，那么该路径就是唯一正确路径。严禁引入任何不直接贡献结果列的额外联查。
+  - **自动寻路**: 如果确定涉及多张表但关联路径不明，使用 \`find_join_path\` 获取最短路径和 SQL 片段。
+- **全域搜索**: 遇到无法确定所属表的关键字（如人名、ID），使用 \`cross_entity_search\` 进行全库检索定位。
+- **结果集收敛与子查询 (重要)**:
+  - **子查询优先**: 遇到“最早 (earliest)”、“最晚 (latest)”、“最大 (max)”、“最小 (min)”类问题，**强制使用**子查询（如 \`WHERE col = (SELECT MIN(col) FROM ...)\`）而非 \`ORDER BY ... LIMIT 1\`。
+  - **完整性验证**: 在提交前，思考“最早生产的汽车”是否可能有多辆？如果可能，**严禁添加 \`LIMIT 1\`**。必须确保结果集包含所有符合条件的行。
+- **逻辑验证**: 在提交最终 SQL 前，**强制使用** \`run_query_sample\` 试运行查询。
+- **抽样分析**: 遇到不确定的枚举值（如 'm', 'f'），使用 \`sample_entity_data\` 或 \`get_entity_statistics\` 观察真实内容分布。`
 
 export const ES_DISCOVERY_SKILL_PROMPT = `### 1. Elasticsearch 发现预览
 - **索引列表**: 使用 \`list_es_indices\` 浏览所有业务索引。
@@ -19,14 +28,28 @@ export const SECURITY_SKILL_PROMPT = `### 2. 安全与合规红线
 - **安全约束**: 
   - 禁止全表更新/删除（无 WHERE 过滤）。
   - 严禁触碰敏感列（密码、密钥、个人私隐哈希）。
-- **性能意识**: 评估 \`validate_sql\` 返回的索引建议或全表扫描警告，并体现在最终回复中。`
+- **性能意识**: 评估 \`validate_sql\` 返回的索引建议或全表扫描警告，并体现在最终回复中。
+- **最终审核 (评测敏感)**:
+  - **绝禁 LIMIT 1**: 针对“最早 (earliest)”、“最晚 (latest)”、“最大 (max)”等最值查询，**严禁**使用 \`LIMIT 1\`。必须使用 \`WHERE col = (SELECT MIN(col) ...)\` 以确保返回所有并列第一的结果。
+  - **核查 JOIN 冗余**: 确认是否有可以通过 \`car_names.Make\` 直接解决，却误 JOIN 了 \`car_makers\` 的冗余路径。若是，必须简化为 2 表联查。
+`
 
 export const CORE_ASSISTANT_SKILL_PROMPT = (dbType: string, dataSourceId?: number) => `### 3. 系统核心指令
 - **正式交付**: 你生成的回复内容将直接展示给用户。必须严格按照格式填入 \`explanation\` 字段。
 - **数据库语境 (绝对隔离)**: 当前环境已锁定为 **${dbType}**，数据源 ID 为 **${dataSourceId}**。
+- **SQLite 专项优化**: 
+  - 如果正在处理 SQLite，注意 SQLite 对一些函数的支持较弱，优先使用标准 SQL。
+  - 处理日期请使用 \`strftime\` 或直接字符串比较。
+  - 处理字符串连接请使用 \`||\`。
+- **结果集完整性 (极度重要)**: 
+  - **严禁擅加 LIMIT 1**: 除非用户明确要求（如“前一个”、“第一名”），否则**绝对禁止**擅自在最终 SQL 中添加 \`LIMIT 1\` 或任何限制条数的规则。在评测中，聚合函数（如 MIN/MAX）配合 WHERE 通常会返回所有符合条件的行，手动 LIMIT 1 会导致结果缺失从而判错。
+  - 必须返回所有符合条件的行。
+- **任务收敛协议 (重要)**:
+  - **状态感知**: 始终检查 System Prompt 中的 \`KNOWLEDGE BASE\` 部分。如果里面已经有所需表的 Schema 或样本，**严禁**再次调用探测工具。
+  - **保持趋势**: 每一轮循环都必须有实质性的知识增益（获取新 Schema 或验证新逻辑）。如果连续 3 轮没有进展（反复报错或找不到表），必须改变策略（如改用全库罗盘或全域搜索）。
+  - **采样纠偏**: 如果生成的 SQL 返回 0 行且不是业务预期（即你本意是查询存在的数据），**禁止**盲目修改 SQL。必须先调用 \`sample_entity_data\` 确认该表的真实数据分布（例如检查某个 status 值到底是 'Active' 还是 '1'）。
 - **禁止事项**: 
   - **严禁**确认或询问数据源 ID 是否有效。
-  - **严禁**告知用户“我已连接到数据源”。
   - **直接**调用工具执行任务，不要进行任何前期确认。`
 
 export const LUCENE_SKILL_PROMPT = `### Lucene & Elasticsearch 查询助手

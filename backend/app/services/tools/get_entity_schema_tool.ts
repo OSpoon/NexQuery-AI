@@ -23,6 +23,13 @@ export class GetEntitySchemaTool extends StructuredTool {
         return `- ${f.name} (${f.type}${primary})${sensitive}${comment}`
       }).join('\n')
 
+      if (schema.foreignKeys && schema.foreignKeys.length > 0) {
+        description += '\n\nForeign Keys (Relationships):\n'
+        description += schema.foreignKeys.map((fk) => {
+          return `- ${fk.column} -> ${fk.referencedTable}.${fk.referencedColumn}`
+        }).join('\n')
+      }
+
       return description
     } catch (error: any) {
       return `Error getting entity schema: ${error.message}`

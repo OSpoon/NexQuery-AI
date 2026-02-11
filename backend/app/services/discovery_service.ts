@@ -441,4 +441,145 @@ export default class DiscoveryService {
       categoricalProfiling: profiling,
     }
   }
+
+  /**
+   * Get all foreign key relationships in the entire database (Compass)
+   */
+  static async getDatabaseCompass(dataSourceId: number): Promise<any[]> {
+    const tables = await this.listEntities(dataSourceId)
+    const allFks: any[] = []
+
+    for (const table of tables) {
+      if (table.type === 'table') {
+        const schema = await this.getEntitySchema(dataSourceId, table.name)
+        if (schema.foreignKeys && schema.foreignKeys.length > 0) {
+          for (const fk of schema.foreignKeys) {
+            allFks.push({
+              from_table: table.name,
+              from_column: fk.column,
+              to_table: fk.referencedTable,
+              to_column: fk.referencedColumn,
+            })
+          }
+        }
+      }
+    }
+    return allFks
+  }
+
+  /**
+   * Search for a keyword across all tables and text fields (Cross-entity search)
+   */
+  static async crossEntitySearch(
+    dataSourceId: number,
+    keyword: string,
+    limitPerTable: number = 3,
+  ): Promise<any[]> {
+    const tables = await this.listEntities(dataSourceId)
+    const matches: any[] = []
+
+    // We only search in the first 10 tables for performance, or use semantic mapping if available
+    // For Spider, databases are small so we can search all.
+    for (const table of tables) {
+      if (table.type !== 'table')
+        continue
+
+      try {
+        const schema = await this.getEntitySchema(dataSourceId, table.name)
+        const textFields = schema.fields.filter((f) => {
+          const type = f.type.toLowerCase()
+          return (type.includes('char') || type.includes('text') || type.includes('string'))
+            && !f.isSensitive
+        })
+
+        if (textFields.length === 0)
+          continue
+
+        const { client, dbType } = await DbHelper.getConnection(dataSourceId)
+        for (const field of textFields) {
+          const quotedTable = dbType === 'postgresql' ? `"${table.name}"` : `\`${table.name}\``
+          const quotedField = dbType === 'postgresql' ? `"${field.name}"` : `\`${field.name}\``
+
+          const query = client.from(table.name)
+            .where(field.name, 'like', `%${keyword}%`)
+            .select(field.name)
+            .distinct()
+            .limit(limitPerTable)
+
+          const results = await query
+          if (results.length > 0) {
+            matches.push({
+              table: table.name,
+              column: field.name,
+              sample_values: results.map((r: any) => r[field.name]),
+            })
+          }
+        }
+      } catch (e) {
+        // Skip table on error
+      }
+      if (matches.length >= 5)
+        break // Found enough matches
+    }
+
+    return matches
+  }
+
+  /**
+   * Find the shortest JOIN path between two tables using BFS
+   */
+  static async findJoinPath(dataSourceId: number, startTable: string, endTable: string): Promise<string> {
+    const fks = await this.getDatabaseCompass(dataSourceId)
+    if (fks.length === 0)
+      return `无法找到路径: 数据库未定义外键关联。`
+
+    const graph: Record<string, any[]> = {}
+    for (const fk of fks) {
+      if (!graph[fk.from_table])
+        graph[fk.from_table] = []
+      if (!graph[fk.to_table])
+        graph[fk.to_table] = []
+
+      // Bi-directional for path finding
+      graph[fk.from_table].push({ to: fk.to_table, on_from: fk.from_column, on_to: fk.to_column })
+      graph[fk.to_table].push({ to: fk.from_table, on_from: fk.to_column, on_to: fk.from_column })
+    }
+
+    if (!graph[startTable] || !graph[endTable]) {
+      return `无法找到路径: 起始表或目标表在关系图中不存在。`
+    }
+
+    // BFS
+    const queue: Array<{ current: string, path: any[] }> = [{ current: startTable, path: [] }]
+    const visited = new Set([startTable])
+
+    while (queue.length > 0) {
+      const { current, path } = queue.shift()!
+
+      if (current === endTable) {
+        // Build SQL Snippet
+        let sql = `FROM ${startTable}`
+        for (const step of path) {
+          sql += ` JOIN ${step.to} ON ${step.prev_table}.${step.on_prev} = ${step.to}.${step.on_to}`
+        }
+        return JSON.stringify({
+          found: true,
+          path: [startTable, ...path.map(p => p.to)],
+          sql_snippet: sql,
+        })
+      }
+
+      for (const neighbor of graph[current] || []) {
+        if (!visited.has(neighbor.to)) {
+          visited.add(neighbor.to)
+          queue.push({
+            current: neighbor.to,
+            path: [...path, { prev_table: current, to: neighbor.to, on_prev: neighbor.on_from, on_to: neighbor.on_to }],
+          })
+        }
+      }
+    }
+
+    return `无法在表 ${startTable} 和 ${endTable} 之间找到关联路径。`
+  }
 }
