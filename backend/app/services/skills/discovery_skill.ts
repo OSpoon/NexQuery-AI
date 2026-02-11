@@ -5,6 +5,7 @@ import { SampleEntityDataTool } from '#services/tools/sample_entity_data_tool'
 import { SearchEntitiesTool } from '#services/tools/search_entities_tool'
 import { SearchFieldValuesTool } from '#services/tools/search_field_values_tool'
 import { SearchRelatedKnowledgeTool } from '#services/tools/search_related_knowledge_tool'
+import { GetEntityStatisticsTool } from '#services/tools/get_entity_statistics_tool'
 import { DISCOVERY_PROMPT } from '#prompts/index'
 
 export class DiscoverySkill extends BaseSkill {
@@ -23,6 +24,7 @@ export class DiscoverySkill extends BaseSkill {
       new SearchFieldValuesTool(),
       new SearchRelatedKnowledgeTool(),
       new SampleEntityDataTool(),
+      new GetEntityStatisticsTool(),
     ]
   }
 }

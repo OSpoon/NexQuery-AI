@@ -1,5 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { DateTime } from 'luxon'
 import { createAgentGraph } from '#services/agents/graph'
 import { HumanMessage } from '@langchain/core/messages'
 import DbHelper from '#services/db_helper'
@@ -126,12 +127,13 @@ export default class EvaluationService {
 
   async saveReport(results: EvalResult[]): Promise<string> {
     const reportsPath = path.join(this.spiderPath, 'reports')
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
+    const now = DateTime.local()
+    const timestamp = now.toFormat('yyyy-MM-dd\'T\'HH-mm-ss-SSS')
     const fileName = `spider_eval_${timestamp}.json`
     const filePath = path.join(reportsPath, fileName)
 
     const summary = {
-      timestamp: new Date().toISOString(),
+      timestamp: now.toISO(),
       total: results.length,
       correct: results.filter(r => r.isCorrect).length,
       accuracy: `${((results.filter(r => r.isCorrect).length / results.length) * 100).toFixed(2)}%`,

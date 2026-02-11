@@ -22,7 +22,19 @@ export abstract class CommonAgentNode {
     }
 
     const skills = this.getSkills(context)
-    const tools = skills.flatMap(s => s.getTools(context))
+    let tools = skills.flatMap(s => s.getTools(context))
+
+    // AGGRESSIVE OPTIMIZATION: Tool Stripping for Security Agent
+    // If we already have discovery data, remove discovery tools from Security Agent to prevent turnaround wastage.
+    const isSecurityAgent = this.constructor.name === 'SecurityAgentNode' || nodeName === 'security_agent'
+    if (isSecurityAgent && state.intermediate_results && Object.keys(state.intermediate_results).length > 0) {
+      const discoveryTools = ['list_entities', 'get_entity_schema', 'sample_entity_data', 'search_entities', 'search_field_values', 'get_entity_statistics']
+      const originalCount = tools.length
+      tools = tools.filter(t => !discoveryTools.includes(t.name))
+      if (tools.length < originalCount) {
+        logger.info(`[Agent: ${nodeName}] Programmatically stripped ${originalCount - tools.length} redundant discovery tools.`)
+      }
+    }
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
 
     // Generate Specialized System Prompt based on node name
@@ -30,7 +42,7 @@ export abstract class CommonAgentNode {
 
     // Provide intermediate results as context if they exist
     const resultsStr = state.intermediate_results && Object.keys(state.intermediate_results).length > 0
-      ? `\n\n--- 前序步骤的探测结果 (中间结果) ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n-----------------------------------------------\n`
+      ? `\n\n--- 前序步骤的探测/发现结果 (中间结果) ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n请优先使用这些结果，避免重复运行探测工具。\n-----------------------------------------------\n`
       : ''
 
     const envHeader = `\n\n[!!! 数据环境协议 !!!]\n当前数据库类型: ${state.dbType.toUpperCase()} \n数据源 ID: ${state.dataSourceId || '未知'}\n- 系统默认期望 ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'} 语法。如果用户的问题使用了不匹配的术语（如在 ES 模式下提到“表”或“SQL”），请根据当前环境进行语义映射或友好解释，不要直接拒绝。\n- 严禁猜测或尝试访问其他数据源 ID。\n- 你的工具库已针对此环境进行了预过滤。\n[!!! 协议结束 !!!]\n\n`
@@ -82,12 +94,12 @@ export abstract class CommonAgentNode {
     const history = sanitizeMessages(state.messages)
     const messages: any[] = [
       new SystemMessage(systemPrompt),
-      ...history.slice(-10),
+      ...history.slice(-20), // Support deeper context
     ]
 
     const newMessages: any[] = []
     let loopCount = 0
-    const MAX_LOOPS = 10
+    const MAX_LOOPS = 15
     const attemptedSqls = new Set<string>()
     const intermediateResults: Record<string, any> = { ...(state.intermediate_results || {}) }
 
@@ -160,23 +172,53 @@ export abstract class CommonAgentNode {
 
             const tool = tools.find(t => t.name === toolCall.name)
             if (tool) {
-              toolOutput = await tool.invoke(toolCall.args, config)
-
-              // AUTO-PERSISTENCE: Automatically save discovery/metadata results to intermediate_results
-              // This prevents subsequent agents from re-running the same discovery tools.
+              // OPTIMIZATION: Smart Cache Matching
               const metaTools = [
                 'list_entities',
                 'get_entity_schema',
                 'sample_entity_data',
+                'get_entity_statistics',
                 'search_entities',
                 'search_field_values',
                 'search_related_knowledge',
-                'search_column_values', // Keep for safety if any agent still calls it
-                'search_tables', // Keep for safety
+                'search_column_values',
+                'search_tables',
               ]
-              if (metaTools.includes(toolCall.name)) {
-                const persistenceKey = `${toolCall.name}_${JSON.stringify(toolCall.args)}`
-                intermediateResults[persistenceKey] = toolOutput
+
+              let persistenceKey = `${toolCall.name}_${JSON.stringify(toolCall.args)}`
+              let cachedResult = intermediateResults[persistenceKey]
+
+              // Fuzzy Logic for sample_entity_data: If we have a larger sample in cache, use it.
+              if (!cachedResult && toolCall.name === 'sample_entity_data') {
+                const entityName = toolCall.args.entityName
+                const requestedLimit = toolCall.args.limit || 5
+                // Search for any cached sample for this entity with limit >= requestedLimit
+                const existingKey = Object.keys(intermediateResults).find((k) => {
+                  if (!k.startsWith('sample_entity_data_'))
+                    return false
+                  try {
+                    const parsedArgs = JSON.parse(k.replace('sample_entity_data_', ''))
+                    return parsedArgs.entityName === entityName && (parsedArgs.limit || 5) >= requestedLimit
+                  } catch {
+                    return false
+                  }
+                })
+                if (existingKey) {
+                  cachedResult = intermediateResults[existingKey]
+                  persistenceKey = existingKey // Map to existing key for consistency
+                }
+              }
+
+              if (metaTools.includes(toolCall.name) && cachedResult) {
+                logger.info(`[Agent: ${nodeName}] Reusing cached discovery result for: ${toolCall.name} (Key: ${persistenceKey})`)
+                toolOutput = cachedResult
+              } else {
+                toolOutput = await tool.invoke(toolCall.args, config)
+
+                // AUTO-PERSISTENCE: Automatically save discovery/metadata results
+                if (metaTools.includes(toolCall.name)) {
+                  intermediateResults[persistenceKey] = toolOutput
+                }
               }
             } else {
               toolOutput = `Error: Tool ${toolCall.name} not found.`

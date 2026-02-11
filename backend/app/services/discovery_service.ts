@@ -20,6 +20,11 @@ export interface EntitySchema {
     comment?: string
     isSensitive?: boolean
   }>
+  foreignKeys?: Array<{
+    column: string
+    referencedTable: string
+    referencedColumn: string
+  }>
 }
 
 export default class DiscoveryService {
@@ -205,7 +210,16 @@ export default class DiscoveryService {
         isNullable: r.notnull === 0,
         isSensitive: this.isSensitive(r.name),
       }))
-      return { entityName, fields }
+
+      // Discover Foreign Keys for SQLite
+      const fkResult = await client.rawQuery(`PRAGMA foreign_key_list(\`${entityName}\`)`)
+      const foreignKeys = fkResult.map((fk: any) => ({
+        column: fk.from,
+        referencedTable: fk.table,
+        referencedColumn: fk.to,
+      }))
+
+      return { entityName, fields, foreignKeys }
     }
 
     const dataSource = await DataSource.findOrFail(dataSourceId)
@@ -227,6 +241,7 @@ export default class DiscoveryService {
     // SQL Flow
     const { client, dbType } = await DbHelper.getConnection(dataSourceId)
     const fields: any[] = []
+    const foreignKeys: any[] = []
 
     if (dbType === 'postgresql') {
       const result = await client.rawQuery(`
@@ -251,6 +266,29 @@ export default class DiscoveryService {
         comment: r.comment,
         isSensitive: this.isSensitive(r.name),
       })))
+
+      // Foreign Keys for Postgres
+      const fkQuery = `
+        SELECT
+            kcu.column_name, 
+            ccu.table_name AS foreign_table_name,
+            ccu.column_name AS foreign_column_name 
+        FROM 
+            information_schema.table_constraints AS tc 
+            JOIN information_schema.key_column_usage AS kcu
+              ON tc.constraint_name = kcu.constraint_name
+              AND tc.table_schema = kcu.table_schema
+            JOIN information_schema.constraint_column_usage AS ccu
+              ON ccu.constraint_name = tc.constraint_name
+              AND ccu.table_schema = tc.table_schema
+        WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name=? AND tc.table_schema='public';
+      `
+      const fkRes = await client.rawQuery(fkQuery, [entityName])
+      foreignKeys.push(...fkRes.rows.map((r: any) => ({
+        column: r.column_name,
+        referencedTable: r.foreign_table_name,
+        referencedColumn: r.foreign_column_name,
+      })))
     } else {
       const result = await client.rawQuery(`SHOW FULL COLUMNS FROM \`${entityName}\``)
       const rows = Array.isArray(result[0]) ? result[0] : result
@@ -262,9 +300,26 @@ export default class DiscoveryService {
         comment: r.Comment,
         isSensitive: this.isSensitive(r.Field),
       })))
+
+      // Foreign Keys for MySQL
+      const fkQuery = `
+        SELECT 
+          COLUMN_NAME, 
+          REFERENCED_TABLE_NAME, 
+          REFERENCED_COLUMN_NAME 
+        FROM INFORMATION_SCHEMA.KEY_COLUMN_USAGE 
+        WHERE TABLE_NAME = ? AND REFERENCED_TABLE_NAME IS NOT NULL;
+      `
+      const fkRes = await client.rawQuery(fkQuery, [entityName])
+      const fkRows = Array.isArray(fkRes[0]) ? fkRes[0] : fkRes
+      foreignKeys.push(...fkRows.map((r: any) => ({
+        column: r.COLUMN_NAME,
+        referencedTable: r.REFERENCED_TABLE_NAME,
+        referencedColumn: r.REFERENCED_COLUMN_NAME,
+      })))
     }
 
-    return { entityName, fields }
+    return { entityName, fields, foreignKeys }
   }
 
   /**
@@ -293,5 +348,97 @@ export default class DiscoveryService {
 
     const result = await client.rawQuery(query)
     return dbType === 'postgresql' ? result.rows : (Array.isArray(result[0]) ? result[0] : result)
+  }
+
+  /**
+   * Get statistical summary (count, min, max, nulls, top values) for an entity
+   */
+  static async getEntityStatistics(dataSourceId: number, entityName: string): Promise<any> {
+    const schema = await this.getEntitySchema(dataSourceId, entityName)
+    const { client, dbType } = await DbHelper.getConnection(dataSourceId)
+
+    // For ES, return basic stats and attempt aggregation for counts
+    if (dbType === 'elasticsearch') {
+      const es = await DbHelper.getESService(dataSourceId)
+      const indices = await es.listIndices()
+      const stats = indices.find(idx => idx.name === entityName)
+
+      // Simple ES aggregation for counts if we have fields
+      return {
+        entityName,
+        totalRecords: stats?.docsCount || 'unknown',
+        storageSize: stats?.storeSize,
+        note: 'Elasticsearch profiling provides document counts. Use search tools for deep value analysis.',
+      }
+    }
+
+    // Identify fields for different types of stats
+    const numericAndDateFields = schema.fields.filter((f) => {
+      const type = f.type.toLowerCase()
+      return type.includes('int') || type.includes('decimal') || type.includes('float')
+        || type.includes('double') || type.includes('date') || type.includes('time')
+        || type.includes('year') || type.includes('timestamp')
+    })
+
+    const categoricalFields = schema.fields
+      .filter((f) => {
+        const type = f.type.toLowerCase()
+        return (type.includes('char') || type.includes('text') || type.includes('string') || type.includes('enum'))
+          && !this.isSensitive(f.name)
+      })
+      .slice(0, 5) // Limit to first 5 potential categorical fields
+
+    // 1. Initial MIN/MAX/COUNT query
+    const minMaxSelect = numericAndDateFields.map((f) => {
+      const quoted = dbType === 'postgresql' ? `"${f.name}"` : `\`${f.name}\``
+      return `MIN(${quoted}) as "${f.name}_min", MAX(${quoted}) as "${f.name}_max", COUNT(${quoted}) as "${f.name}_non_null"`
+    }).join(', ')
+
+    const baseQuery = dbType === 'postgresql'
+      ? `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM "${entityName}"`
+      : `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM \`${entityName}\``
+
+    const result = await client.rawQuery(baseQuery)
+    const row = dbType === 'postgresql' ? result.rows[0] : (Array.isArray(result[0]) ? result[0][0] : result[0])
+
+    const totalRecords = Number.parseInt(row.count)
+    const fieldStats = numericAndDateFields.map(f => ({
+      name: f.name,
+      type: f.type,
+      min: row[`${f.name}_min`],
+      max: row[`${f.name}_max`],
+      nullCount: totalRecords - Number.parseInt(row[`${f.name}_non_null`] || 0),
+    }))
+
+    // 2. Fetch Top Values for Categorical Fields (Separate queries for safety/simplicity)
+    const profiling: any[] = []
+    for (const f of categoricalFields) {
+      try {
+        const quoted = dbType === 'postgresql' ? `"${f.name}"` : `\`${f.name}\``
+        const topRes = await client
+          .from(entityName)
+          .select(f.name)
+          .count(`${f.name} as count`)
+          .groupBy(f.name)
+          .orderBy('count', 'desc')
+          .limit(5)
+
+        profiling.push({
+          name: f.name,
+          topValues: topRes.map((r: any) => ({ value: r[f.name], count: Number.parseInt(r.count) })),
+        })
+      } catch (e) {
+        // Skip if query fails (e.g. unsupported type for group by)
+      }
+    }
+
+    return {
+      entityName,
+      totalRecords,
+      fields: schema.fields,
+      foreignKeys: foreignKeys || [],
+      numericStats: fieldStats,
+      categoricalProfiling: profiling,
+    }
   }
 }
