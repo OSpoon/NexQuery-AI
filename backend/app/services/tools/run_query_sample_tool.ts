@@ -23,6 +23,13 @@ export class RunQuerySampleTool extends StructuredTool {
       }
 
       const trimmedSql = sql.trim().toLowerCase()
+
+      // 1.1 Block System Tables
+      const systemTables = ['sqlite_master', 'sqlite_temp_master', 'sqlite_sequence', 'information_schema', 'pg_catalog', 'mysql']
+      if (systemTables.some(t => trimmedSql.includes(t))) {
+        return `Safety Block: Access to system tables (${systemTables.join(', ')}) is strictly prohibited. Please use the provided discovery tools instead.`
+      }
+
       const isSelect = trimmedSql.startsWith('select') || trimmedSql.startsWith('with')
 
       if (!isSelect) {

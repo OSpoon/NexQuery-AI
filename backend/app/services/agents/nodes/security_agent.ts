@@ -4,14 +4,11 @@ import { SecuritySkill } from '#services/skills/security_skill'
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
 import { SkillContext } from '#services/skills/skill_interface'
 
-import { DiscoverySkill } from '#services/skills/discovery_skill'
-
 export class SecurityAgentNode extends CommonAgentNode {
   protected getSkills(_context: SkillContext) {
     return [
       new SecuritySkill(),
-      new DiscoverySkill({ lite: true }), // Verification only
-      new CoreAssistantSkill(), // Mandatory for submit_sql_solution
+      new CoreAssistantSkill({ silent: true }), // Only for tools, no role prompt conflict
     ]
   }
 }

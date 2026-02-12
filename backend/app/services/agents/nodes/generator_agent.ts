@@ -1,26 +1,26 @@
 import { AgentState } from '#services/agents/state'
 import { CommonAgentNode } from '#services/agents/nodes/common_agent'
-import { DiscoverySkill } from '#services/skills/discovery_skill'
 import { SkillContext } from '#services/skills/skill_interface'
 
-import { SecuritySkill } from '#services/skills/security_skill'
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
+import { ValidateSqlTool } from '#services/tools/validate_sql_tool'
 
-import { LuceneSkill } from '#services/skills/lucene_skill'
-
+/**
+ * Generator Agent 角色纯态化
+ * - 仅装载 CoreAssistantSkill (精准编写者)
+ * - 额外装载 ValidateSqlTool 用于自验证
+ * - Generator 通过 KNOWLEDGE BASE (蓝图) 获取上游探索结果，无需自行探测
+ */
 export class GeneratorAgentNode extends CommonAgentNode {
-  protected getSkills(context: SkillContext) {
-    const skills: any[] = [
-      new CoreAssistantSkill({ excludeSubmission: true }),
-      new DiscoverySkill(),
-      new SecuritySkill(), // Self-correction capability
+  protected getSkills(_context: SkillContext) {
+    return [
+      new CoreAssistantSkill(), // 唯一角色: 精准编写者 + 提交工具
     ]
+  }
 
-    if (context.dbType === 'elasticsearch') {
-      skills.push(new LuceneSkill())
-    }
-
-    return skills
+  // Generator 额外添加 validate_sql 用于自验证
+  protected getExtraTools(_context: SkillContext) {
+    return [new ValidateSqlTool()]
   }
 }
 

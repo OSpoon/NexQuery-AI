@@ -14,7 +14,6 @@ import AiProviderService from '#services/ai_provider_service'
 import { DiscoverySkill } from '#services/skills/discovery_skill'
 import { SecuritySkill } from '#services/skills/security_skill'
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
-import { LuceneSkill } from '#services/skills/lucene_skill'
 import type { BaseSkill, SkillContext } from '#services/skills/skill_interface'
 import DataSource from '#models/data_source'
 import logger from '@adonisjs/core/services/logger'
@@ -27,7 +26,6 @@ import {
 interface StreamState {
   potentialFinalResponse: string
   finalSql?: string
-  finalLucene?: string
   finalContent: string
 }
 
@@ -38,7 +36,6 @@ export default class LangChainService {
     if (isElasticsearch) {
       return [
         new CoreAssistantSkill(),
-        new LuceneSkill(),
       ]
     }
 
@@ -197,7 +194,6 @@ export default class LangChainService {
       const streamState: StreamState = {
         potentialFinalResponse: '',
         finalSql: undefined,
-        finalLucene: undefined,
         finalContent: '',
       }
 
@@ -210,13 +206,11 @@ export default class LangChainService {
       }
 
       // Extract variables back for final response logic (to keep that part unchanged for now)
-      const { finalSql, finalLucene, finalContent, potentialFinalResponse } = streamState
+      const { finalSql, finalContent, potentialFinalResponse } = streamState
 
       // Yield Final Response
       if (finalSql) {
         yield JSON.stringify({ type: 'response', content: finalContent || '', sql: finalSql })
-      } else if (finalLucene) {
-        yield JSON.stringify({ type: 'response', content: finalContent || '', lucene: finalLucene })
       } else if (potentialFinalResponse) {
         yield JSON.stringify({ type: 'response', content: potentialFinalResponse })
       } else {
@@ -297,8 +291,6 @@ export default class LangChainService {
 
     if (output.sql)
       state.finalSql = output.sql
-    if (output.lucene)
-      state.finalLucene = output.lucene
     if (output.explanation)
       state.finalContent = output.explanation
 
@@ -318,9 +310,6 @@ export default class LangChainService {
   ): AsyncGenerator<string> {
     if (name === 'submit_sql_solution') {
       state.finalSql = data.input.sql
-      state.finalContent = data.input.explanation
-    } else if (name === 'submit_lucene_solution') {
-      state.finalLucene = data.input.lucene
       state.finalContent = data.input.explanation
     }
 

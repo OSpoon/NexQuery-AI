@@ -18,7 +18,6 @@ export interface AgentState {
 
   // Intermediate Outputs
   sql?: string
-  lucene?: string
   explanation?: string
 
   // Collaborative Planning

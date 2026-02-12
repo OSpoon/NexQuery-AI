@@ -8,6 +8,11 @@ import logger from '@adonisjs/core/services/logger'
 export abstract class CommonAgentNode {
   protected abstract getSkills(context: SkillContext): any[]
 
+  // Subclasses can override to add extra tools beyond what Skills provide
+  protected getExtraTools(_context: SkillContext): any[] {
+    return []
+  }
+
   async run(state: AgentState, config?: any) {
     const provider = new AiProviderService()
     const llm = await provider.getChatModel({ streaming: true })
@@ -22,17 +27,16 @@ export abstract class CommonAgentNode {
     }
 
     const skills = this.getSkills(context)
-    let tools = skills.flatMap(s => s.getTools(context))
+    let tools = [...skills.flatMap(s => s.getTools(context)), ...this.getExtraTools(context)]
 
-    // AGGRESSIVE OPTIMIZATION: Tool Stripping for Security Agent
-    // If we already have discovery data, remove discovery tools from Security Agent to prevent turnaround wastage.
+    // Security Agent: whitelist approach - only keep validate_sql, submit_sql_solution, clarify_intent, get_current_time
     const isSecurityAgent = this.constructor.name === 'SecurityAgentNode' || nodeName === 'security_agent'
-    if (isSecurityAgent && state.intermediate_results && Object.keys(state.intermediate_results).length > 0) {
-      const discoveryTools = ['list_entities', 'get_entity_schema', 'sample_entity_data', 'search_entities', 'search_field_values', 'get_entity_statistics']
+    if (isSecurityAgent) {
+      const allowedTools = ['validate_sql', 'submit_sql_solution']
       const originalCount = tools.length
-      tools = tools.filter(t => !discoveryTools.includes(t.name))
+      tools = tools.filter(t => allowedTools.includes(t.name))
       if (tools.length < originalCount) {
-        logger.info(`[Agent: ${nodeName}] Programmatically stripped ${originalCount - tools.length} redundant discovery tools.`)
+        logger.info(`[Agent: ${nodeName}] Whitelisted ${tools.length} tools (stripped ${originalCount - tools.length}).`)
       }
     }
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
@@ -40,16 +44,17 @@ export abstract class CommonAgentNode {
     // Generate Specialized System Prompt based on node name
     const promptTemplate = PROMPT_MAP[nodeName] || AGENT_SYSTEM_PROMPT_TEMPLATE
 
-    // Provide intermediate results as context if they exist
-    const resultsStr = state.intermediate_results && Object.keys(state.intermediate_results).length > 0
-      ? `\n\n--- 前序步骤的探测/发现结果 (中间结果) ---\n${JSON.stringify(state.intermediate_results, null, 2)}\n请优先使用这些结果，避免重复运行探测工具。\n-----------------------------------------------\n`
-      : ''
+    // P1-1: Only use structured renderKnowledgeBase (no raw JSON dump)
+    const envHeader = `[数据环境] ${state.dbType.toUpperCase()} | 数据源ID: ${state.dataSourceId || '未知'} | 期望语法: ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'}\n`
 
-    const envHeader = `\n\n[!!! 数据环境协议 !!!]\n当前数据库类型: ${state.dbType.toUpperCase()} \n数据源 ID: ${state.dataSourceId || '未知'}\n- 系统默认期望 ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'} 语法。如果用户的问题使用了不匹配的术语（如在 ES 模式下提到“表”或“SQL”），请根据当前环境进行语义映射或友好解释，不要直接拒绝。\n- 严禁猜测或尝试访问其他数据源 ID。\n- 你的工具库已针对此环境进行了预过滤。\n[!!! 协议结束 !!!]\n\n`
+    // Inject state.sql into Security Agent's prompt so it knows exactly what to validate
+    const sqlContext = isSecurityAgent && state.sql
+      ? `\n\n### ⚡ 待审计 SQL (来自上游 Generator)\n\`\`\`sql\n${state.sql}\n\`\`\`\n> 请对上述 SQL 执行 validate_sql 验证，确认无误后直接 submit_sql_solution 提交。\n`
+      : ''
 
     const systemPrompt = envHeader + (typeof promptTemplate === 'function'
       ? (promptTemplate as any)(state.dbType, skillPrompts)
-      : promptTemplate) + this.renderKnowledgeBase(state.intermediate_results || {})
+      : promptTemplate) + sqlContext + this.renderKnowledgeBase(state.intermediate_results || {})
 
     const modelWithTools = llm.bindTools(tools)
 
@@ -105,6 +110,10 @@ export abstract class CommonAgentNode {
 
     while (loopCount < MAX_LOOPS) {
       loopCount++
+      if (loopCount > 1) {
+        // Simple throttle to avoid aggressive 429 when polling tools
+        await new Promise(resolve => setTimeout(resolve, 800))
+      }
 
       const response = await modelWithTools.invoke(messages, config)
       response.additional_kwargs = { ...response.additional_kwargs, node: nodeName }
@@ -118,7 +127,7 @@ export abstract class CommonAgentNode {
       newMessages.push(response)
 
       if (response.tool_calls && response.tool_calls.length > 0) {
-        // 1. Check for Submission Tools
+        // 1. Check for Submission / Termination Tools
         const sqlSubmission = response.tool_calls.find(c => c.name === 'submit_sql_solution')
         if (sqlSubmission) {
           logger.info('[Agent] SQL Solution Submitted')
@@ -129,12 +138,13 @@ export abstract class CommonAgentNode {
           }, true)
         }
 
-        const luceneSubmission = response.tool_calls.find(c => c.name === 'submit_lucene_solution')
-        if (luceneSubmission) {
-          logger.info('[Agent] Lucene Solution Submitted')
+        // P0-1: save_blueprint is a FIRST-CLASS termination signal.
+        // Discovery Agent must exit immediately after saving the blueprint.
+        const blueprintCall = response.tool_calls.find(c => c.name === 'save_blueprint')
+        if (blueprintCall) {
+          intermediateResults.blueprint = blueprintCall.args.blueprint
+          logger.info('[Agent] Blueprint saved. Discovery Agent terminating immediately.')
           return this.finalizeStep(state, newMessages, {
-            lucene: luceneSubmission.args.lucene,
-            explanation: luceneSubmission.args.explanation,
             intermediate_results: intermediateResults,
           }, true)
         }
@@ -268,44 +278,36 @@ export abstract class CommonAgentNode {
     if (!results || Object.keys(results).length === 0)
       return ''
 
-    let output = '\n\n### 🧠 当前已掌握的数据库知识 (KNOWLEDGE BASE)\n'
-    output += '> 请优先参考以下信息，**严禁**重复调用已获取信息的探测工具。\n\n'
+    let output = '\n\n### 🧠 已掌握的数据库知识 (KNOWLEDGE BASE)\n'
+    output += '> 请优先参考以下结构化结论，**绝对禁止**重复探测。\n\n'
 
-    // 1. Entities & Basic Discovery
-    if (results.list_entities_any) {
-      output += '#### 📋 已知实体列表\n已获取全库实体清单，请从中选择目标表。\n\n'
+    // 1. High-Priority: Blueprint
+    const blueprint = results.blueprint || results.Discovery_blueprint
+    if (blueprint) {
+      output += '#### 🗺️ 核心查询蓝图 (QUERY BLUEPRINT) [MUST FOLLOW]\n'
+      output += '```markdown\n'
+      output += typeof blueprint === 'string' ? blueprint : JSON.stringify(blueprint, null, 2)
+      output += '\n```\n'
     }
 
-    // 2. Compass & Relationships
+    // 2. Summary of available Schemas/Samples (Compact)
+    const tables = new Set<string>()
+    Object.keys(results).forEach((k) => {
+      const match = k.match(/"entityName":"([^"]+)"/)
+      if (match)
+        tables.add(match[1])
+    })
+
+    if (tables.size > 0) {
+      output += `#### 📋 现已掌握 Schema/数据样本的表: \n\`${Array.from(tables).join('`, `')}\`\n`
+    }
+
     const compassKey = Object.keys(results).find(k => k.startsWith('get_database_compass'))
     if (compassKey) {
-      output += '#### 🧭 数据库全域罗盘 (FK Topology)\n已掌握全库拓扑关系，多表关联路径已明确。\n\n'
+      output += '#### 🧭 全域拓扑图谱 (Compass): 已就绪\n'
     }
 
-    // 3. Detailed Schemas
-    const schemas = Object.keys(results).filter(k => k.startsWith('get_entity_schema'))
-    if (schemas.length > 0) {
-      output += '#### 📐 已掌握的表结构 (Schemas)\n'
-      for (const k of schemas) {
-        const tableName = k.match(/"entityName":"([^"]+)"/)?.[1] || k
-        output += `- **\`${tableName}\`**: 字段定义已就绪。\n`
-      }
-      output += '\n'
-    }
-
-    // 4. Sample Data & Stats
-    const samples = Object.keys(results).filter(k => k.startsWith('sample_entity_data') || k.startsWith('get_entity_statistics'))
-    if (samples.length > 0) {
-      output += '#### 🧪 已获取的数据样本/统计\n'
-      for (const k of samples) {
-        const tableName = k.match(/"entityName":"([^"]+)"/)?.[1] || k
-        output += `- **\`${tableName}\`**: 样本数据/分布特征已掌握。\n`
-      }
-    }
-
-    output += '\n--- 原始探测细节 (供精确参考) ---\n'
-    output += JSON.stringify(results, null, 2)
-    output += '\n----------------------------\n'
+    output += '\n> 注：若上述蓝图已明确连接路径与列映射，请直接进入 SQL 编写，严禁再次调用探测工具。\n'
 
     return output
   }

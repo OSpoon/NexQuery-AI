@@ -86,6 +86,7 @@ export default class AiProviderService {
       timeout: config.timeoutMs,
       streaming: options.streaming ?? false,
       streamUsage: true,
+      maxRetries: 3, // Handle transient 429/500 errors
       callbacks: options.callbacks, // Allow passing callbacks explicitly
     })
   }

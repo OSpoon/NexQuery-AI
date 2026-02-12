@@ -27,7 +27,6 @@ export interface ChatMessage {
     options: string[]
   }
   generatedSql?: string // PURE SQL for feedback/preview
-  generatedLucene?: string // PURE Lucene for display
 }
 
 export const useAiStore = defineStore('ai', () => {
@@ -78,7 +77,6 @@ export const useAiStore = defineStore('ai', () => {
         prompt: m.prompt,
         agentSteps: m.agentSteps,
         generatedSql: m.generatedSql,
-        generatedLucene: m.generatedLucene,
       }))
       // Restore data source context if saved
       if (res.data.dataSourceId) {
@@ -237,8 +235,6 @@ export const useAiStore = defineStore('ai', () => {
                 activeMessage.content += data.content
                 if (data.sql)
                   activeMessage.generatedSql = data.sql
-                if (data.lucene)
-                  activeMessage.generatedLucene = data.lucene
               }
               else if (data.type === 'tool_start') {
                 activeMessage.agentSteps.push({

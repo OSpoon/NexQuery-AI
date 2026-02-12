@@ -48,6 +48,47 @@ export default class DiscoveryService {
   }
 
   /**
+   * Calculate Levenshtein distance between two strings
+   */
+  private static levenshteinDistance(a: string, b: string): number {
+    if (a.length === 0)
+      return b.length
+    if (b.length === 0)
+      return a.length
+
+    const matrix = []
+
+    // increment along the first column of each row
+    for (let i = 0; i <= b.length; i++) {
+      matrix[i] = [i]
+    }
+
+    // increment each column in the first row
+    for (let j = 0; j <= a.length; j++) {
+      matrix[0][j] = j
+    }
+
+    // Fill in the rest of the matrix
+    for (let i = 1; i <= b.length; i++) {
+      for (let j = 1; j <= a.length; j++) {
+        if (b.charAt(i - 1) === a.charAt(j - 1)) {
+          matrix[i][j] = matrix[i - 1][j - 1]
+        } else {
+          matrix[i][j] = Math.min(
+            matrix[i - 1][j - 1] + 1, // substitution
+            Math.min(
+              matrix[i][j - 1] + 1, // insertion
+              matrix[i - 1][j] + 1, // deletion
+            ),
+          )
+        }
+      }
+    }
+
+    return matrix[b.length][a.length]
+  }
+
+  /**
    * List all discoverable entities (tables or indices)
    */
   static async listEntities(dataSourceId: number): Promise<EntityMetadata[]> {
@@ -95,26 +136,78 @@ export default class DiscoveryService {
    */
   static async searchEntities(dataSourceId: number, query: string): Promise<string> {
     const embeddingService = new EmbeddingService()
-    const vectorStore = new VectorStoreService()
-    const queryEmbedding = await embeddingService.generate(query)
+    const vectorStore = new VectorStoreService() // Ensure this service is available or injected
+    let queryEmbedding: number[] = []
 
-    const results = await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+    try {
+      queryEmbedding = await embeddingService.generate(query)
+    } catch (e) {
+      // If embedding fails, we proceed with only fuzzy search
+    }
+
+    const vectorResults = await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+
+    // Fuzzy Matching Logic (Lexical Fallback)
+    const allEntities = await this.listEntities(dataSourceId)
+    const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 3) // Only match words > 3 chars
+    const fuzzyMatches: any[] = []
+
+    for (const entity of allEntities) {
+      if (entity.type !== 'table')
+        continue
+      const tableName = entity.name.toLowerCase()
+
+      // Check each token
+      for (const token of tokens) {
+        // 1. Direct inclusion
+        if (tableName.includes(token) || token.includes(tableName)) {
+          fuzzyMatches.push({ entity: entity.name, description: `Exact/Partial match for token "${token}"`, relevance: '1.0' })
+          break
+        }
+
+        // 2. Simple Singularization (cards -> card)
+        const stem = token.endsWith('s') ? token.slice(0, -1) : token
+        if (stem.length > 2 && tableName.includes(stem)) {
+          fuzzyMatches.push({ entity: entity.name, description: `Stem match for token "${token}" (Stem: "${stem}")`, relevance: '0.9' })
+          break
+        }
+
+        // 3. Distance check (only if not stemmed match)
+        const dist = this.levenshteinDistance(token, tableName)
+        const threshold = Math.min(2, Math.floor(tableName.length / 3))
+        if (dist <= threshold) {
+          fuzzyMatches.push({ entity: entity.name, description: `Fuzzy match for token "${token}" (Distance: ${dist})`, relevance: (1 - dist / tableName.length).toFixed(2) })
+          break
+        }
+      }
+    }
+
+    // Dedup and Merge: Prioritize fuzzy labels for typo resilience visibility
+    const combined = new Map<string, any>()
+    vectorResults.forEach((r: any) => combined.set(r.payload?.tableName as string, {
+      entity: r.payload?.tableName,
+      description: `${(r.payload?.fullSchema as string)?.slice(0, 200)}...`,
+      relevance: r.score.toFixed(4),
+    }))
+
+    fuzzyMatches.forEach((r) => {
+      const existing = combined.get(r.entity)
+      if (!existing || (!existing.description.includes('match') && r.description.includes('match'))) {
+        combined.set(r.entity, r)
+      }
+    })
+
+    const results = Array.from(combined.values())
 
     if (results.length === 0) {
       const hasData = await TableMetadata.query().where('dataSourceId', dataSourceId).first()
       if (hasData) {
-        return 'No results found in Vector Database. Please Sync Schema to populate the Vector Database.'
+        return 'No results found in Vector Database or via Fuzzy Matching.'
       }
       return 'No metadata found. Please Sync Schema for this data source.'
     }
 
-    return JSON.stringify(
-      results.map(t => ({
-        entity: t.payload?.tableName,
-        description: `${(t.payload?.fullSchema as string)?.slice(0, 200)}...`,
-        relevance: t.score.toFixed(4),
-      })),
-    )
+    return JSON.stringify(results)
   }
 
   /**
@@ -130,6 +223,7 @@ export default class DiscoveryService {
     if (dataSourceId === 9999) {
       return 'Vector search is not supported for evaluation data source.'
     }
+
     const dataSource = await DataSource.findOrFail(dataSourceId)
 
     if (dataSource.type === 'elasticsearch') {
@@ -414,7 +508,6 @@ export default class DiscoveryService {
     const profiling: any[] = []
     for (const f of categoricalFields) {
       try {
-        const quoted = dbType === 'postgresql' ? `"${f.name}"` : `\`${f.name}\``
         const topRes = await client
           .from(entityName)
           .select(f.name)
@@ -436,7 +529,7 @@ export default class DiscoveryService {
       entityName,
       totalRecords,
       fields: schema.fields,
-      foreignKeys: foreignKeys || [],
+      foreignKeys: schema.foreignKeys || [],
       numericStats: fieldStats,
       categoricalProfiling: profiling,
     }
@@ -495,11 +588,8 @@ export default class DiscoveryService {
         if (textFields.length === 0)
           continue
 
-        const { client, dbType } = await DbHelper.getConnection(dataSourceId)
+        const { client, dbType: _dbType } = await DbHelper.getConnection(dataSourceId)
         for (const field of textFields) {
-          const quotedTable = dbType === 'postgresql' ? `"${table.name}"` : `\`${table.name}\``
-          const quotedField = dbType === 'postgresql' ? `"${field.name}"` : `\`${field.name}\``
-
           const query = client.from(table.name)
             .where(field.name, 'like', `%${keyword}%`)
             .select(field.name)

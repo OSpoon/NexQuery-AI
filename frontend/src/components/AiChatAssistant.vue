@@ -531,7 +531,7 @@ function selectOption(option: string) {
               {{ t('ai_chat.no_context') }}
             </SelectItem>
             <SelectItem
-              v-for="ds in dataSourceStore.databaseSources"
+              v-for="ds in dataSourceStore.databaseSources.filter(s => s.type !== 'elasticsearch')"
               :key="ds.id"
               :value="String(ds.id)"
             >
@@ -578,8 +578,8 @@ function selectOption(option: string) {
                   <MarkdownRender custom-id="ai-chat" :content="msg.content" :is-dark="isDark" />
 
                   <!-- Run Button -->
-                  <!-- SQL/Lucene Run Button -->
-                  <div v-if="msg.role === 'assistant' && (msg.generatedSql || msg.generatedLucene)" class="mt-2 flex items-center gap-2">
+                  <!-- SQL Run Button -->
+                  <div v-if="msg.role === 'assistant' && msg.generatedSql" class="mt-2 flex items-center gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -589,7 +589,7 @@ function selectOption(option: string) {
                     >
                       <Play v-if="!isRunningSql[index]" class="h-3 w-3" />
                       <div v-else class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                      {{ isRunningSql[index] ? t('ai_chat.running') : (msg.generatedLucene ? t('ai_chat.run_search') : t('ai_chat.run_sql')) }}
+                      {{ isRunningSql[index] ? t('ai_chat.running') : t('ai_chat.run_sql') }}
                     </Button>
                   </div>
 
