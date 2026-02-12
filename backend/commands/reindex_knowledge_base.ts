@@ -1,27 +1,36 @@
-import { BaseCommand } from '@adonisjs/core/ace'
+import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import KnowledgeBase from '#models/knowledge_base'
 import EmbeddingService from '#services/embedding_service'
 
 export default class ReindexKnowledgeBase extends BaseCommand {
   static commandName = 'knowledge:reindex'
-  static description = 'Generate missing embeddings for all knowledge base items'
+  static description = 'Generate embeddings for knowledge base items'
+
+  @flags.boolean({ description: 'Force re-index all items even if they already have embeddings' })
+  declare force: boolean
 
   static options: CommandOptions = {
     startApp: true,
   }
 
   async run() {
-    this.logger.info('Starting Knowledge Base re-indexing...')
+    const mode = this.force ? 'Full Overwrite' : 'Incremental'
+    this.logger.info(`Starting Knowledge Base re-indexing (${mode} mode)...`)
 
-    const items = await KnowledgeBase.query().whereNull('embedding')
+    const query = KnowledgeBase.query()
+    if (!this.force) {
+      query.whereNull('embedding')
+    }
+
+    const items = await query
 
     if (items.length === 0) {
-      this.logger.success('All items already have embeddings.')
+      this.logger.success('No items found that require indexing.')
       return
     }
 
-    this.logger.info(`Found ${items.length} items without embeddings.`)
+    this.logger.info(`Found ${items.length} items to process.`)
 
     const embeddingService = new EmbeddingService()
     let count = 0
@@ -29,7 +38,7 @@ export default class ReindexKnowledgeBase extends BaseCommand {
     for (const item of items) {
       try {
         const text = `${item.keyword}: ${item.description}`
-        this.logger.info(`Generating embedding for: ${item.keyword}`)
+        this.logger.info(`[${count + 1}/${items.length}] Generating embedding for: ${item.keyword}`)
 
         const embedding = await embeddingService.generate(text)
         item.embedding = embedding
