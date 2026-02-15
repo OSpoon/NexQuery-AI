@@ -49,6 +49,9 @@ export const useAiStore = defineStore('ai', () => {
 
   function toggleOpen() {
     isOpen.value = !isOpen.value
+    if (isOpen.value && !mermaidGraph.value) {
+      fetchGraphVisual()
+    }
   }
 
   function setContext(schema: any, dbType: string = 'mysql') {
@@ -163,6 +166,11 @@ export const useAiStore = defineStore('ai', () => {
 
     if (!activeMessage)
       return
+
+    // Auto-fetch graph if not present
+    if (!mermaidGraph.value) {
+      fetchGraphVisual()
+    }
 
     try {
       const response = await fetch('/api/ai/chat/stream', {

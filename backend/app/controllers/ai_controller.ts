@@ -211,6 +211,7 @@ export default class AiController {
       let fullAssistantContent = ''
       let generatedSql: string | null = null
       let generatedLucene: string | null = null
+      let finalError: string | null = null
       const agentSteps: any[] = []
 
       for await (const chunk of stream) {
@@ -268,6 +269,8 @@ export default class AiController {
               generatedSql = data.sql
             if (data.lucene)
               generatedLucene = data.lucene
+            if (data.error)
+              finalError = data.error
           }
         } catch (e) {
           // Chunk parsing failed
@@ -283,6 +286,7 @@ export default class AiController {
           prompt: question,
           generatedSql,
           generatedLucene,
+          error: finalError,
           agentSteps,
         })
 

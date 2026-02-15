@@ -25,6 +25,9 @@ export default class AiMessage extends BaseModel {
   @column()
   declare generatedLucene: string | null
 
+  @column()
+  declare error: string | null
+
   @column({
     consume: (value: string | object) => (typeof value === 'string' ? JSON.parse(value) : value),
     prepare: (value: any) => (typeof value === 'string' ? value : JSON.stringify(value)),

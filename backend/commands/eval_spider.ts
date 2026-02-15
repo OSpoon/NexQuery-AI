@@ -1,6 +1,7 @@
 import { BaseCommand, flags } from '@adonisjs/core/ace'
 import type { CommandOptions } from '@adonisjs/core/types/ace'
 import EvaluationService from '#services/evaluation_service'
+import { DateTime } from 'luxon'
 
 export default class EvalSpider extends BaseCommand {
   static commandName = 'eval:spider'
@@ -36,6 +37,10 @@ export default class EvalSpider extends BaseCommand {
     const results = []
     let correctCount = 0
 
+    // Generate filename once
+    const timestamp = DateTime.local().toFormat('yyyy-MM-dd\'T\'HH-mm-ss-SSS')
+    const reportFileName = `spider_eval_${timestamp}.json`
+
     for (const [index, sample] of samples.entries()) {
       this.logger.info(`[${index + 1}/${samples.length}] Evaluating: "${sample.question}"`)
       const result = await evalService.evaluateSample(sample)
@@ -50,6 +55,9 @@ export default class EvalSpider extends BaseCommand {
       this.logger.info(`  [Expected]  : ${result.expectedSql}`)
       this.logger.info(`  [Generated] : ${result.generatedSql}`)
       this.logger.log('') // Add empty line between samples
+
+      // Save progress incrementally
+      await evalService.saveReport(results, reportFileName)
     }
 
     // Summary
@@ -61,7 +69,7 @@ export default class EvalSpider extends BaseCommand {
     this.logger.info('--------------------------')
 
     // Save persistent report
-    const reportPath = await evalService.saveReport(results)
+    const reportPath = await evalService.saveReport(results, reportFileName)
     this.logger.success(`Report saved to: ${reportPath}`)
   }
 }

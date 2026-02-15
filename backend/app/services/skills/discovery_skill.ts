@@ -6,6 +6,7 @@ import { SearchEntitiesTool } from '#services/tools/search_entities_tool'
 import { RunQuerySampleTool } from '#services/tools/run_query_sample_tool'
 import { GetDatabaseCompassTool } from '#services/tools/get_database_compass_tool'
 import { SaveBlueprintTool } from '#services/tools/save_blueprint_tool'
+import { SearchRelatedKnowledgeTool } from '#services/tools/search_related_knowledge_tool'
 import { DISCOVERY_PROTOCOL } from '#prompts/index'
 
 export class DiscoverySkill extends BaseSkill {
@@ -23,13 +24,13 @@ export class DiscoverySkill extends BaseSkill {
   getTools(_context: SkillContext) {
     if (this.options.lite) {
       return [
+        new GetEntitySchemaTool(),
         new SampleEntityDataTool(),
         new RunQuerySampleTool(),
       ]
     }
-    // P1-2: Streamlined tool set (12 -> 6)
-    // Removed: search_field_values, search_related_knowledge, get_entity_statistics,
-    //          find_join_path, cross_entity_search (all redundant with compass/schema)
+    // P1-2: Streamlined tool set (12 -> 7)
+    // Added back: search_related_knowledge for Few-shot RAG
     return [
       new ListEntitiesTool(),
       new GetEntitySchemaTool(),
@@ -38,6 +39,7 @@ export class DiscoverySkill extends BaseSkill {
       new GetDatabaseCompassTool(),
       new RunQuerySampleTool(),
       new SaveBlueprintTool(),
+      new SearchRelatedKnowledgeTool(),
     ]
   }
 }

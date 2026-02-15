@@ -15,7 +15,7 @@ export abstract class CommonAgentNode {
 
   async run(state: AgentState, config?: any) {
     const provider = new AiProviderService()
-    const llm = await provider.getChatModel({ streaming: true })
+    const llm = config?.llm || await provider.getChatModel({ streaming: true })
     const nodeName = config?.nodeName || this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
 
     logger.info(`[Agent: ${nodeName}] Starting execution loop...`)
@@ -29,14 +29,15 @@ export abstract class CommonAgentNode {
     const skills = this.getSkills(context)
     let tools = [...skills.flatMap(s => s.getTools(context)), ...this.getExtraTools(context)]
 
-    // Security Agent: whitelist approach - only keep validate_sql, submit_sql_solution, clarify_intent, get_current_time
+    // Security Agent: whitelist approach - only keep validate_sql, submit_sql_solution
     const isSecurityAgent = this.constructor.name === 'SecurityAgentNode' || nodeName === 'security_agent'
     if (isSecurityAgent) {
+      // STRICT MODE: No discovery tools allowed. Trust the ROT.
       const allowedTools = ['validate_sql', 'submit_sql_solution']
       const originalCount = tools.length
       tools = tools.filter(t => allowedTools.includes(t.name))
       if (tools.length < originalCount) {
-        logger.info(`[Agent: ${nodeName}] Whitelisted ${tools.length} tools (stripped ${originalCount - tools.length}).`)
+        logger.info(`[Agent: ${nodeName}] Whitelisted ${tools.length} tools: ${tools.map(t => t.name).join(', ')} (stripped ${originalCount - tools.length}).`)
       }
     }
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
@@ -104,15 +105,15 @@ export abstract class CommonAgentNode {
 
     const newMessages: any[] = []
     let loopCount = 0
-    const MAX_LOOPS = 25
-    const attemptedSqls = new Set<string>()
+    const MAX_LOOPS = 15
+    const attemptedToolCalls = new Set<string>()
     const intermediateResults: Record<string, any> = { ...(state.intermediate_results || {}) }
 
     while (loopCount < MAX_LOOPS) {
       loopCount++
       if (loopCount > 1) {
         // Simple throttle to avoid aggressive 429 when polling tools
-        await new Promise(resolve => setTimeout(resolve, 800))
+        await new Promise(resolve => setTimeout(resolve, 1000))
       }
 
       const response = await modelWithTools.invoke(messages, config)
@@ -128,7 +129,7 @@ export abstract class CommonAgentNode {
 
       if (response.tool_calls && response.tool_calls.length > 0) {
         // 1. Check for Submission / Termination Tools
-        const sqlSubmission = response.tool_calls.find(c => c.name === 'submit_sql_solution')
+        const sqlSubmission = response.tool_calls.find((c: { name: string }) => c.name === 'submit_sql_solution')
         if (sqlSubmission) {
           logger.info('[Agent] SQL Solution Submitted')
           return this.finalizeStep(state, newMessages, {
@@ -140,10 +141,14 @@ export abstract class CommonAgentNode {
 
         // P0-1: save_blueprint is a FIRST-CLASS termination signal.
         // Discovery Agent must exit immediately after saving the blueprint.
-        const blueprintCall = response.tool_calls.find(c => c.name === 'save_blueprint')
+        const blueprintCall = response.tool_calls.find((c: { name: string }) => c.name === 'save_blueprint')
         if (blueprintCall) {
           intermediateResults.blueprint = blueprintCall.args.blueprint
-          logger.info('[Agent] Blueprint saved. Discovery Agent terminating immediately.')
+          // Capture the Relational Operator Tree (ROT) if present
+          if (blueprintCall.args.queryPlanGraph) {
+            intermediateResults.queryPlanGraph = blueprintCall.args.queryPlanGraph
+          }
+          logger.info('[Agent] Blueprint & ROT saved. Discovery Agent terminating immediately.')
           return this.finalizeStep(state, newMessages, {
             intermediate_results: intermediateResults,
           }, true)
@@ -157,19 +162,17 @@ export abstract class CommonAgentNode {
             intermediateResults[key] = data
           }
 
-          // Circuit Breaker for Loop
-          if (toolCall.name === 'validate_sql') {
-            const sqlToCheck = (toolCall.args.sql || '').trim()
-            if (attemptedSqls.has(sqlToCheck)) {
-              return {
-                messages: newMessages,
-                error: `Loop detected on SQL: ${sqlToCheck}. The agent is stuck.`,
-                next: 'supervisor',
-                intermediate_results: intermediateResults,
-              }
+          // Universal Circuit Breaker: Prevent identical tool calls with same args
+          const callHash = `${toolCall.name}:${JSON.stringify(toolCall.args)}`
+          if (attemptedToolCalls.has(callHash)) {
+            return {
+              messages: newMessages,
+              error: `Loop detected on tool: ${toolCall.name}. Same arguments were used recently. The agent is stuck.`,
+              next: 'respond_directly', // Break the loop and report
+              intermediate_results: intermediateResults,
             }
-            attemptedSqls.add(sqlToCheck)
           }
+          attemptedToolCalls.add(callHash)
 
           let toolOutput = ''
           try {
@@ -223,11 +226,58 @@ export abstract class CommonAgentNode {
                 logger.info(`[Agent: ${nodeName}] Reusing cached discovery result for: ${toolCall.name} (Key: ${persistenceKey})`)
                 toolOutput = cachedResult
               } else {
-                toolOutput = await tool.invoke(toolCall.args, config)
+                try {
+                  toolOutput = await tool.invoke(toolCall.args, config)
 
-                // AUTO-PERSISTENCE: Automatically save discovery/metadata results
-                if (metaTools.includes(toolCall.name)) {
-                  intermediateResults[persistenceKey] = toolOutput
+                  // --- EXECUTION-GUIDED REPAIR (EGR) START ---
+                  if (
+                    isSecurityAgent
+                    && toolCall.name === 'validate_sql'
+                    && (toolOutput.startsWith('Validation Failed') || toolOutput.startsWith('Safety Error'))
+                  ) {
+                    const currentRepairs = state.repairAttempts || 0
+                    const MAX_REPAIRS = 3
+
+                    if (currentRepairs < MAX_REPAIRS) {
+                      logger.warn(`[EGR] SQL Validation Failed. Triggering repair attempt ${currentRepairs + 1}/${MAX_REPAIRS}. Error: ${toolOutput}`)
+
+                      const feedbackMessage = new HumanMessage({
+                        content: `[SYSTEM: SQL VALIDATION FAILED]
+Your previous SQL had an error:
+"${toolOutput}"
+
+Instructions:
+1. Review the error carefully.
+2. DO NOT retry the exact same SQL.
+3. Check the Blueprint/ROT again.
+4. Generate a corrected SQL.`,
+                      })
+
+                      const toolMessage = new ToolMessage({
+                        content: toolOutput,
+                        tool_call_id: toolCall.id!,
+                        name: toolCall.name,
+                        additional_kwargs: { node: nodeName },
+                      })
+
+                      return {
+                        messages: [...newMessages, toolMessage, feedbackMessage],
+                        next: 'generator_agent',
+                        repairAttempts: currentRepairs + 1,
+                        intermediate_results: intermediateResults,
+                      }
+                    } else {
+                      logger.error('[EGR] Max repair attempts reached.')
+                      toolOutput = `Validation Failed (Max Retries Exceeded): ${toolOutput}`
+                    }
+                  }
+                  // --- EXECUTION-GUIDED REPAIR (EGR) END ---
+
+                  if (metaTools.includes(toolCall.name)) {
+                    intermediateResults[persistenceKey] = toolOutput
+                  }
+                } catch (e: any) {
+                  toolOutput = `Error executing tool: ${e.message}`
                 }
               }
             } else {
@@ -236,7 +286,6 @@ export abstract class CommonAgentNode {
           } catch (e: any) {
             toolOutput = `Error executing tool: ${e.message}`
           }
-
           const toolMessage = new ToolMessage({
             content: toolOutput,
             tool_call_id: toolCall.id!,
@@ -248,7 +297,7 @@ export abstract class CommonAgentNode {
         }
 
         // Check if any clarification tool was called - if so, this step is NOT done
-        const isClarification = response.tool_calls.some(c => c.name === 'clarify_intent' || c.name === 'request_metadata')
+        const isClarification = response.tool_calls.some((c: { name: string }) => c.name === 'clarify_intent' || c.name === 'request_metadata')
         if (isClarification) {
           return this.finalizeStep(state, newMessages, {
             intermediate_results: intermediateResults,
@@ -283,6 +332,24 @@ export abstract class CommonAgentNode {
 
     // 1. High-Priority: Blueprint
     const blueprint = results.blueprint || results.Discovery_blueprint
+    const queryPlanGraph = results.queryPlanGraph || results.Discovery_queryPlanGraph
+
+    if (queryPlanGraph) {
+      output += '#### 🌳 逻辑查询计划 (RELATIONAL OPERATOR TREE)\n'
+      output += '```mermaid\n'
+      output += 'graph TD\n'
+      queryPlanGraph.nodes.forEach((n: any) => {
+        // Cleaning details for mermaid safety (escaping quotes)
+        const safeDetails = n.details.replace(/"/g, '\'').substring(0, 50)
+        output += `  ${n.id}["**${n.type}**<br/>${safeDetails}"]\n`
+      })
+      queryPlanGraph.edges.forEach((e: any) => {
+        const label = e.label ? `|${e.label}|` : ''
+        output += `  ${e.source} -->${label} ${e.target}\n`
+      })
+      output += '```\n\n'
+    }
+
     if (blueprint) {
       output += '#### 🗺️ 核心查询蓝图 (QUERY BLUEPRINT) [MUST FOLLOW]\n'
       output += '```markdown\n'
@@ -302,9 +369,27 @@ export abstract class CommonAgentNode {
       output += `#### 📋 现已掌握 Schema/数据样本的表: \n\`${Array.from(tables).join('`, `')}\`\n`
     }
 
-    const compassKey = Object.keys(results).find(k => k.startsWith('get_database_compass'))
-    if (compassKey) {
-      output += '#### 🧭 全域拓扑图谱 (Compass): 已就绪\n'
+    // 3. Related Knowledge & Few-shots
+    const knowledgeKeys = Object.keys(results).filter(k => k.startsWith('search_related_knowledge'))
+    if (knowledgeKeys.length > 0) {
+      output += '#### 📚 业务背景与历史案例 (RELATED KNOWLEDGE & FEW-SHOTS)\n'
+      knowledgeKeys.forEach((k) => {
+        try {
+          const raw = results[k]
+          const knowledge = typeof raw === 'string' ? JSON.parse(raw) : raw
+          if (Array.isArray(knowledge)) {
+            knowledge.forEach((item: any) => {
+              output += `- **${item.topic}**: ${item.logic}\n`
+              if (item.example_code) {
+                output += `  - *参考实现*: \`${item.example_code}\`\n`
+              }
+            })
+          }
+        } catch (e) {
+          // Silent fail for malformed JSON
+        }
+      })
+      output += '\n'
     }
 
     output += '\n> 注：若上述蓝图已明确连接路径与列映射，请直接进入 SQL 编写，严禁再次调用探测工具。\n'

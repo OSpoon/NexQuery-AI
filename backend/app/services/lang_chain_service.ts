@@ -291,6 +291,8 @@ export default class LangChainService {
 
     if (output.sql)
       state.finalSql = output.sql
+    if (output.error)
+      (state as any).finalError = output.error
     if (output.explanation)
       state.finalContent = output.explanation
 
@@ -311,6 +313,9 @@ export default class LangChainService {
     if (name === 'submit_sql_solution') {
       state.finalSql = data.input.sql
       state.finalContent = data.input.explanation
+      if (data.input.error) {
+        (state as any).finalError = data.input.error
+      }
     }
 
     yield JSON.stringify({

@@ -8,6 +8,7 @@ export class SubmitSqlTool extends StructuredTool {
 
   schema = z.object({
     sql: z.string().describe('The final, valid SQL query (used for execution).'),
+    error: z.string().optional().describe('Optional explanation if the query cannot be validly constructed due to missing data or other constraints.'),
     explanation: z.string().describe('The formatted response for the user. MUST include a ```sql code block containing the final query.'),
     risk_level: z
       .enum(['safe', 'modification'])

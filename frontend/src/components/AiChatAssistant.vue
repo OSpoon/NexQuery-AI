@@ -407,10 +407,12 @@ function selectOption(option: string) {
               <Button
                 variant="ghost"
                 size="icon"
-                class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground"
+                class="h-7 w-7 text-primary-foreground hover:bg-white/20 hover:text-primary-foreground relative"
+                :class="{ 'text-blue-200 animate-pulse bg-white/10': store.isLoading }"
                 :title="t('ai_chat.view_graph')"
               >
                 <Map class="h-4 w-4" />
+                <span v-if="store.isLoading" class="absolute top-1 right-1 h-1.5 w-1.5 bg-blue-400 rounded-full animate-ping" />
               </Button>
             </PopoverTrigger>
             <PopoverContent

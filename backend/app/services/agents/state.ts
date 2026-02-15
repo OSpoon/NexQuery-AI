@@ -23,6 +23,7 @@ export interface AgentState {
   // Collaborative Planning
   plan?: PlanStep[]
   intermediate_results?: Record<string, any>
+  repairAttempts?: number // Track EGR loops
 
   // Routing
   next?: string

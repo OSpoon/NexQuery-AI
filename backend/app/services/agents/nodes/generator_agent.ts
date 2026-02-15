@@ -3,6 +3,7 @@ import { CommonAgentNode } from '#services/agents/nodes/common_agent'
 import { SkillContext } from '#services/skills/skill_interface'
 
 import { CoreAssistantSkill } from '#services/skills/core_assistant_skill'
+import { DiscoverySkill } from '#services/skills/discovery_skill'
 import { ValidateSqlTool } from '#services/tools/validate_sql_tool'
 
 /**
@@ -15,6 +16,7 @@ export class GeneratorAgentNode extends CommonAgentNode {
   protected getSkills(_context: SkillContext) {
     return [
       new CoreAssistantSkill(), // 唯一角色: 精准编写者 + 提交工具
+      new DiscoverySkill({ lite: true }), // 补全能力：在校验失败时可查 Schema
     ]
   }
 

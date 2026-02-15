@@ -77,11 +77,12 @@ export default class EvaluationService {
 
       const result = await graph.invoke(inputs, { callbacks: [traceHandler] })
       generatedSql = (result.sql || '').trim()
+      errorMsg = result.error || ''
 
       if (generatedSql) {
         isCorrect = await this.compareResults(sample.query, generatedSql)
-      } else {
-        errorMsg = `Agent failed to generate SQL${result.error ? `: ${result.error}` : ''}`
+      } else if (!errorMsg) {
+        errorMsg = 'Agent failed to generate SQL'
       }
     } catch (error: any) {
       errorMsg = generatedSql ? `Execution error: ${error.message}` : error.message
@@ -125,11 +126,16 @@ export default class EvaluationService {
     }
   }
 
-  async saveReport(results: EvalResult[]): Promise<string> {
+  async saveReport(results: EvalResult[], customFileName?: string): Promise<string> {
     const reportsPath = path.join(this.spiderPath, 'reports')
     const now = DateTime.local()
-    const timestamp = now.toFormat('yyyy-MM-dd\'T\'HH-mm-ss-SSS')
-    const fileName = `spider_eval_${timestamp}.json`
+
+    let fileName = customFileName
+    if (!fileName) {
+      const timestamp = now.toFormat('yyyy-MM-dd\'T\'HH-mm-ss-SSS')
+      fileName = `spider_eval_${timestamp}.json`
+    }
+
     const filePath = path.join(reportsPath, fileName)
 
     const summary = {

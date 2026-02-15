@@ -10,6 +10,7 @@ import sqlite3 from 'sqlite3'
 export default class DbHelper {
   private static registeredAt = new Map<string, number>()
   private static evaluationSqlitePath: string | null = null
+  private static lastRegisteredEvalPath: string | null = null
 
   /**
    * [EVALUATION ONLY] Set the SQLite path for evaluation
@@ -27,12 +28,19 @@ export default class DbHelper {
   ): Promise<{ connectionName: string, dbType: string }> {
     if (dataSourceId === 9999 && this.evaluationSqlitePath) {
       const connName = 'eval_sqlite'
+
+      // If path changed, we MUST refresh the connection
+      if (db.manager.has(connName) && this.lastRegisteredEvalPath !== this.evaluationSqlitePath) {
+        await db.manager.close(connName)
+      }
+
       if (!db.manager.has(connName)) {
         db.manager.add(connName, {
           client: 'sqlite3',
           connection: { filename: this.evaluationSqlitePath },
           useNullAsDefault: true,
         })
+        this.lastRegisteredEvalPath = this.evaluationSqlitePath
       }
       return { connectionName: connName, dbType: 'sqlite' }
     }
