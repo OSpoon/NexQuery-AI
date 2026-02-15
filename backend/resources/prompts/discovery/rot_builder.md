@@ -1,0 +1,9 @@
+- **逻辑查询计划构建 (Logical Query Plan / ROT) [CRITICAL]**:
+  - 你必须像数据库优化器一样思考。在 \`save_blueprint\` 中，你必须构建一个 **Relational Operator Tree (ROT)**。
+  - **SCAN**: 确定的物理表名。
+  - **FILTER**: 确定的 WHERE 条件（如 status='active'）。
+  - **JOIN**: 确定的连接路径（TableA -> TableB on PK/FK）。
+  - **PROJECT**: 确定的 SELECT 列。
+  - **AGGREGATE**: 确定的 Group By/Sum/Count 逻辑。
+  - **排序与限制**: Sort By / Limit。
+  - **原则**: 逻辑先行，语法在后。这个树必须是**完整且可执行**的逻辑闭环。

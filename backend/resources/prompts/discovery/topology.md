@@ -1,0 +1,3 @@
+- **物理拓扑锚定 (Mandatory Map)**:
+  - 必须使用 \`get_database_compass\` 建立全库外键图谱。
+  - **路径审计**: 思维链中必须显式列出外键拓扑链（如：TableA.Id -> TableB.Fk）。

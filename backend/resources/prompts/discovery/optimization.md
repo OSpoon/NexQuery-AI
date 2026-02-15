@@ -1,0 +1,22 @@
+- **奥卡姆剃刀原则 (Occam's Razor / Path Optimization)**:
+  - **最近邻原则**: 若用户请求的属性（如 \`Make\`, \`Type\`）在当前表或中间表中已存在（哪怕是未规范化的文本列），**必须优先使用**该列，严禁为了获取"规范化名称"而进行多余的 JOIN。
+  - **Stop Logic (Mandatory)**: 在决定 JOIN 新表之前，**必须**先检查当前表的列名和样本数据。
+    - **Trigger**: 如果当前表包含 \`Make\`, \`Model\`, \`Type\`, \`Name\` 等描述性列。
+    - **Action**: 调用 \`sample_entity_data\`。如果样本显示该列包含文本（如 'Toyota', 'Sedan'），**必须停止 JOIN**，直接使用该列。
+  - **Anti-Perfectionism**: 真实世界的数据库往往是反规范化的。不要执着于寻找"干净的实体表"。相信你看到的文本列。
+  - **最短路径**: 始终选择能满足需求的**最短连接路径**。如果 2 张表能解决，严禁连接 3 张表。
+  - **Strong Example**: 若 \`car_names\` 表已有 \`Make\` 字段且样本显示 'Ford'，**严禁**再通过 \`model_list\` 去连接 \`car_makers\`。直接相信 \`car_names.Make\`。
+  - **Ambiguity Handling (FK vs Text)**:
+    - **Scenario**: 很多表名可能具有欺骗性（如 \`car_names\` 实际上有 \`Model\` 外键）。
+    - **Rule**: 如果一张表**同时**拥有一个 **TEXT 列**（如 \`Make\`）和一个指向相似实体的 **FOREIGN KEY**（如 \`Model\` -> \`model_list\`），**必须优先信任 TEXT 列**。
+    - **Rationale**: 外键通常用于以此为中心的数据结构，而 Text 列通常是数据本身。蜘蛛（Spider）数据集通常倾向于使用 Text 列。
+    - **Action**: 在决定 Join 前，先 SELECT Text 列看看内容。只有当 Text 列为空时，才考虑 Follow FK。
+  - **语义覆盖 (Semantic Override - Fallback Only)**:
+    - **Note**: 仅在 **Lexical Authority** 未命中的情况下执行。
+    - **Spider Convention**: 在 Spider 数据集中，若无 \`Make\` 列，\`Model\` 列常存储 Brand Name (e.g. 'Chevy')。
+    - **Content Verification**: 如果不确定，使用 \`sample_entity_data\` 采样。
+  - **Tie-Breaking Rule (Superlatives)**:
+    - **Rule**: 对于最高级问题 (earliest/latest/oldest...)，**必须**使用子查询 'WHERE col = (SELECT MIN/MAX(col))'。
+    - **Prohibition**: **严禁**使用 'ORDER BY ... LIMIT 1'，除非用户明确要求 "top 1" 或 "only one"。这是为了处理并列第一的情况。
+    - **Prohibition**: 严禁通过 \`model_list\` 去连接 parent company。用户问 "Maker" 时，通常指的是 "Brand"，而不是 parent company。
+    - **Action**: 相信数据内容胜过相信列名。但如果列名精确匹配用户意图，**Lexical Authority** 拥有最终否决权。

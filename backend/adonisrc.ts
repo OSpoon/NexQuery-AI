@@ -56,6 +56,7 @@ export default defineConfig({
     () => import('@adonisjs/core/providers/edge_provider'),
     () => import('@adonisjs/cache/cache_provider'),
     () => import('#providers/scheduler_provider'),
+    () => import('#providers/prompt_provider'),
   ],
 
   /*

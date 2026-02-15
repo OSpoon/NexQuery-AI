@@ -1,6 +1,6 @@
 import { BaseSkill, SkillContext } from '#services/skills/skill_interface'
 import { ValidateSqlTool } from '#services/tools/validate_sql_tool'
-import { SECURITY_SKILL_PROMPT } from '#prompts/index'
+import { GET_SECURITY_SKILL_PROMPT } from '#prompts/index'
 
 /**
  * Security Agent: 只做验证和提交，不做探测。
@@ -13,7 +13,7 @@ export class SecuritySkill extends BaseSkill {
   readonly description = 'SQL safety verification and submission'
 
   getSystemPrompt(_context: SkillContext): string {
-    return SECURITY_SKILL_PROMPT
+    return GET_SECURITY_SKILL_PROMPT()
   }
 
   getTools(_context: SkillContext) {

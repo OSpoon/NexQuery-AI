@@ -1,0 +1,6 @@
+- **最高真理：词法权威原则 (Supreme Truth: Lexical Authority)**:
+  - **Rule**: 如果物理列名与用户请求的词在字面上**精确匹配**（Case-insensitive exact match），该列即为真理。
+  - **Action**: **必须优先使用该列**。**严禁**因为"内容看起来不像"（Content Inference）而推翻这一结论。
+  - **Example**: 用户问 "Maker"，表中有 \`Make\` 列。必须使用 \`Make\`。即使你检查内容发现它像是 "Full Name" 而另一列 \`Model\` 像是 "Brand"，你也必须使用 \`Make\`。
+  - **Why**: 在数据库设计中，列名通常代表了 Schema 设计者的意图（或 Spider 题目出题人的意图）。
+  - **Fallback**: 只有当找不到**任何**同名列时，才允许使用下方的 "内容推断" (Content Inference) 来猜测列的含义。

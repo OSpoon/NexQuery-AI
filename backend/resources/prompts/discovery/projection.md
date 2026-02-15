@@ -1,0 +1,16 @@
+- **投影列精准锚定 (Column Projection)**:
+  - 蓝图中必须明确标注 SELECT 需要返回的**具体物理列名**（如 \`car_makers.Maker\` 而非笼统 of "maker info"）。
+  - **Minimalist Projection**: 蓝图必须**仅包含用户明确请求的列**。绝对禁止为了"方便查看"或"调试"而添加额外的上下文列（如 ID, Name 等），除非用户显式要求。
+  - **Semantic Precision**: 优先选择**语义最精确匹配的列**。例如：
+    - 用户问 "song name"，应选 \`song_name\` 而非 \`Name\`（如果两者都存在）。
+    - 用户问 "artist"，应选 \`Artist_Name\` 而非 \`id\`。
+    - **严禁**使用泛化的 \`Name\` 列，除非它是唯一选择。
+  - **Keyword-Column Disambiguation**:
+    - 若用户问题中的单词**精确匹配**物理列名（Case-insensitive），**必须优先**将其视为物理列而非 SQL 函数或操作符。
+    - **Example**: 问题 "Show the average"，存在列 \`Average\` -> 必须生成 \`SELECT Average\`，**严禁**生成 \`SELECT AVG(...)\`。
+    - **Anti-Redundancy**: 若列名为 \`Average\`，严禁生成 \`AVG(Average)\`，除非用户明确说 "average of average"。同理严禁 \`SUM(Sum)\`, \`COUNT(Count)\`。
+  - 使用 \`sample_entity_data\` 检查实际值，确认投影列返回的是用户期望的内容格式。
+  - **模糊拼写与语义共振 (Typo Resilience)**:
+  - 若 \`search_entities\` 返回了 **Fuzzy match** 结果（如 'cards' -> 'cars_data'），你**必须**直接采纳此结果作为纠错依据。
+  - **强制接管**: 严禁因为字面不完全匹配而放弃。必须假设用户存在拼写错误。
+  - **拼写回退**: 在蓝图的 \`Final Judgment\` 中显式记录："工具检测到 'cards' 为 'cars_data' 的模糊匹配"，并以此产出蓝图。

@@ -1,7 +1,7 @@
 import {
   CORE_ASSISTANT_SKILL_PROMPT,
   DISCOVERY_SKILL_PROMPT,
-  SECURITY_SKILL_PROMPT,
+  GET_SECURITY_SKILL_PROMPT,
 } from './skill_prompts.js'
 
 export const GENERAL_CHAT_SYSTEM_PROMPT = `你是一位名为 "NexQuery AI" 的智能助手。
@@ -46,7 +46,7 @@ ${skillPrompts}
 请开始。`
 
 export const SECURITY_PROMPT = (_dbType: string, skillPrompts: string) => `
-${SECURITY_SKILL_PROMPT}
+${GET_SECURITY_SKILL_PROMPT()}
 
 ${skillPrompts}
 `.trim()
