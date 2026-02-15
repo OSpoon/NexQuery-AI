@@ -100,10 +100,10 @@ export class ValidateSqlTool extends StructuredTool {
             // Force Rollback to prevent any execution side-effects
             throw new Error('__ROLLBACK__')
           })
-          return 'Valid DML (Syntax Verified)'
+          return 'Valid DML (Syntax Verified). Action: You MUST now call \'submit_sql_solution\' to finish.'
         } catch (e: any) {
           if (e.message === '__ROLLBACK__') {
-            return 'Valid DML (Syntax Verified)'
+            return 'Valid DML (Syntax Verified). Action: You MUST now call \'submit_sql_solution\' to finish.'
           }
           return `DML Validation Error: ${e.message}`
         }
@@ -145,7 +145,7 @@ export class ValidateSqlTool extends StructuredTool {
           return 'Warning: You used a JOIN without ON/USING condition. This might cause a generic Cartesian product error or logic issue. Please verify or add condition.'
         }
 
-        return `Valid SQL${performanceWarning}`
+        return `Valid SQL${performanceWarning}. Action: You MUST now call 'submit_sql_solution' to finish.`
       } catch (e: any) {
         const errorMessage = e.message.toLowerCase()
 

@@ -13,6 +13,10 @@ export const DISCOVERY_PROTOCOL = () => {
     - 用户问 "song name"，应选 \`song_name\` 而非 \`Name\`（如果两者都存在）。
     - 用户问 "artist"，应选 \`Artist_Name\` 而非 \`id\`。
     - **严禁**使用泛化的 \`Name\` 列，除非它是唯一选择。
+  - **Keyword-Column Disambiguation**: 
+    - 若用户问题中的单词**精确匹配**物理列名（Case-insensitive），**必须优先**将其视为物理列而非 SQL 函数或操作符。
+    - **Example**: 问题 "Show the average"，存在列 \`Average\` -> 必须生成 \`SELECT Average\`，**严禁**生成 \`SELECT AVG(...)\`。
+    - **Anti-Redundancy**: 若列名为 \`Average\`，严禁生成 \`AVG(Average)\`，除非用户明确说 "average of average"。同理严禁 \`SUM(Sum)\`, \`COUNT(Count)\`。
   - 使用 \`sample_entity_data\` 检查实际值，确认投影列返回的是用户期望的内容格式。
 - **模糊拼写与语义共振 (Typo Resilience)**:
   - 若 \`search_entities\` 返回了 **Fuzzy match** 结果（如 'cards' -> 'cars_data'），你**必须**直接采纳此结果作为纠错依据。
@@ -59,6 +63,10 @@ export const SECURITY_SKILL_PROMPT = `### [ROLE] 治理审计者 (Governance Aud
 2. **验证语法**: 调用 \`validate_sql\` 工具验证该 SQL。
 3. **提交结果**: 调用 \`submit_sql_solution\` 提交。
 
+**决策逻辑**:
+- 如果 \`validate_sql\` 返回 "Valid SQL" 或包含 "Performance Note"，**立即**调用 \`submit_sql_solution\`。
+- **禁止重复验证**: 如果你已经验证过一次且结果为 Valid，**绝对禁止**再次验证。直接提交。
+
 **绝对禁令**：
 - **严禁探测**: 你不是探索者，禁止询问表结构或调用探测工具。蓝图已提供所有背景。
 - **严禁自行编写**: 仅审计 Generator 的产出。
@@ -85,6 +93,7 @@ export const CORE_ASSISTANT_SKILL_PROMPT = (_dbType: string, _dataSourceId?: num
 - **极简输出规范 (Minimalist Selection) [CRITICAL]**:
   - 为了兼容严格评测，**SELECT 语句必须仅包含问题明确请求的列**。
   - **禁止多余列**: 除非用户明确要求显示计数、平均值等，否则严禁在 SELECT 中包含 \`COUNT(*)\`、\`SUM\` 等聚合列。
+  - **Keyword Priority**: 在使用 \`AVG\`, \`SUM\`, \`COUNT\` 等函数前，必须检查表中是否存在**同名物理列**（如 \`Average\`, \`Total\`, \`Count\`）。若存在，必须优先查询该列，**绝对禁止**使用函数（例如：必须用 \`SELECT Average\`，严禁 \`SELECT AVG(Average)\`）。
   - **禁止上下文列**: 绝对禁止添加用户未请求的列（如 ID, Code, Name 等）作为"额外信息"。
   - **禁止冗余别名**: 除非语法必须，禁止为列添加冗余的 \`AS alias\` 别名。
   - **示例**: 若问题是 "Show the names of singers..."，SQL 应为 \`SELECT Name FROM singer\`，而不是 \`SELECT Name, COUNT(*) FROM singer ...\` 或 \`SELECT Name, Age FROM singer\`。

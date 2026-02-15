@@ -418,7 +418,11 @@
       "ai_skill_core": "Core Assistant Skill",
       "ai_skill_core_desc": "Maintains contextual memory, handles intent clarification, and submits final solutions.",
       "ai_skill_lucene": "Lucene Skill",
-      "ai_skill_lucene_desc": "Enable Elasticsearch search, index exploration and Lucene query generation (LuceneSkill)."
+      "ai_skill_lucene_desc": "Enable Elasticsearch search, index exploration and Lucene query generation (LuceneSkill).",
+      "ai_embedding_base_url": "Embedding Base URL",
+      "ai_embedding_base_url_desc": "Base URL for the separate embedding provider (e.g., Zhipu AI).",
+      "ai_embedding_api_key": "Embedding API Key",
+      "ai_embedding_api_key_desc": "API Key for the separate embedding provider. If empty, uses the main API Key."
     }
   },
   "api_keys": {

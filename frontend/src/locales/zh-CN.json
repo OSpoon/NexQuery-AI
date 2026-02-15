@@ -420,7 +420,11 @@
       "ai_skill_core": "核心对话技能",
       "ai_skill_core_desc": "维护多轮对话记忆、澄清意图和提交最终 SQL (CoreSkill)。",
       "ai_skill_lucene": "Lucene 搜索技能",
-      "ai_skill_lucene_desc": "支持 Elasticsearch 索引浏览、字段探测及 Lucene 语句生成 (LuceneSkill)。"
+      "ai_skill_lucene_desc": "支持 Elasticsearch 索引浏览、字段探测及 Lucene 语句生成 (LuceneSkill)。",
+      "ai_embedding_base_url": "Embedding 基础 URL",
+      "ai_embedding_base_url_desc": "独立的嵌入模型服务的基础 URL（例如：智谱 AI）。",
+      "ai_embedding_api_key": "Embedding API Key",
+      "ai_embedding_api_key_desc": "独立嵌入模型服务的 API Key。若留空，则复用主 API Key。"
     }
   },
   "api_keys": {

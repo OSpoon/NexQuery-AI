@@ -1,5 +1,4 @@
 import AiUsageService from '#services/ai_usage_service'
-import logger from '@adonisjs/core/services/logger'
 import AiProviderService from '#services/ai_provider_service'
 
 export default class EmbeddingService {
@@ -33,8 +32,8 @@ export default class EmbeddingService {
 
       return embedding
     } catch (error) {
-      logger.error({ error }, 'EmbeddingService Error')
-      throw error
+      // logger.warn({ error: error.message }, 'EmbeddingService Failed (Soft Fail)')
+      return []
     }
   }
 }

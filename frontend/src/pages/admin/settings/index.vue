@@ -60,6 +60,17 @@ const settings = ref([
     group: 'ai',
   },
   {
+    key: 'ai_embedding_base_url',
+    value: 'https://open.bigmodel.cn/api/paas/v4/',
+    group: 'ai',
+  },
+  {
+    key: 'ai_embedding_api_key',
+    value: '',
+    group: 'ai',
+    type: 'password',
+  },
+  {
     key: 'ai_embedding_model',
     value: 'text-embedding-3-small',
     group: 'ai',

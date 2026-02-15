@@ -145,7 +145,10 @@ export default class DiscoveryService {
       // If embedding fails, we proceed with only fuzzy search
     }
 
-    const vectorResults = await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+    // If embedding is empty (API failure or not configured), skip vector search
+    const vectorResults = queryEmbedding.length > 0
+      ? await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+      : []
 
     // Fuzzy Matching Logic (Lexical Fallback)
     const allEntities = await this.listEntities(dataSourceId)
@@ -273,6 +276,10 @@ export default class DiscoveryService {
     const embeddingService = new EmbeddingService()
     const vectorStore = new VectorStoreService()
     const queryEmbedding = await embeddingService.generate(query)
+
+    if (queryEmbedding.length === 0) {
+      return 'No related business knowledge or examples found (Vector Search Unavailable).'
+    }
 
     const results = await vectorStore.searchKnowledge(queryEmbedding, limit)
 

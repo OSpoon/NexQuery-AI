@@ -10,6 +10,8 @@ export interface AiConfig {
   chatModel: string
   embeddingModel: string
   timeoutMs: number
+  embeddingBaseUrl: string
+  embeddingApiKey: string
 }
 
 export default class AiProviderService {
@@ -19,12 +21,14 @@ export default class AiProviderService {
    * Fetch all AI related settings from database
    */
   public async getConfig(): Promise<AiConfig> {
-    const [baseUrlSetting, apiKeySetting, chatModelSetting, embeddingModelSetting, timeoutSetting] = await Promise.all([
+    const [baseUrlSetting, apiKeySetting, chatModelSetting, embeddingModelSetting, timeoutSetting, embeddingBaseUrlSetting, embeddingApiKeySetting] = await Promise.all([
       Setting.findBy('key', 'ai_base_url'),
       Setting.findBy('key', 'ai_api_key'),
       Setting.findBy('key', 'ai_chat_model'),
       Setting.findBy('key', 'ai_embedding_model'),
       Setting.findBy('key', 'ai_timeout_sec'),
+      Setting.findBy('key', 'ai_embedding_base_url'),
+      Setting.findBy('key', 'ai_embedding_api_key'),
     ])
 
     const baseUrl = baseUrlSetting?.value || AiProviderService.DEFAULT_API_BASE_URL
@@ -32,6 +36,10 @@ export default class AiProviderService {
     const chatModel = chatModelSetting?.value || 'glm-4.5-flash'
     const embeddingModel = embeddingModelSetting?.value || 'embedding-3'
     const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
+
+    // Hybrid Config
+    const embeddingBaseUrl = embeddingBaseUrlSetting?.value || 'https://open.bigmodel.cn/api/paas/v4/'
+    const embeddingApiKey = embeddingApiKeySetting?.value || apiKey // Fallback to main API Key
 
     if (!apiKey) {
       throw new Error('AI API Key not configured (ai_api_key)')
@@ -43,6 +51,8 @@ export default class AiProviderService {
       chatModel,
       embeddingModel,
       timeoutMs,
+      embeddingBaseUrl,
+      embeddingApiKey,
     }
   }
 
@@ -97,16 +107,21 @@ export default class AiProviderService {
   public async generateEmbedding(text: string): Promise<number[]> {
     const config = await this.getConfig()
 
-    let baseUrl = config.baseUrl
+    // Use specific Embedding Base URL
+    let baseUrl = config.embeddingBaseUrl
     if (!baseUrl.endsWith('/')) {
       baseUrl += '/'
     }
 
     const endpoint = `${baseUrl}embeddings`
+
+    // Use specific Embedding API Key
+    const apiKey = config.embeddingApiKey || config.apiKey
+
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${config.apiKey}`,
+        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
