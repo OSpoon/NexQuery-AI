@@ -86,6 +86,7 @@ const navData = computed(() => {
       'AI Intelligence': 'sidebar.ai_intelligence',
       'AI Feedback': 'sidebar.ai_feedback',
       'FinOps Monitoring': 'sidebar.admin.finops',
+      'Global Prompts': 'sidebar.admin.prompts',
       'Spider Evaluation': 'sidebar.spider_evaluation',
     }
     const key = keyMap[title]

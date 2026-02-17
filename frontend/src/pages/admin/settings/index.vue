@@ -1,18 +1,22 @@
 <script setup lang="ts">
 import { CryptoService } from '@nexquery/shared'
-import { Cpu, Database, Globe, Plug, Save, Shield } from 'lucide-vue-next'
+import { Cpu, Database, Globe, Plug, Save, Settings2, Shield } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import PromptStudio from '@/components/admin/PromptStudio.vue'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import api from '@/lib/api'
+import { useAuthStore } from '@/stores/auth'
 import { useSettingsStore } from '@/stores/settings'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 
 const encryptionKey = import.meta.env.VITE_API_ENCRYPTION_KEY
 const cryptoService = encryptionKey ? new CryptoService(encryptionKey) : null
@@ -222,8 +226,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="container p-6 mx-auto max-w-4xl space-y-6">
-    <div class="flex justify-between items-center mb-8">
+  <div class="container p-6 mx-auto max-w-7xl space-y-6">
+    <div class="flex justify-between items-center mb-4">
       <div>
         <h2 class="text-3xl font-bold tracking-tight">
           {{ t('settings.title') }}
@@ -241,197 +245,228 @@ onMounted(() => {
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
     </div>
 
-    <div v-else class="space-y-6">
-      <!-- 1. Platform Settings -->
-      <Card class="shadow-sm">
-        <CardHeader>
-          <div class="flex items-center space-x-3 text-primary">
-            <Globe class="h-5 w-5" />
-            <div>
-              <CardTitle class="text-lg">
-                {{ t('settings.platform') }}
-              </CardTitle>
-              <CardDescription>{{ t('settings.platform_desc') }}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4 pt-0">
-          <div
-            v-for="s in settings.filter((s) => s.group === 'platform')"
-            :key="s.key"
-            class="grid gap-2"
-          >
-            <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-            <Input :id="s.key" v-model="s.value" class="bg-background" />
-            <p class="text-xs text-muted-foreground">
-              {{ t(`settings.keys.${s.key}_desc`) }}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <div v-else>
+      <Tabs default-value="general" class="space-y-4">
+        <TabsList>
+          <TabsTrigger value="general" class="flex items-center gap-2">
+            <Settings2 class="h-4 w-4" />
+            {{ t('settings.tabs.general') }}
+          </TabsTrigger>
+          <TabsTrigger value="security" class="flex items-center gap-2">
+            <Shield class="h-4 w-4" />
+            {{ t('settings.tabs.security') }}
+          </TabsTrigger>
+          <TabsTrigger value="ai" class="flex items-center gap-2">
+            <Cpu class="h-4 w-4" />
+            {{ t('settings.tabs.ai') }}
+          </TabsTrigger>
+        </TabsList>
 
-      <!-- 2. Security & Privacy -->
-      <Card class="shadow-sm">
-        <CardHeader>
-          <div class="flex items-center space-x-3 text-primary">
-            <Shield class="h-5 w-5" />
-            <div>
-              <CardTitle class="text-lg">
-                {{ t('settings.security') }}
-              </CardTitle>
-              <CardDescription>{{ t('settings.security_desc') }}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="grid gap-6 pt-0">
-          <div
-            v-for="s in settings.filter((s) => s.group === 'security')"
-            :key="s.key"
-            class="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-transparent hover:border-border transition-colors"
-          >
-            <div class="space-y-0.5">
-              <Label :for="s.key" class="text-base cursor-pointer">
-                {{ t(`settings.keys.${s.key}`) }}
-              </Label>
-              <p class="text-xs text-muted-foreground max-w-[400px]">
-                {{ t(`settings.keys.${s.key}_desc`) }}
-              </p>
-            </div>
-            <Switch
-              :id="s.key"
-              :model-value="s.value === 'true'"
-              @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 3. Engine Settings -->
-      <Card class="shadow-sm">
-        <CardHeader>
-          <div class="flex items-center space-x-3 text-primary">
-            <Database class="h-5 w-5" />
-            <div>
-              <CardTitle class="text-lg">
-                {{ t('settings.engine') }}
-              </CardTitle>
-              <CardDescription>{{ t('settings.engine_desc') }}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="grid gap-6 pt-0">
-          <div
-            v-for="s in settings.filter((s) => s.group === 'engine')"
-            :key="s.key"
-            class="grid gap-2"
-          >
-            <div class="flex justify-between items-center">
-              <Label :for="s.key" class="text-base">{{ t(`settings.keys.${s.key}`) }}</Label>
-              <div class="flex items-center space-x-2 w-32">
-                <Input :id="s.key" v-model="s.value" type="number" class="text-right" />
-                <span class="text-xs text-muted-foreground">ms</span>
+        <TabsContent value="general" class="space-y-6">
+          <!-- 1. Platform Settings -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center space-x-3 text-primary">
+                <Globe class="h-5 w-5" />
+                <div>
+                  <CardTitle class="text-lg">
+                    {{ t('settings.platform') }}
+                  </CardTitle>
+                  <CardDescription>{{ t('settings.platform_desc') }}</CardDescription>
+                </div>
               </div>
-            </div>
-            <p class="text-xs text-muted-foreground">
-              {{ t(`settings.keys.${s.key}_desc`) }}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- 4. AI Intelligence -->
-      <Card class="shadow-sm">
-        <CardHeader>
-          <div class="flex items-center justify-between text-primary">
-            <div class="flex items-center space-x-3">
-              <Cpu class="h-5 w-5" />
-              <div>
-                <CardTitle class="text-lg">
-                  {{ t('settings.ai') }}
-                </CardTitle>
-                <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              class="ml-auto"
-              :disabled="isTestingConnection"
-              @click="testConnection"
-            >
-              <Plug
-                class="mr-2 h-3.5 w-3.5"
-                :class="{ 'animate-pulse': isTestingConnection }"
-              />
-              {{ t('settings.test_connection') }}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent class="grid gap-6 pt-0">
-          <div
-            v-for="s in settings.filter((s) => s.group === 'ai')"
-            :key="s.key"
-            class="grid gap-2"
-          >
-            <div class="flex items-center justify-between">
-              <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-              <span
-                v-if="(s.key === 'ai_api_key') && !s.value"
-                class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
+            </CardHeader>
+            <CardContent class="space-y-4 pt-0">
+              <div
+                v-for="s in settings.filter((s) => s.group === 'platform')"
+                :key="s.key"
+                class="grid gap-2"
               >
-                MISSING
-              </span>
-            </div>
-            <Input
-              :id="s.key"
-              v-model="s.value"
-              :type="s.type || 'text'"
-              class="bg-background"
-              :class="{
-                'border-destructive/50 focus-visible:ring-destructive':
-                  (s.key === 'ai_api_key') && !s.value,
-              }"
-            />
-            <p class="text-xs text-muted-foreground">
-              {{ t(`settings.keys.${s.key}_desc`) }}
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+                <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
+                <Input :id="s.key" v-model="s.value" class="bg-background" />
+                <p class="text-xs text-muted-foreground">
+                  {{ t(`settings.keys.${s.key}_desc`) }}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
 
-      <!-- Security Tools (Helper) -->
-      <Card class="shadow-sm">
-        <CardHeader>
-          <div class="flex items-center space-x-3 text-muted-foreground">
-            <Shield class="h-5 w-5" />
-            <div>
-              <CardTitle class="text-base">
-                {{ t('security_tools.title') }}
-              </CardTitle>
-              <CardDescription>{{ t('security_tools.desc') }}</CardDescription>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent class="space-y-4 pt-0">
-          <div class="grid gap-2">
-            <Label class="text-xs">{{ t('security_tools.helper_title') }}</Label>
-            <textarea
-              v-model="testPayload"
-              class="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
-              :placeholder="t('security_tools.helper_placeholder')"
-            />
-          </div>
+          <!-- 3. Engine Settings -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center space-x-3 text-primary">
+                <Database class="h-5 w-5" />
+                <div>
+                  <CardTitle class="text-lg">
+                    {{ t('settings.engine') }}
+                  </CardTitle>
+                  <CardDescription>{{ t('settings.engine_desc') }}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="grid gap-6 pt-0">
+              <div
+                v-for="s in settings.filter((s) => s.group === 'engine')"
+                :key="s.key"
+                class="grid gap-2"
+              >
+                <div class="flex justify-between items-center">
+                  <Label :for="s.key" class="text-base">{{ t(`settings.keys.${s.key}`) }}</Label>
+                  <div class="flex items-center space-x-2 w-32">
+                    <Input :id="s.key" v-model="s.value" type="number" class="text-right" />
+                    <span class="text-xs text-muted-foreground">ms</span>
+                  </div>
+                </div>
+                <p class="text-xs text-muted-foreground">
+                  {{ t(`settings.keys.${s.key}_desc`) }}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-          <div v-if="testPayload" class="grid gap-2">
-            <Label class="text-xs">{{ t('security_tools.decrypted_result') }}</Label>
-            <div
-              class="bg-background p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
-            >
-              {{ decryptedResult }}
-            </div>
+        <TabsContent value="security" class="space-y-6">
+          <!-- 2. Security & Privacy -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center space-x-3 text-primary">
+                <Shield class="h-5 w-5" />
+                <div>
+                  <CardTitle class="text-lg">
+                    {{ t('settings.security') }}
+                  </CardTitle>
+                  <CardDescription>{{ t('settings.security_desc') }}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="grid gap-6 pt-0">
+              <div
+                v-for="s in settings.filter((s) => s.group === 'security')"
+                :key="s.key"
+                class="flex items-center justify-between p-4 rounded-lg bg-muted/30 border border-transparent hover:border-border transition-colors"
+              >
+                <div class="space-y-0.5">
+                  <Label :for="s.key" class="text-base cursor-pointer">
+                    {{ t(`settings.keys.${s.key}`) }}
+                  </Label>
+                  <p class="text-xs text-muted-foreground max-w-[400px]">
+                    {{ t(`settings.keys.${s.key}_desc`) }}
+                  </p>
+                </div>
+                <Switch
+                  :id="s.key"
+                  :model-value="s.value === 'true'"
+                  @update:model-value="(val) => (s.value = val ? 'true' : 'false')"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Security Tools (Helper) -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center space-x-3 text-muted-foreground">
+                <Shield class="h-5 w-5" />
+                <div>
+                  <CardTitle class="text-base">
+                    {{ t('security_tools.title') }}
+                  </CardTitle>
+                  <CardDescription>{{ t('security_tools.desc') }}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="space-y-4 pt-0">
+              <div class="grid gap-2">
+                <Label class="text-xs">{{ t('security_tools.helper_title') }}</Label>
+                <textarea
+                  v-model="testPayload"
+                  class="flex min-h-[100px] w-full rounded-md border border-input bg-background px-3 py-2 text-xs shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring font-mono"
+                  :placeholder="t('security_tools.helper_placeholder')"
+                />
+              </div>
+
+              <div v-if="testPayload" class="grid gap-2">
+                <Label class="text-xs">{{ t('security_tools.decrypted_result') }}</Label>
+                <div
+                  class="bg-background p-3 rounded-md font-mono text-xs whitespace-pre-wrap break-all min-h-[50px] border"
+                >
+                  {{ decryptedResult }}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="ai" class="space-y-6">
+          <!-- 4. AI Intelligence -->
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center justify-between text-primary">
+                <div class="flex items-center space-x-3">
+                  <Cpu class="h-5 w-5" />
+                  <div>
+                    <CardTitle class="text-lg">
+                      {{ t('settings.ai') }}
+                    </CardTitle>
+                    <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  class="ml-auto"
+                  :disabled="isTestingConnection"
+                  @click="testConnection"
+                >
+                  <Plug
+                    class="mr-2 h-3.5 w-3.5"
+                    :class="{ 'animate-pulse': isTestingConnection }"
+                  />
+                  {{ t('settings.test_connection') }}
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent class="grid gap-6 pt-0">
+              <div
+                v-for="s in settings.filter((s) => s.group === 'ai')"
+                :key="s.key"
+                class="grid gap-2"
+              >
+                <div class="flex items-center justify-between">
+                  <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
+                  <span
+                    v-if="(s.key === 'ai_api_key') && !s.value"
+                    class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
+                  >
+                    MISSING
+                  </span>
+                </div>
+                <Input
+                  :id="s.key"
+                  v-model="s.value"
+                  :type="s.type || 'text'"
+                  class="bg-background"
+                  :class="{
+                    'border-destructive/50 focus-visible:ring-destructive':
+                      (s.key === 'ai_api_key') && !s.value,
+                  }"
+                />
+                <p class="text-xs text-muted-foreground">
+                  {{ t(`settings.keys.${s.key}_desc`) }}
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          <!-- Prompt Studio Component -->
+          <div v-if="authStore.hasPermission('manage_prompts')" class="pt-4">
+            <h3 class="text-lg font-medium mb-4">
+              {{ t('prompts.title') }}
+            </h3>
+            <PromptStudio />
           </div>
-        </CardContent>
-      </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   </div>
 </template>

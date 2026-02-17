@@ -260,6 +260,7 @@ declare module 'vue' {
     PopoverContent: typeof import('./components/ui/popover/PopoverContent.vue')['default']
     PopoverTrigger: typeof import('./components/ui/popover/PopoverTrigger.vue')['default']
     Progress: typeof import('./components/ui/progress/Progress.vue')['default']
+    PromptStudio: typeof import('./components/admin/PromptStudio.vue')['default']
     RadioGroup: typeof import('./components/ui/radio-group/RadioGroup.vue')['default']
     RadioGroupItem: typeof import('./components/ui/radio-group/RadioGroupItem.vue')['default']
     RangeCalendar: typeof import('./components/ui/range-calendar/RangeCalendar.vue')['default']

@@ -64,12 +64,37 @@
       "api_keys": "接口密钥",
       "permissions": "权限管理",
       "settings": "系统全局配置",
-      "finops": "成本监控"
+      "finops": "成本监控",
+      "prompts": "提示词管理"
     },
     "knowledge_base": "知识库",
     "ai_intelligence": "AI 助手",
     "ai_feedback": "AI 反馈",
     "spider_evaluation": "数据评测"
+  },
+  "prompts": {
+    "title": "提示词管理",
+    "list_title": "提示词列表",
+    "desc": "管理系统提示词 (Prompts) 及其数据库覆盖层。",
+    "search_placeholder": "搜索 Key...",
+    "source_db": "数据库覆盖",
+    "source_file": "文件系统",
+    "no_desc": "暂无描述",
+    "reset": "重置",
+    "save": "保存修改",
+    "edit": "编辑",
+    "preview": "预览",
+    "select_prompt": "选择提示词",
+    "select_prompt_desc": "从左侧列表选择一个提示词以开始编辑。",
+    "no_prompts": "未找到提示词",
+    "confirm_reset": "确定要将此提示词重置为文件默认值吗？此操作不可撤销。",
+    "toast": {
+      "load_failed": "加载提示词失败",
+      "save_success": "提示词保存成功",
+      "save_failed": "保存失败",
+      "reset_success": "已重置为默认值",
+      "reset_failed": "重置失败"
+    }
   },
   "finops": {
     "title": "成本监控",
@@ -375,6 +400,11 @@
     "desc": "管理全局平台行为及性能参数",
     "save": "保存全局配置",
     "saving": "配置保存中...",
+    "tabs": {
+      "general": "常规设置",
+      "security": "安全与隐私",
+      "ai": "AI 智能中心"
+    },
     "platform": "平台基础",
     "platform_desc": "NexQuery AI 基本身份识别设置",
     "security": "安全与合规",

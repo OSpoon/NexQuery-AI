@@ -190,6 +190,17 @@ router
             router.get('eval/spider/summary', [EvaluationReportsController, 'summary'])
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_EVALUATIONS }))
+
+        // Prompt Management (CMS)
+        const PromptsController = () => import('#controllers/prompts_controller')
+        router
+          .group(() => {
+            router.get('admin/prompts', [PromptsController, 'index'])
+            router.get('admin/prompts/:key(*)', [PromptsController, 'show'])
+            router.put('admin/prompts/:key(*)', [PromptsController, 'update'])
+            router.delete('admin/prompts/:key(*)', [PromptsController, 'destroy'])
+          })
+          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_PROMPTS }))
       })
       .use([
         middleware.auth(),

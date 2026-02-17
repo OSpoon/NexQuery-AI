@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
 import app from '@adonisjs/core/services/app'
+import Prompt from '#models/prompt'
 
 interface PromptCache {
   [key: string]: string
@@ -25,6 +26,18 @@ export class PromptService {
         const content = await fs.readFile(file, 'utf-8')
         this.cache[relativePath] = content
       }
+
+      // 2. Load Overrides from DB
+      try {
+        const prompts = await Prompt.all()
+        for (const prompt of prompts) {
+          this.cache[prompt.key] = prompt.content
+        }
+      } catch (dbError) {
+        // Ignore DB errors during boot (e.g. migration not run yet)
+        console.warn('[PromptService] Failed to load prompts from DB (skipping)', dbError.message)
+      }
+
       // eslint-disable-next-line no-console
       console.log(`[PromptService] Preloaded ${Object.keys(this.cache).length} prompts.`)
     } catch (error) {
@@ -72,7 +85,18 @@ export class PromptService {
 
     if (this.isDev || !this.cache[promptPath]) {
       try {
-        content = await fs.readFile(fullPath, 'utf-8')
+        // In Dev, Check DB First (Hot Reload from Admin UI)
+        const dbPrompt = await Prompt.findBy('key', promptPath)
+        if (dbPrompt) {
+          content = dbPrompt.content
+          // Update cache for mostly-sync consistency, but in Dev we want freshness.
+          // Actually if we want freshness, we shouldn't cache it in this `if` block?
+          // The logic below `!this.isDev` prevents caching in Dev.
+        } else {
+          // Fallback to File
+          content = await fs.readFile(fullPath, 'utf-8')
+        }
+
         if (!this.isDev) {
           this.cache[promptPath] = content
         }
@@ -102,5 +126,35 @@ export class PromptService {
   public static async assemble(promptPaths: string[], separator = '\n'): Promise<string> {
     const parts = await Promise.all(promptPaths.map(p => this.getPrompt(p)))
     return parts.join(separator).trim()
+  }
+
+  /**
+   * CMS: Get all available prompt keys.
+   */
+  public static getKeys(): string[] {
+    return Object.keys(this.cache).sort()
+  }
+
+  /**
+   * CMS: Update cache manually (e.g. after DB update).
+   */
+  public static updateCache(key: string, content: string) {
+    this.cache[key] = content
+  }
+
+  /**
+   * CMS: Reset a prompt to its file version (or delete if no file).
+   */
+  public static async reset(key: string) {
+    const fullPath = path.join(this.promptsDir, `${key}.md`)
+    try {
+      const content = await fs.readFile(fullPath, 'utf-8')
+      this.cache[key] = content
+      return true
+    } catch (e) {
+      // File not found -> It was likely a DB-only prompt or invalid key
+      delete this.cache[key]
+      return false
+    }
   }
 }

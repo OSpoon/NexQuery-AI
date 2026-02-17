@@ -12,6 +12,7 @@ export const PERMISSIONS = {
   MANAGE_SETTINGS: 'manage_settings',
   MANAGE_AI_FINOPS: 'manage_ai_finops',
   MANAGE_EVALUATIONS: 'manage_evaluations',
+  MANAGE_PROMPTS: 'manage_prompts',
 } as const
 
 export const PERMISSION_DETAILS = [
@@ -79,5 +80,10 @@ export const PERMISSION_DETAILS = [
     name: 'Manage Evaluations',
     slug: PERMISSIONS.MANAGE_EVALUATIONS,
     description: 'Can view and manage agent evaluation reports and trends',
+  },
+  {
+    name: 'Manage Global Prompts',
+    slug: PERMISSIONS.MANAGE_PROMPTS,
+    description: 'Can edit and manage global system prompts (CMS)',
   },
 ]

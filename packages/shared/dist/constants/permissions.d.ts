@@ -12,6 +12,7 @@ export declare const PERMISSIONS: {
     readonly MANAGE_SETTINGS: "manage_settings";
     readonly MANAGE_AI_FINOPS: "manage_ai_finops";
     readonly MANAGE_EVALUATIONS: "manage_evaluations";
+    readonly MANAGE_PROMPTS: "manage_prompts";
 };
 export declare const PERMISSION_DETAILS: ({
     name: string;
@@ -64,5 +65,9 @@ export declare const PERMISSION_DETAILS: ({
 } | {
     name: string;
     slug: "manage_evaluations";
+    description: string;
+} | {
+    name: string;
+    slug: "manage_prompts";
     description: string;
 })[];

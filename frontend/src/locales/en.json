@@ -62,12 +62,37 @@
       "api_keys": "API Keys",
       "permissions": "Permissions",
       "settings": "System Settings",
-      "finops": "FinOps Monitoring"
+      "finops": "FinOps Monitoring",
+      "prompts": "Global Prompts"
     },
     "knowledge_base": "Knowledge Base",
     "ai_intelligence": "AI Intelligence",
     "ai_feedback": "AI Feedback",
     "spider_evaluation": "Data Evaluation"
+  },
+  "prompts": {
+    "title": "Prompt Management",
+    "list_title": "Prompts List",
+    "desc": "Manage system prompts and database overrides.",
+    "search_placeholder": "Search keys...",
+    "source_db": "Database Override",
+    "source_file": "File System",
+    "no_desc": "No description",
+    "reset": "Reset",
+    "save": "Save Changes",
+    "edit": "Edit",
+    "preview": "Preview",
+    "select_prompt": "Select a prompt",
+    "select_prompt_desc": "Choose a prompt from the sidebar to edit its content.",
+    "no_prompts": "No prompts found",
+    "confirm_reset": "Are you sure you want to reset this prompt to its file-based default? This cannot be undone.",
+    "toast": {
+      "load_failed": "Failed to load prompts",
+      "save_success": "Prompt saved successfully",
+      "save_failed": "Failed to save prompt",
+      "reset_success": "Prompt reset to default",
+      "reset_failed": "Failed to reset prompt"
+    }
   },
   "finops": {
     "title": "FinOps Monitoring",
@@ -373,6 +398,11 @@
     "desc": "Configure global platform behavior",
     "save": "Save Settings",
     "saving": "Saving...",
+    "tabs": {
+      "general": "General",
+      "security": "Security & Privacy",
+      "ai": "AI & Intelligence"
+    },
     "platform": "Platform",
     "platform_desc": "NexQuery AI basic identity settings",
     "security": "Security & Privacy",
