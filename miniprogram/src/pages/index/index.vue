@@ -91,9 +91,16 @@ onPullDownRefresh(() => {
   <view class="container">
     <view class="filter-header">
       <view class="search-bar">
-        <image class="search-icon" src="/static/tabs/task_active.png" mode="aspectFit" />
+        <image
+          class="search-icon"
+          src="/static/tabs/task_active.png"
+          mode="aspectFit"
+        />
         <input
-          v-model="searchQuery" class="search-input" placeholder="搜索任务..." confirm-type="search"
+          v-model="searchQuery"
+          class="search-input"
+          placeholder="搜索任务..."
+          confirm-type="search"
           @input="onSearchInput"
         >
       </view>
@@ -105,7 +112,10 @@ onPullDownRefresh(() => {
         <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
           <view class="tag-list">
             <view
-              v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+              v-for="tag in availableTags"
+              :key="tag"
+              class="tag-chip"
+              :class="{ active: selectedTag === tag }"
               @click="selectTag(tag)"
             >
               {{ tag }}
@@ -124,7 +134,12 @@ onPullDownRefresh(() => {
     </view>
 
     <view v-else class="task-list">
-      <view v-for="task in tasks" :key="task.id" class="task-item" @click="goToExecute(task)">
+      <view
+        v-for="task in tasks"
+        :key="task.id"
+        class="task-item"
+        @click="goToExecute(task)"
+      >
         <view class="task-header">
           <text class="task-name">
             {{ task.name }}
@@ -142,7 +157,7 @@ onPullDownRefresh(() => {
 
         <view class="task-footer">
           <text class="task-desc">
-            {{ task.description || '无描述' }}
+            {{ task.description || "无描述" }}
           </text>
           <view class="arrow-icon" />
         </view>

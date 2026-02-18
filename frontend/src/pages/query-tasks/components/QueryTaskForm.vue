@@ -106,20 +106,43 @@ const updateSchemaFromSql = useDebounceFn((sql: string) => {
   const matches = [...sql.matchAll(variableRegex)].map(m => m[1] as string)
 
   const isEs = dbType.value === 'elasticsearch'
-  const uniqueVars = [...new Set(matches.filter(v => isEs ? !['index', 'query', 'size'].includes(v) : true))]
+  const uniqueVars = [
+    ...new Set(matches.filter(v => (isEs ? !['index', 'query', 'size'].includes(v) : true))),
+  ]
 
   // Get default index from current data source
   const defaultIndex = (currentDataSource.value as any)?.database || 'nexquery-logs-*'
 
   // Determine the default value for the "query" field.
   const hasVariables = matches.length > 0
-  const defaultQueryValue = hasVariables ? '*' : (sql.trim() || '*')
+  const defaultQueryValue = hasVariables ? '*' : sql.trim() || '*'
 
   const standardFields = isEs
     ? [
-        { name: 'index', label: 'Index Pattern', type: 'text', placeholder: 'nexquery-logs-*', required: true, defaultValue: defaultIndex },
-        { name: 'query', label: 'Query string (Lucene)', type: 'text', placeholder: '*', required: false, defaultValue: defaultQueryValue },
-        { name: 'size', label: 'Limit', type: 'number', placeholder: '100', required: false, defaultValue: 100 },
+        {
+          name: 'index',
+          label: 'Index Pattern',
+          type: 'text',
+          placeholder: 'nexquery-logs-*',
+          required: true,
+          defaultValue: defaultIndex,
+        },
+        {
+          name: 'query',
+          label: 'Query string (Lucene)',
+          type: 'text',
+          placeholder: '*',
+          required: false,
+          defaultValue: defaultQueryValue,
+        },
+        {
+          name: 'size',
+          label: 'Limit',
+          type: 'number',
+          placeholder: '100',
+          required: false,
+          defaultValue: 100,
+        },
       ]
     : []
 
@@ -203,15 +226,18 @@ onMounted(async () => {
   }
 })
 
-watch(() => form.values.dataSourceId, (newId) => {
-  updateSchemaFromSql(sqlTemplate.value)
-  if (newId && dbType.value === 'elasticsearch') {
-    fetchEsSchema(newId)
-  }
-  else {
-    esFields.value = []
-  }
-})
+watch(
+  () => form.values.dataSourceId,
+  (newId) => {
+    updateSchemaFromSql(sqlTemplate.value)
+    if (newId && dbType.value === 'elasticsearch') {
+      fetchEsSchema(newId)
+    }
+    else {
+      esFields.value = []
+    }
+  },
+)
 
 const sqlEditorRef = ref<any>(null)
 const luceneEditorRef = ref<any>(null)
@@ -336,7 +362,7 @@ onMounted(fetchDataSources)
                 "
               >
                 <FormControl>
-                  <SelectTrigger class="w-full">
+                  <SelectTrigger id="data-source-select" class="w-full">
                     <SelectValue placeholder="Select data source" />
                   </SelectTrigger>
                 </FormControl>
@@ -397,7 +423,11 @@ onMounted(fetchDataSources)
                     class="flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary border border-primary/20 rounded-full text-sm"
                   >
                     {{ tag }}
-                    <button type="button" class="hover:text-destructive" @click="removeTag(Number(idx))">
+                    <button
+                      type="button"
+                      class="hover:text-destructive"
+                      @click="removeTag(Number(idx))"
+                    >
                       <X class="w-3.5 h-3.5" />
                     </button>
                   </div>
@@ -461,13 +491,9 @@ onMounted(fetchDataSources)
     </div>
 
     <!-- Fixed Footer -->
-    <div
-      class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg"
-    >
+    <div class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg">
       <Button type="button" variant="ghost" @click="emit('cancel')">
-        {{
-          t('common.cancel')
-        }}
+        {{ t('common.cancel') }}
       </Button>
       <Button type="submit" :disabled="isSubmitting">
         {{

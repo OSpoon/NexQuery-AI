@@ -80,7 +80,14 @@ export default class ScheduledQueriesController {
 
   async update({ params, request, response }: HttpContext) {
     const schedule = await ScheduledQuery.findOrFail(params.id)
-    const data = request.only(['cronExpression', 'runAt', 'recipients', 'webhookUrl', 'isActive', 'parameters'])
+    const data = request.only([
+      'cronExpression',
+      'runAt',
+      'recipients',
+      'webhookUrl',
+      'isActive',
+      'parameters',
+    ])
 
     if (data.runAt) {
       data.runAt = DateTime.fromISO(data.runAt)

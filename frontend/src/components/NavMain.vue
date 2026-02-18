@@ -69,7 +69,7 @@ function isItemActive(item: NavItem) {
           </CollapsibleTrigger>
 
           <SidebarMenuButton v-else as-child :tooltip="item.title" :is-active="isItemActive(item)">
-            <RouterLink :to="item.url === '#' ? '/' : item.url">
+            <RouterLink :to="item.url === '#' ? '/' : item.url" :aria-label="item.title">
               <component :is="item.icon" v-if="item.icon" />
               <span>{{ item.title }}</span>
             </RouterLink>
@@ -80,7 +80,10 @@ function isItemActive(item: NavItem) {
               <SidebarMenuSub>
                 <SidebarMenuSubItem v-for="subItem in item.items" :key="subItem.title">
                   <SidebarMenuSubButton as-child>
-                    <RouterLink :to="subItem.url === '#' ? '/' : subItem.url">
+                    <RouterLink
+                      :to="subItem.url === '#' ? '/' : subItem.url"
+                      :aria-label="subItem.title"
+                    >
                       <span>{{ subItem.title }}</span>
                     </RouterLink>
                   </SidebarMenuSubButton>

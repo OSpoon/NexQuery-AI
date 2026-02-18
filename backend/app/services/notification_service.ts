@@ -33,14 +33,22 @@ export default class NotificationService {
 
       return notification
     } catch (e) {
-      logger.error({ error: e }, `[NotificationService] Failed to send notification to user ${userId}`)
+      logger.error(
+        { error: e },
+        `[NotificationService] Failed to send notification to user ${userId}`,
+      )
     }
   }
 
   /**
    * Compatibility wrapper for existing controllers
    */
-  public static async push(userId: number, title: string, content: string, type: 'info' | 'success' | 'warning' | 'error' = 'info') {
+  public static async push(
+    userId: number,
+    title: string,
+    content: string,
+    type: 'info' | 'success' | 'warning' | 'error' = 'info',
+  ) {
     return this.send(userId, { title, content, type })
   }
 
@@ -56,7 +64,9 @@ export default class NotificationService {
         // This is expensive for many users, but fine for small teams
         // A better way would be a 'system_notification' table, but for simplicity:
         // We'll just dispatch real-time for now and maybe implement a GlobalNotification table later if needed.
-        logger.info('[NotificationService] Global persistent broadcast is not yet optimized. Sending real-time only.')
+        logger.info(
+          '[NotificationService] Global persistent broadcast is not yet optimized. Sending real-time only.',
+        )
       }
 
       // 1. Dispatch real-time to all

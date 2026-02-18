@@ -95,7 +95,7 @@ async function handleSave() {
 async function handleReset() {
   if (!selectedKey.value)
     return
-    // eslint-disable-next-line no-alert
+  // eslint-disable-next-line no-alert
   if (!confirm(t('prompts.confirm_reset')))
     return
 
@@ -165,7 +165,10 @@ onMounted(() => {
             </span>
           </button>
 
-          <div v-if="filteredPrompts.length === 0" class="p-4 text-center text-sm text-muted-foreground">
+          <div
+            v-if="filteredPrompts.length === 0"
+            class="p-4 text-center text-sm text-muted-foreground"
+          >
             {{ t('prompts.no_prompts') }}
           </div>
         </div>
@@ -183,7 +186,11 @@ onMounted(() => {
                 {{ selectedKey }}
               </h3>
               <Badge :variant="selectedPrompt?.source === 'database' ? 'default' : 'secondary'">
-                {{ selectedPrompt?.source === 'database' ? t('prompts.source_db') : t('prompts.source_file') }}
+                {{
+                  selectedPrompt?.source === 'database'
+                    ? t('prompts.source_db')
+                    : t('prompts.source_file')
+                }}
               </Badge>
             </div>
             <p class="text-xs text-muted-foreground font-mono">
@@ -200,11 +207,7 @@ onMounted(() => {
               <RotateCcw class="mr-2 h-3 w-3" />
               {{ t('prompts.reset') }}
             </Button>
-            <Button
-              size="sm"
-              :disabled="!hasChanges || isSaving"
-              @click="handleSave"
-            >
+            <Button size="sm" :disabled="!hasChanges || isSaving" @click="handleSave">
               <Save class="mr-2 h-3 w-3" />
               {{ t('prompts.save') }}
             </Button>
@@ -226,7 +229,10 @@ onMounted(() => {
             </TabsList>
           </div>
 
-          <TabsContent value="edit" class="flex-1 overflow-hidden p-0 m-0 data-[state=inactive]:hidden">
+          <TabsContent
+            value="edit"
+            class="flex-1 overflow-hidden p-0 m-0 data-[state=inactive]:hidden"
+          >
             <CodeMirrorEditor
               v-model="editorContent"
               class="h-full w-full"
@@ -234,7 +240,10 @@ onMounted(() => {
             />
           </TabsContent>
 
-          <TabsContent value="preview" class="flex-1 overflow-y-auto p-4 m-0 data-[state=inactive]:hidden bg-muted/10">
+          <TabsContent
+            value="preview"
+            class="flex-1 overflow-y-auto p-4 m-0 data-[state=inactive]:hidden bg-muted/10"
+          >
             <div class="prose dark:prose-invert max-w-none">
               <MarkdownRender :content="editorContent" :is-dark="isDark" />
             </div>

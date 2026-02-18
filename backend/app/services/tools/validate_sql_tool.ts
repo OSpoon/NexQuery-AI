@@ -119,14 +119,16 @@ export class ValidateSqlTool extends StructuredTool {
           // PG: Result is usually row of 'QUERY PLAN'
           const planRows = explainResult.rows.map((r: any) => r['QUERY PLAN']).join('\n')
           if (planRows.includes('Seq Scan')) {
-            performanceWarning = ' (Performance Note: Full Table Scan detected. This might be slow on large tables. Consider adding an index.)'
+            performanceWarning
+              = ' (Performance Note: Full Table Scan detected. This might be slow on large tables. Consider adding an index.)'
           }
         } else {
           // MySQL: Result is array of objects
           const rows = Array.isArray(explainResult[0]) ? explainResult[0] : explainResult
           for (const row of rows) {
             if (row.type === 'ALL') {
-              performanceWarning = ' (Performance Note: Full Table Scan detected (type=ALL). Consider adding an index.)'
+              performanceWarning
+                = ' (Performance Note: Full Table Scan detected (type=ALL). Consider adding an index.)'
               break
             }
             if (Number(row.rows) > 10000 && row.key === null) {
@@ -153,7 +155,9 @@ export class ValidateSqlTool extends StructuredTool {
         // Case 1: Unknown Column
         if (
           errorMessage.includes('column')
-          && (errorMessage.includes('does not exist') || errorMessage.includes('unknown') || errorMessage.includes('not found'))
+          && (errorMessage.includes('does not exist')
+            || errorMessage.includes('unknown')
+            || errorMessage.includes('not found'))
         ) {
           const match = errorMessage.match(/["'](\w+)["']/)
           const badCol = match ? match[1] : 'unknown_column'

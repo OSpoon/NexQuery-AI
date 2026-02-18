@@ -31,7 +31,12 @@ export default class AiFeedbacksController {
     if (feedback.isAdopted) {
       try {
         const langChainService = new LangChainService()
-        await langChainService.learnInteraction(feedback.question, feedback.generatedSql, undefined, feedback.sourceType)
+        await langChainService.learnInteraction(
+          feedback.question,
+          feedback.generatedSql,
+          undefined,
+          feedback.sourceType,
+        )
 
         // Notify user about the new knowledge
         const userId = auth.user?.id

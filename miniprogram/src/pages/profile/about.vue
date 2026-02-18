@@ -31,13 +31,19 @@ const version = '1.0.0'
           support@nexquery.ai
         </text>
       </view>
-      <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })">
+      <view
+        class="info-item"
+        @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })"
+      >
         <text class="label">
           用户协议
         </text>
         <view class="arrow-icon" />
       </view>
-      <view class="info-item" @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })">
+      <view
+        class="info-item"
+        @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })"
+      >
         <text class="label">
           隐私政策
         </text>
@@ -55,85 +61,85 @@ const version = '1.0.0'
 
 <style scoped>
 .container {
-    min-height: 100vh;
-    background-color: #f8f9fa;
-    padding: 40rpx;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 40rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .logo-section {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-top: 60rpx;
-    margin-bottom: 60rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 60rpx;
+  margin-bottom: 60rpx;
 }
 
 .logo {
-    width: 160rpx;
-    height: 160rpx;
-    border-radius: 30rpx;
-    margin-bottom: 20rpx;
+  width: 160rpx;
+  height: 160rpx;
+  border-radius: 30rpx;
+  margin-bottom: 20rpx;
 }
 
 .app-name {
-    font-size: 40rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 10rpx;
+  font-size: 40rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 10rpx;
 }
 
 .version {
-    font-size: 26rpx;
-    color: #999;
+  font-size: 26rpx;
+  color: #999;
 }
 
 .content-card {
-    width: 100%;
-    background-color: #fff;
-    border-radius: 20rpx;
-    padding: 0 30rpx;
+  width: 100%;
+  background-color: #fff;
+  border-radius: 20rpx;
+  padding: 0 30rpx;
 }
 
 .info-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 30rpx 0;
-    border-bottom: 2rpx solid #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  padding: 30rpx 0;
+  border-bottom: 2rpx solid #f5f5f5;
 }
 
 .info-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .label {
-    color: #666;
-    font-size: 28rpx;
+  color: #666;
+  font-size: 28rpx;
 }
 
 .value {
-    color: #333;
-    font-weight: 500;
-    font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+  font-size: 28rpx;
 }
 
 .footer {
-    margin-top: auto;
-    padding-bottom: 40rpx;
+  margin-top: auto;
+  padding-bottom: 40rpx;
 }
 
 .copyright {
-    font-size: 24rpx;
-    color: #ccc;
+  font-size: 24rpx;
+  color: #ccc;
 }
 
 .arrow-icon {
-    width: 16rpx;
-    height: 16rpx;
-    border-top: 3rpx solid #ccc;
-    border-right: 3rpx solid #ccc;
-    transform: rotate(45deg);
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 3rpx solid #ccc;
+  border-right: 3rpx solid #ccc;
+  transform: rotate(45deg);
 }
 </style>

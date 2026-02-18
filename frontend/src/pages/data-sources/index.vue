@@ -74,8 +74,12 @@ function openAdvancedDialog(ds: any) {
 }
 
 async function deleteDataSource(id: number) {
-  // eslint-disable-next-line no-alert
-  if (!confirm(`${t('data_sources.delete_confirm_title')}\n\n${t('data_sources.delete_confirm_desc')}`)) {
+  const confirmAction = window.confirm
+  if (
+    !confirmAction(
+      `${t('data_sources.delete_confirm_title')}\n\n${t('data_sources.delete_confirm_desc')}`,
+    )
+  ) {
     return
   }
 
@@ -94,7 +98,8 @@ async function syncSchema(id: number) {
   toast.promise(promise, {
     loading: t('data_sources.syncing'),
     success: t('data_sources.sync_success'),
-    error: (err: any) => t('data_sources.sync_failed', { error: err.message || t('common.unknown') }),
+    error: (err: any) =>
+      t('data_sources.sync_failed', { error: err.message || t('common.unknown') }),
   })
 }
 
@@ -251,9 +256,7 @@ onMounted(fetchDataSources)
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>
-            {{
-              editingDataSource ? t('data_sources.edit_title') : t('data_sources.add_title')
-            }}
+            {{ editingDataSource ? t('data_sources.edit_title') : t('data_sources.add_title') }}
           </DialogTitle>
           <DialogDescription> {{ t('data_sources.desc') }} </DialogDescription>
         </DialogHeader>

@@ -1,8 +1,8 @@
 import Setting from '#models/setting'
-
 import env from '#start/env'
 import { ChatOpenAI } from '@langchain/openai'
 import { CallbackHandler } from 'langfuse-langchain'
+import { CryptoHelper } from '#services/crypto_helper'
 
 export interface AiConfig {
   baseUrl: string
@@ -12,16 +12,28 @@ export interface AiConfig {
   timeoutMs: number
   embeddingBaseUrl: string
   embeddingApiKey: string
+  transcriptionBaseUrl?: string
+  transcriptionApiKey?: string
+  transcriptionModel?: string
 }
 
 export default class AiProviderService {
-  private static readonly DEFAULT_API_BASE_URL = 'https://open.bigmodel.cn/api/paas/v4/'
-
   /**
    * Fetch all AI related settings from database
    */
   public async getConfig(): Promise<AiConfig> {
-    const [baseUrlSetting, apiKeySetting, chatModelSetting, embeddingModelSetting, timeoutSetting, embeddingBaseUrlSetting, embeddingApiKeySetting] = await Promise.all([
+    const [
+      baseUrlSetting,
+      apiKeySetting,
+      chatModelSetting,
+      embeddingModelSetting,
+      timeoutSetting,
+      embeddingBaseUrlSetting,
+      embeddingApiKeySetting,
+      transcriptionBaseUrlSetting,
+      transcriptionApiKeySetting,
+      transcriptionModelSetting,
+    ] = await Promise.all([
       Setting.findBy('key', 'ai_base_url'),
       Setting.findBy('key', 'ai_api_key'),
       Setting.findBy('key', 'ai_chat_model'),
@@ -29,21 +41,39 @@ export default class AiProviderService {
       Setting.findBy('key', 'ai_timeout_sec'),
       Setting.findBy('key', 'ai_embedding_base_url'),
       Setting.findBy('key', 'ai_embedding_api_key'),
+      Setting.findBy('key', 'ai_transcription_base_url'),
+      Setting.findBy('key', 'ai_transcription_api_key'),
+      Setting.findBy('key', 'ai_transcription_model'),
     ])
 
-    const baseUrl = baseUrlSetting?.value || AiProviderService.DEFAULT_API_BASE_URL
-    const apiKey = apiKeySetting?.value
+    const baseUrl = (baseUrlSetting?.value || '').trim()
+    const rawApiKey = apiKeySetting?.value
+    const apiKey = rawApiKey && rawApiKey !== 'null' ? CryptoHelper.tryDecrypt(rawApiKey) || '' : ''
+
     const chatModel = chatModelSetting?.value || 'glm-4.5-flash'
     const embeddingModel = embeddingModelSetting?.value || 'embedding-3'
     const timeoutMs = (Number(timeoutSetting?.value) || 600) * 1000
 
-    // Hybrid Config
-    const embeddingBaseUrl = embeddingBaseUrlSetting?.value || 'https://open.bigmodel.cn/api/paas/v4/'
-    const embeddingApiKey = embeddingApiKeySetting?.value || apiKey // Fallback to main API Key
-
-    if (!apiKey) {
+    if (!apiKey || apiKey === 'null') {
       throw new Error('AI API Key not configured (ai_api_key)')
     }
+
+    // Hybrid Config
+    const embeddingBaseUrl = (embeddingBaseUrlSetting?.value || baseUrl).trim()
+    const rawEmbeddingApiKey = embeddingApiKeySetting?.value
+    const embeddingApiKey
+      = rawEmbeddingApiKey && rawEmbeddingApiKey !== 'null'
+        ? CryptoHelper.tryDecrypt(rawEmbeddingApiKey) || apiKey
+        : apiKey
+
+    // Transcription Config
+    const transcriptionBaseUrl = transcriptionBaseUrlSetting?.value?.trim()
+    const rawTranscriptionApiKey = transcriptionApiKeySetting?.value
+    const transcriptionApiKey
+      = rawTranscriptionApiKey && rawTranscriptionApiKey !== 'null'
+        ? CryptoHelper.tryDecrypt(rawTranscriptionApiKey)
+        : undefined
+    const transcriptionModel = transcriptionModelSetting?.value
 
     return {
       baseUrl,
@@ -53,80 +83,79 @@ export default class AiProviderService {
       timeoutMs,
       embeddingBaseUrl,
       embeddingApiKey,
+      transcriptionBaseUrl,
+      transcriptionApiKey,
+      transcriptionModel,
     }
   }
 
   /**
-   * Check if a specific AI skill is enabled in database settings
+   * Get Langfuse Callback Handler for tracing
    */
-  public async isSkillEnabled(skillKey: string): Promise<boolean> {
-    const setting = await Setting.findBy('key', `ai_skill_${skillKey}`)
-    return setting?.value !== 'false'
+  public getLangfuseHandler(options: { tags?: string[], metadata?: Record<string, any> } = {}) {
+    if (env.get('LANGFUSE_PUBLIC_KEY')) {
+      return new CallbackHandler(options)
+    }
+    return null
   }
 
   /**
-   * Get Langfuse Callback Handler
+   * Get a ChatOpenAI instance for LangChain
    */
-  public getLangfuseHandler(context?: { sessionId?: string, userId?: string, metadata?: any, tags?: string[] }) {
-    return new CallbackHandler({
-      publicKey: env.get('LANGFUSE_PUBLIC_KEY', ''),
-      secretKey: env.get('LANGFUSE_SECRET_KEY', ''),
-      baseUrl: env.get('LANGFUSE_HOST', 'https://cloud.langfuse.com'),
-      sessionId: context?.sessionId,
-      userId: context?.userId,
-      metadata: context?.metadata,
-      tags: context?.tags,
-    })
-  }
-
-  /**
-   * Get a ChatOpenAI model instance
-   */
-  public async getChatModel(options: { streaming?: boolean, temperature?: number, callbacks?: any[] } = {}) {
+  public async getChatModel(
+    options: {
+      stream?: boolean
+      tags?: string[]
+      metadata?: Record<string, any>
+      temperature?: number
+      [key: string]: any
+    } = {},
+  ) {
     const config = await this.getConfig()
 
-    // Ensure API Key is in env for some tool integrations if needed
-    process.env.OPENAI_API_KEY = config.apiKey
+    const callbacks = []
+    const langfuseHandler = this.getLangfuseHandler({
+      tags: options.tags,
+      metadata: options.metadata,
+    })
+
+    if (langfuseHandler) {
+      callbacks.push(langfuseHandler)
+    }
 
     return new ChatOpenAI({
       apiKey: config.apiKey,
-      configuration: { baseURL: config.baseUrl },
+      configuration: {
+        baseURL: config.baseUrl,
+      },
       modelName: config.chatModel,
-      temperature: options.temperature ?? 0.1,
+      streaming: options.stream ?? true,
+      temperature: options.temperature ?? 0.7,
       timeout: config.timeoutMs,
-      streaming: options.streaming ?? false,
-      streamUsage: true,
-      maxRetries: 3, // Handle transient 429/500 errors
-      callbacks: options.callbacks, // Allow passing callbacks explicitly
+      callbacks,
+      ...options, // Pass through any other LangChain options
     })
   }
 
   /**
-   * Generate embedding via direct API call (Standard format)
+   * Generate embedding for text
    */
   public async generateEmbedding(text: string): Promise<number[]> {
     const config = await this.getConfig()
 
-    // Use specific Embedding Base URL
-    let baseUrl = config.embeddingBaseUrl
-    if (!baseUrl.endsWith('/')) {
-      baseUrl += '/'
-    }
-
-    const endpoint = `${baseUrl}embeddings`
-
-    // Use specific Embedding API Key
-    const apiKey = config.embeddingApiKey || config.apiKey
+    // Use specific embedding config or fallback to main
+    const endpoint = `${config.embeddingBaseUrl}embeddings`
+    const apiKey = config.embeddingApiKey
 
     const response = await fetch(endpoint, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
         model: config.embeddingModel,
-        input: text.substring(0, 4000),
+        input: text,
       }),
     })
 
@@ -143,5 +172,64 @@ export default class AiProviderService {
     }
 
     throw new Error('Invalid response format from Embedding API')
+  }
+
+  /**
+   * Transcribe audio to text (Whisper compatible)
+   */
+  public async transcribe(file: { path: string, clientName: string }): Promise<string> {
+    const config = await this.getConfig()
+    const { readFileSync } = await import('node:fs')
+    const { Blob } = await import('node:buffer')
+
+    // Resolve transcription config with fallback
+    let baseUrl = (config.transcriptionBaseUrl || config.baseUrl).trim()
+    if (!baseUrl.endsWith('/')) {
+      baseUrl += '/'
+    }
+
+    const apiKey = config.transcriptionApiKey || config.apiKey
+    const model = config.transcriptionModel || 'whisper-1'
+
+    // OpenAI and many providers (including Zhipu AI's compatible layer)
+    // usually want /v1/audio/transcriptions.
+    let endpoint = `${baseUrl}audio/transcriptions`
+    if (baseUrl.includes('/v4/') && !baseUrl.includes('/v1/')) {
+      endpoint = `${baseUrl.replace('/v4/', '/v4/v1/')}audio/transcriptions`
+    }
+
+    // Use standard Web API FormData (Available globally in Node 22)
+    const formData = new FormData()
+
+    // Read file and wrap in Blob (More compatible than File in some Node environments)
+    const buffer = readFileSync(file.path)
+    const blob = new Blob([buffer], { type: 'audio/webm' })
+
+    // Provide filename as 3rd argument (Standard FormData API)
+    formData.append('file', blob, file.clientName)
+    formData.append('model', model)
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+        },
+        body: formData,
+      })
+
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error body')
+        throw new Error(
+          `Transcription API request failed: ${response.status} ${response.statusText} - ${errorText}`,
+        )
+      }
+
+      const data = (await response.json()) as any
+      return data.text || ''
+    } catch (error: any) {
+      console.error(`[AiProviderService.transcribe] Failed to call ${endpoint}:`, error.message)
+      throw error
+    }
   }
 }

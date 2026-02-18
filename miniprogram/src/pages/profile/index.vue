@@ -107,11 +107,19 @@ onShow(() => {
 <template>
   <view class="container">
     <view v-if="user" class="header-card">
-      <button class="avatar-wrapper" open-type="chooseAvatar" @chooseavatar="onChooseAvatar">
-        <image v-if="user.avatar" class="avatar" :src="getAvatarUrl(user.avatar)" />
+      <button
+        class="avatar-wrapper"
+        open-type="chooseAvatar"
+        @chooseavatar="onChooseAvatar"
+      >
+        <image
+          v-if="user.avatar"
+          class="avatar"
+          :src="getAvatarUrl(user.avatar)"
+        />
         <view v-else class="avatar-placeholder">
           <text class="avatar-text">
-            {{ user.fullName ? user.fullName.slice(0, 2).toUpperCase() : '?' }}
+            {{ user.fullName ? user.fullName.slice(0, 2).toUpperCase() : "?" }}
           </text>
         </view>
         <view class="edit-overlay">
@@ -131,7 +139,10 @@ onShow(() => {
     </view>
 
     <view class="menu-list">
-      <view class="menu-item" @click="uni.navigateTo({ url: '/pages/profile/about' })">
+      <view
+        class="menu-item"
+        @click="uni.navigateTo({ url: '/pages/profile/about' })"
+      >
         <view class="menu-left">
           <text class="menu-text">
             关于 NexQuery
@@ -151,143 +162,143 @@ onShow(() => {
 
 <style scoped>
 .container {
-    min-height: 100vh;
-    background-color: #f8f9fa;
-    padding: 30rpx;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+  padding: 30rpx;
 }
 
 .header-card {
-    display: flex;
-    align-items: center;
-    background-color: #fff;
-    padding: 60rpx 40rpx;
-    border-radius: 24rpx;
-    margin-bottom: 40rpx;
-    box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  background-color: #fff;
+  padding: 60rpx 40rpx;
+  border-radius: 24rpx;
+  margin-bottom: 40rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.05);
 }
 
 .avatar-wrapper {
-    position: relative;
-    padding: 0;
-    margin: 0;
-    margin-right: 30rpx;
-    background-color: transparent;
-    border-radius: 60rpx;
-    width: 120rpx;
-    height: 120rpx;
-    overflow: hidden;
+  position: relative;
+  padding: 0;
+  margin: 0;
+  margin-right: 30rpx;
+  background-color: transparent;
+  border-radius: 60rpx;
+  width: 120rpx;
+  height: 120rpx;
+  overflow: hidden;
 }
 
 .avatar-wrapper::after {
-    border: none;
+  border: none;
 }
 
 .avatar {
-    width: 120rpx;
-    height: 120rpx;
-    border-radius: 60rpx;
-    background-color: #f0f0f0;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 60rpx;
+  background-color: #f0f0f0;
 }
 
 .avatar-placeholder {
-    width: 120rpx;
-    height: 120rpx;
-    border-radius: 60rpx;
-    background-color: #e6f7ff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border: 2rpx solid #1890ff;
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 60rpx;
+  background-color: #e6f7ff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border: 2rpx solid #1890ff;
 }
 
 .edit-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 40rpx;
-    background-color: rgba(0, 0, 0, 0.5);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40rpx;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .camera-icon {
-    font-size: 20rpx;
-    color: #fff;
+  font-size: 20rpx;
+  color: #fff;
 }
 
 .avatar-text {
-    font-size: 48rpx;
-    font-weight: bold;
-    color: #1890ff;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #1890ff;
 }
 
 .user-info {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
 .user-name {
-    font-size: 38rpx;
-    font-weight: bold;
-    color: #333;
+  font-size: 38rpx;
+  font-weight: bold;
+  color: #333;
 }
 
 .user-email {
-    font-size: 26rpx;
-    color: #999;
-    margin-top: 8rpx;
+  font-size: 26rpx;
+  color: #999;
+  margin-top: 8rpx;
 }
 
 .menu-list {
-    background-color: #fff;
-    border-radius: 20rpx;
-    overflow: hidden;
-    margin-bottom: 40rpx;
+  background-color: #fff;
+  border-radius: 20rpx;
+  overflow: hidden;
+  margin-bottom: 40rpx;
 }
 
 .menu-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 34rpx 30rpx;
-    border-bottom: 2rpx solid #f5f5f5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 34rpx 30rpx;
+  border-bottom: 2rpx solid #f5f5f5;
 }
 
 .menu-item:last-child {
-    border-bottom: none;
+  border-bottom: none;
 }
 
 .menu-text {
-    font-size: 30rpx;
-    color: #333;
+  font-size: 30rpx;
+  color: #333;
 }
 
 .arrow-icon {
-    width: 16rpx;
-    height: 16rpx;
-    border-top: 3rpx solid #ccc;
-    border-right: 3rpx solid #ccc;
-    transform: rotate(45deg);
+  width: 16rpx;
+  height: 16rpx;
+  border-top: 3rpx solid #ccc;
+  border-right: 3rpx solid #ccc;
+  transform: rotate(45deg);
 }
 
 .logout-section {
-    margin-top: 60rpx;
+  margin-top: 60rpx;
 }
 
 .logout-btn {
-    width: 100%;
-    height: 90rpx;
-    line-height: 90rpx;
-    background-color: #fff;
-    color: #ff4d4f;
-    border-radius: 20rpx;
-    font-size: 30rpx;
-    border: none;
+  width: 100%;
+  height: 90rpx;
+  line-height: 90rpx;
+  background-color: #fff;
+  color: #ff4d4f;
+  border-radius: 20rpx;
+  font-size: 30rpx;
+  border: none;
 }
 
 .logout-btn::after {
-    border: none;
+  border: none;
 }
 </style>

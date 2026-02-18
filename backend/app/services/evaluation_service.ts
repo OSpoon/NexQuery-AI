@@ -29,7 +29,11 @@ export interface EvalResult {
 export default class EvaluationService {
   private spiderPath = app.makePath('storage/eval/spider')
 
-  async loadSamples(limit: number = 5, offset: number = 0, dbFilter?: string): Promise<SpiderSample[]> {
+  async loadSamples(
+    limit: number = 5,
+    offset: number = 0,
+    dbFilter?: string,
+  ): Promise<SpiderSample[]> {
     const devPath = path.join(this.spiderPath, 'dev.json')
     try {
       const content = await fs.readFile(devPath, 'utf-8')
@@ -47,7 +51,12 @@ export default class EvaluationService {
   }
 
   async evaluateSample(sample: SpiderSample): Promise<EvalResult> {
-    const sqlitePath = path.join(this.spiderPath, 'database', sample.db_id, `${sample.db_id}.sqlite`)
+    const sqlitePath = path.join(
+      this.spiderPath,
+      'database',
+      sample.db_id,
+      `${sample.db_id}.sqlite`,
+    )
 
     // 设置评测路径，以便智能体工具能访问到当前 SQLite
     DbHelper.setEvaluationPath(sqlitePath)
@@ -110,10 +119,11 @@ export default class EvaluationService {
       // 3. Sort the rows themselves to be row-order independent
       const normalize = (rows: any[]) =>
         rows
-          .map(row =>
-            Object.values(row)
-              .map(v => (v === null ? 'NULL' : String(v)))
-              .sort(), // Column order independent
+          .map(
+            row =>
+              Object.values(row)
+                .map(v => (v === null ? 'NULL' : String(v)))
+                .sort(), // Column order independent
           )
           .sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))) // Row order independent
 

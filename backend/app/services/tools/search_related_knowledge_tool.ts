@@ -7,10 +7,13 @@ import DiscoveryService from '#services/discovery_service'
  */
 export class SearchRelatedKnowledgeTool extends StructuredTool {
   name = 'search_related_knowledge'
-  description = 'Search for related business knowledge, domain terms, and few-shot SQL examples in the Knowledge Base. Use this when facing complex logic, ambiguous terms, or when you need a syntax template.'
+  description
+    = 'Search for related business knowledge, domain terms, and few-shot SQL examples in the Knowledge Base. Use this when facing complex logic, ambiguous terms, or when you need a syntax template.'
 
   schema = z.object({
-    query: z.string().describe('The natural language query or keywords to search for in the Knowledge Base'),
+    query: z
+      .string()
+      .describe('The natural language query or keywords to search for in the Knowledge Base'),
     limit: z.number().optional().default(3).describe('Maximum number of results to return'),
   })
 

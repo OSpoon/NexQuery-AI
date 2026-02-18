@@ -48,7 +48,11 @@ export default class ApiKeysController {
     const rawToken = token.value!.release()
 
     // Store encrypted token for later retrieval (user request)
-    const dbToken = await user.related('apiTokens').query().where('id', (token.identifier as any)).first()
+    const dbToken = await user
+      .related('apiTokens')
+      .query()
+      .where('id', token.identifier as any)
+      .first()
     if (dbToken) {
       dbToken.tokenRawEncrypted = CryptoHelper.encrypt(rawToken)
       await dbToken.save()

@@ -5,11 +5,16 @@ import { ValidateSqlTool } from '#services/tools/validate_sql_tool'
 
 export class RunQuerySampleTool extends StructuredTool {
   name = 'run_query_sample'
-  description = 'Safely execute a SELECT query to preview the FIRST 5 rows of results. Use this to verify your query logic, JOIN results, or data correctness before final submission. [STRICT] Only SELECT queries are allowed.'
+  description
+    = 'Safely execute a SELECT query to preview the FIRST 5 rows of results. Use this to verify your query logic, JOIN results, or data correctness before final submission. [STRICT] Only SELECT queries are allowed.'
 
   schema = z.object({
     dataSourceId: z.number().describe('The ID of the data source'),
-    sql: z.string().describe('The SQL SELECT query to sample. Should include a LIMIT (it will be forced to 5 anyway).'),
+    sql: z
+      .string()
+      .describe(
+        'The SQL SELECT query to sample. Should include a LIMIT (it will be forced to 5 anyway).',
+      ),
   })
 
   async _call({ dataSourceId, sql }: z.infer<typeof this.schema>): Promise<string> {
@@ -25,7 +30,14 @@ export class RunQuerySampleTool extends StructuredTool {
       const trimmedSql = sql.trim().toLowerCase()
 
       // 1.1 Block System Tables
-      const systemTables = ['sqlite_master', 'sqlite_temp_master', 'sqlite_sequence', 'information_schema', 'pg_catalog', 'mysql']
+      const systemTables = [
+        'sqlite_master',
+        'sqlite_temp_master',
+        'sqlite_sequence',
+        'information_schema',
+        'pg_catalog',
+        'mysql',
+      ]
       if (systemTables.some(t => trimmedSql.includes(t))) {
         return `Safety Block: Access to system tables (${systemTables.join(', ')}) is strictly prohibited. Please use the provided discovery tools instead.`
       }
@@ -40,12 +52,14 @@ export class RunQuerySampleTool extends StructuredTool {
       // Regex to remove existing limit or handle complex cases might be brittle,
       // so we use a subquery approach or just append if simple.
       // Easiest is to wrap in a subquery: SELECT * FROM ( {sql} ) as sample_sub LIMIT 5
-      const samplingSql = dbType === 'postgresql'
-        ? `SELECT * FROM (${sql.replace(/;$/, '')}) as sample_sub LIMIT 5`
-        : `SELECT * FROM (${sql.replace(/;$/, '')}) as sample_sub LIMIT 5`
+      const samplingSql
+        = dbType === 'postgresql'
+          ? `SELECT * FROM (${sql.replace(/;$/, '')}) as sample_sub LIMIT 5`
+          : `SELECT * FROM (${sql.replace(/;$/, '')}) as sample_sub LIMIT 5`
 
       const result = await client.rawQuery(samplingSql)
-      const rows = dbType === 'postgresql' ? result.rows : (Array.isArray(result[0]) ? result[0] : result)
+      const rows
+        = dbType === 'postgresql' ? result.rows : Array.isArray(result[0]) ? result[0] : result
 
       if (rows.length === 0) {
         return 'Query returned 0 rows. Please verify your JOIN conditions or WHERE clauses.'

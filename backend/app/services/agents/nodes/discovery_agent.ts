@@ -5,9 +5,7 @@ import { SkillContext } from '#services/skills/skill_interface'
 
 export class DiscoveryAgentNode extends CommonAgentNode {
   protected getSkills(_context: SkillContext) {
-    return [
-      new DiscoverySkill(),
-    ]
+    return [new DiscoverySkill()]
   }
 
   // Override to add standalone tools if needed, but for now DiscoverySkill is enough.

@@ -119,7 +119,11 @@ const columns = computed<ColumnDef<FeedbackItem>[]>(() => [
     header: t('common.source_type'),
     cell: ({ row }) => {
       const type = row.getValue('sourceType') as string
-      return h(Badge, { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' }, () => type === 'elasticsearch' ? 'Elasticsearch' : 'SQL')
+      return h(
+        Badge,
+        { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' },
+        () => (type === 'elasticsearch' ? 'Elasticsearch' : 'SQL'),
+      )
     },
   },
   {
@@ -366,7 +370,9 @@ onMounted(fetchFeedbacks)
             <Badge :variant="selectedItem?.isHelpful ? 'default' : 'destructive'" class="ml-2">
               <ThumbsUp v-if="selectedItem?.isHelpful" class="h-3 w-3 mr-1" />
               <ThumbsDown v-else class="h-3 w-3 mr-1" />
-              {{ selectedItem?.isHelpful ? t('feedback.helpful') : t('feedback.needs_improvement') }}
+              {{
+                selectedItem?.isHelpful ? t('feedback.helpful') : t('feedback.needs_improvement')
+              }}
             </Badge>
             <Badge variant="outline" class="ml-1 capitalize">
               {{ selectedItem?.sourceType }}
@@ -381,7 +387,9 @@ onMounted(fetchFeedbacks)
           <div class="space-y-6">
             <!-- Question -->
             <div class="space-y-2">
-              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{ t('feedback.detail_dialog.original_question') }}</Label>
+              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{
+                t('feedback.detail_dialog.original_question')
+              }}</Label>
               <div class="p-3 bg-muted/50 rounded-lg text-sm border">
                 {{
                   selectedItem?.question === 'Unknown'
@@ -393,10 +401,14 @@ onMounted(fetchFeedbacks)
 
             <!-- Unified Interaction Flow -->
             <div class="space-y-3">
-              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{ t('feedback.detail_dialog.interaction') }}</Label>
+              <Label class="text-sm font-semibold text-muted-foreground uppercase tracking-wider">{{
+                t('feedback.detail_dialog.interaction')
+              }}</Label>
 
               <div v-if="loadingContext" class="flex items-center justify-center py-12">
-                <span class="text-sm text-muted-foreground italic animate-pulse">{{ t('feedback.detail_dialog.retrieving') }}</span>
+                <span class="text-sm text-muted-foreground italic animate-pulse">{{
+                  t('feedback.detail_dialog.retrieving')
+                }}</span>
               </div>
 
               <template v-else-if="contextMessages.length > 0">
@@ -463,7 +475,9 @@ onMounted(fetchFeedbacks)
                       v-if="selectedItem?.generatedSql"
                       class="whitespace-pre-wrap font-mono text-[11px] leading-relaxed"
                     >{{ stripSqlMarkdown(selectedItem.generatedSql) }}</pre>
-                    <span v-else class="text-muted-foreground italic">{{ t('feedback.detail_dialog.no_captured') }}</span>
+                    <span v-else class="text-muted-foreground italic">{{
+                      t('feedback.detail_dialog.no_captured')
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -471,7 +485,9 @@ onMounted(fetchFeedbacks)
 
             <!-- User Correction -->
             <div v-if="selectedItem?.userCorrection" class="space-y-2 pt-2 border-t">
-              <Label class="text-sm font-semibold text-primary uppercase tracking-wider">{{ t('feedback.detail_dialog.user_expected') }}</Label>
+              <Label class="text-sm font-semibold text-primary uppercase tracking-wider">{{
+                t('feedback.detail_dialog.user_expected')
+              }}</Label>
               <SqlEditor
                 v-model="selectedItem.userCorrection"
                 class="h-[200px] border rounded-md overflow-hidden"

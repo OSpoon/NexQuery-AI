@@ -78,7 +78,9 @@ function request(options: RequestOptions): Promise<any> {
     }
 
     uni.request({
-      url: url.startsWith('http') ? url : `${baseURL}${url.startsWith('/') ? '' : '/'}${url}`,
+      url: url.startsWith('http')
+        ? url
+        : `${baseURL}${url.startsWith('/') ? '' : '/'}${url}`,
       method,
       data,
       header: {
@@ -95,9 +97,10 @@ function request(options: RequestOptions): Promise<any> {
           && responseData.data
           && typeof responseData.data === 'string'
         ) {
-          const isEncrypted = res.header['x-encryption-enabled'] === 'true'
-            || res.header['X-Encryption-Enabled'] === 'true'
-            || res.header['X-Encryption-Enabled']?.toLowerCase() === 'true'
+          const isEncrypted
+            = res.header['x-encryption-enabled'] === 'true'
+              || res.header['X-Encryption-Enabled'] === 'true'
+              || res.header['X-Encryption-Enabled']?.toLowerCase() === 'true'
 
           if (isEncrypted) {
             try {
@@ -138,10 +141,14 @@ function request(options: RequestOptions): Promise<any> {
 }
 
 const api = {
-  get: (url: string, data?: any, header?: any) => request({ url, method: 'GET', data, header }),
-  post: (url: string, data?: any, header?: any) => request({ url, method: 'POST', data, header }),
-  put: (url: string, data?: any, header?: any) => request({ url, method: 'PUT', data, header }),
-  delete: (url: string, header?: any) => request({ url, method: 'DELETE', header }),
+  get: (url: string, data?: any, header?: any) =>
+    request({ url, method: 'GET', data, header }),
+  post: (url: string, data?: any, header?: any) =>
+    request({ url, method: 'POST', data, header }),
+  put: (url: string, data?: any, header?: any) =>
+    request({ url, method: 'PUT', data, header }),
+  delete: (url: string, header?: any) =>
+    request({ url, method: 'DELETE', header }),
 }
 
 export { baseURL, cryptoService, serverRoot }

@@ -57,7 +57,7 @@ export const useNotificationStore = defineStore('notification', () => {
   async function markAllAsRead() {
     try {
       await api.post('/user/notifications/read-all')
-      notifications.value.forEach(n => n.isRead = true)
+      notifications.value.forEach(n => (n.isRead = true))
       unreadCount.value = 0
     }
     catch (e) {

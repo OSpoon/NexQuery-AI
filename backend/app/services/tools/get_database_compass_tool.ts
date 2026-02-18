@@ -4,7 +4,8 @@ import DiscoveryService from '#services/discovery_service'
 
 export class GetDatabaseCompassTool extends StructuredTool {
   name = 'get_database_compass'
-  description = '获取当前数据库的全库外键拓扑图（罗盘）。返回所有表之间的关联路径，帮助你在多表关联查询时快速定位桥接表。'
+  description
+    = '获取当前数据库的全库外键拓扑图（罗盘）。返回所有表之间的关联路径，帮助你在多表关联查询时快速定位桥接表。'
 
   schema = z.object({
     dataSourceId: z.number().describe('数据源 ID'),

@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
-import { AlertTriangle, Bell, CheckCheck, CheckCircle2, Info, MailOpen, XCircle } from 'lucide-vue-next'
+import {
+  AlertTriangle,
+  Bell,
+  CheckCheck,
+  CheckCircle2,
+  Info,
+  MailOpen,
+  XCircle,
+} from 'lucide-vue-next'
 import { onMounted, ref } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,19 +34,27 @@ onMounted(() => {
 
 function getIcon(type: string) {
   switch (type) {
-    case 'success': return CheckCircle2
-    case 'error': return XCircle
-    case 'warning': return AlertTriangle
-    default: return Info
+    case 'success':
+      return CheckCircle2
+    case 'error':
+      return XCircle
+    case 'warning':
+      return AlertTriangle
+    default:
+      return Info
   }
 }
 
 function getIconColor(type: string) {
   switch (type) {
-    case 'success': return 'text-green-500'
-    case 'error': return 'text-red-500'
-    case 'warning': return 'text-amber-500'
-    default: return 'text-blue-500'
+    case 'success':
+      return 'text-green-500'
+    case 'error':
+      return 'text-red-500'
+    case 'warning':
+      return 'text-amber-500'
+    default:
+      return 'text-blue-500'
   }
 }
 
@@ -54,7 +70,11 @@ async function handleMarkRead(id: number) {
 <template>
   <Sheet v-model:open="isOpen">
     <SheetTrigger as-child>
-      <Button variant="ghost" size="icon" class="relative group h-8 w-8 rounded-full hover:bg-accent">
+      <Button
+        variant="ghost"
+        size="icon"
+        class="relative group h-8 w-8 rounded-full hover:bg-accent"
+      >
         <Bell class="h-4 w-4 opacity-70 group-hover:opacity-100 transition-opacity" />
         <Badge
           v-if="store.unreadCount > 0"
@@ -66,7 +86,10 @@ async function handleMarkRead(id: number) {
       </Button>
     </SheetTrigger>
 
-    <SheetContent side="right" class="w-[400px] sm:w-[540px] p-0 flex flex-col h-full bg-background/95 backdrop-blur-sm">
+    <SheetContent
+      side="right"
+      class="w-[400px] sm:w-[540px] p-0 flex flex-col h-full bg-background/95 backdrop-blur-sm"
+    >
       <SheetHeader class="p-6 pb-4">
         <div class="flex items-center justify-between">
           <SheetTitle class="text-xl font-bold flex items-center gap-2">
@@ -75,9 +98,7 @@ async function handleMarkRead(id: number) {
               {{ store.unreadCount }} 条未读
             </Badge>
           </SheetTitle>
-          <SheetDescription>
-            查看并管理您的系统通知和任务动态。
-          </SheetDescription>
+          <SheetDescription> 查看并管理您的系统通知和任务动态。 </SheetDescription>
           <Button
             v-if="store.unreadCount > 0"
             variant="ghost"
@@ -94,7 +115,10 @@ async function handleMarkRead(id: number) {
       <Separator />
 
       <ScrollArea class="flex-1 px-1">
-        <div v-if="store.notifications.length === 0" class="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3">
+        <div
+          v-if="store.notifications.length === 0"
+          class="flex flex-col items-center justify-center h-[400px] text-muted-foreground gap-3"
+        >
           <MailOpen class="h-12 w-12 opacity-20" />
           <p>暂无消息通知</p>
         </div>
@@ -114,12 +138,17 @@ async function handleMarkRead(id: number) {
                   class="h-5 w-5 shrink-0"
                   :class="getIconColor(item.type)"
                 />
-                <h4 class="font-semibold text-sm leading-none" :class="{ 'font-bold': !item.isRead }">
+                <h4
+                  class="font-semibold text-sm leading-none"
+                  :class="{ 'font-bold': !item.isRead }"
+                >
                   {{ item.title }}
                 </h4>
               </div>
               <span class="text-[10px] text-muted-foreground whitespace-nowrap">
-                {{ formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: zhCN }) }}
+                {{
+                  formatDistanceToNow(new Date(item.createdAt), { addSuffix: true, locale: zhCN })
+                }}
               </span>
             </div>
 
@@ -127,9 +156,14 @@ async function handleMarkRead(id: number) {
               {{ item.content }}
             </p>
 
-            <div v-if="!item.isRead" class="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-primary rounded-full" />
+            <div
+              v-if="!item.isRead"
+              class="absolute left-2 top-1/2 -translate-y-1/2 w-1 h-3/4 bg-primary rounded-full"
+            />
 
-            <div class="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+            <div
+              class="absolute right-4 bottom-4 opacity-0 group-hover:opacity-100 transition-opacity flex gap-2"
+            >
               <!-- Future actions like 'Delete' can go here -->
             </div>
           </div>
@@ -139,7 +173,9 @@ async function handleMarkRead(id: number) {
       <Separator />
 
       <div class="p-4 bg-muted/30">
-        <p class="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-medium">
+        <p
+          class="text-[10px] text-center text-muted-foreground uppercase tracking-widest font-medium"
+        >
           仅保留最近 50 条消息通知
         </p>
       </div>

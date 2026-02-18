@@ -5,7 +5,14 @@ import { javascript } from '@codemirror/lang-javascript'
 import { json } from '@codemirror/lang-json'
 import { MySQL, PostgreSQL, sql } from '@codemirror/lang-sql'
 import { EditorState } from '@codemirror/state'
-import { Decoration, EditorView, hoverTooltip, keymap, MatchDecorator, ViewPlugin } from '@codemirror/view'
+import {
+  Decoration,
+  EditorView,
+  hoverTooltip,
+  keymap,
+  MatchDecorator,
+  ViewPlugin,
+} from '@codemirror/view'
 
 // --- SHARED VARIABLE HIGHLIGHTING ---
 const variableMatcher = new MatchDecorator({
@@ -13,23 +20,29 @@ const variableMatcher = new MatchDecorator({
   decoration: (_match) => {
     return Decoration.mark({
       class: 'cm-custom-variable',
-      attributes: { style: 'color: #b45308; font-weight: bold; background: rgba(180, 83, 9, 0.05); border-radius: 2px; padding: 0 2px;' },
+      attributes: {
+        style:
+          'color: #b45308; font-weight: bold; background: rgba(180, 83, 9, 0.05); border-radius: 2px; padding: 0 2px;',
+      },
     })
   },
 })
 
-export const variableHighlight = ViewPlugin.fromClass(class {
-  decorations: DecorationSet
-  constructor(view: EditorView) {
-    this.decorations = variableMatcher.createDeco(view)
-  }
+export const variableHighlight = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) {
+      this.decorations = variableMatcher.createDeco(view)
+    }
 
-  update(update: ViewUpdate) {
-    this.decorations = variableMatcher.updateDeco(update, this.decorations)
-  }
-}, {
-  decorations: instance => instance.decorations,
-})
+    update(update: ViewUpdate) {
+      this.decorations = variableMatcher.updateDeco(update, this.decorations)
+    }
+  },
+  {
+    decorations: instance => instance.decorations,
+  },
+)
 
 // --- SQL EXTENSIONS ---
 export interface Column {
@@ -77,7 +90,8 @@ export function getSqlExtensions(
     if (!/\s$/.test(textBefore))
       return null
 
-    const isInCondition = /\b(?:WHERE|ON|HAVING|AND|OR)\b(?![\s\S]+\b(?:SELECT|FROM|GROUP|ORDER|LIMIT)\b)/i.test(upper)
+    const isInCondition
+      = /\b(?:WHERE|ON|HAVING|AND|OR)\b(?![\s\S]+\b(?:SELECT|FROM|GROUP|ORDER|LIMIT)\b)/i.test(upper)
 
     if (isInCondition) {
       return {
@@ -157,11 +171,13 @@ export function getSqlExtensions(
     variableHighlight,
     sqlHover,
     // Add custom autocomplete sources without overriding dialect ones
-    EditorState.languageData.of(() => [{
-      autocomplete: (context: CompletionContext) => {
-        return variableCompletion(context) || contextCompletion(context)
+    EditorState.languageData.of(() => [
+      {
+        autocomplete: (context: CompletionContext) => {
+          return variableCompletion(context) || contextCompletion(context)
+        },
       },
-    }]),
+    ]),
     keymap.of([
       {
         key: 'Shift-Alt-f',
@@ -192,26 +208,38 @@ const luceneMatcher = new MatchDecorator({
   decoration: (match) => {
     const text = match[0]
     if (['AND', 'OR', 'NOT', 'TO'].includes(text)) {
-      return Decoration.mark({ class: 'cm-lucene-keyword', attributes: { style: 'color: #7c3aed; font-weight: bold;' } })
+      return Decoration.mark({
+        class: 'cm-lucene-keyword',
+        attributes: { style: 'color: #7c3aed; font-weight: bold;' },
+      })
     }
-    return Decoration.mark({ class: 'cm-lucene-operator', attributes: { style: 'color: #059669;' } })
+    return Decoration.mark({
+      class: 'cm-lucene-operator',
+      attributes: { style: 'color: #059669;' },
+    })
   },
 })
 
-export const luceneHighlight = ViewPlugin.fromClass(class {
-  decorations: DecorationSet
-  constructor(view: EditorView) {
-    this.decorations = luceneMatcher.createDeco(view)
-  }
+export const luceneHighlight = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) {
+      this.decorations = luceneMatcher.createDeco(view)
+    }
 
-  update(update: ViewUpdate) {
-    this.decorations = luceneMatcher.updateDeco(update, this.decorations)
-  }
-}, {
-  decorations: instance => instance.decorations,
-})
+    update(update: ViewUpdate) {
+      this.decorations = luceneMatcher.updateDeco(update, this.decorations)
+    }
+  },
+  {
+    decorations: instance => instance.decorations,
+  },
+)
 
-export function getLuceneExtensions(fields: { name: string, type: string }[] = [], variables: { name: string, description?: string }[] = []): Extension[] {
+export function getLuceneExtensions(
+  fields: { name: string, type: string }[] = [],
+  variables: { name: string, description?: string }[] = [],
+): Extension[] {
   const fieldCompletion: CompletionSource = (context: CompletionContext) => {
     const word = context.matchBefore(/\w*/)
     if (!word || (word.from === word.to && !context.explicit))
@@ -220,7 +248,11 @@ export function getLuceneExtensions(fields: { name: string, type: string }[] = [
       from: word.from,
       options: [
         ...fields.map(f => ({ label: f.name, type: 'property', detail: f.type })),
-        ...variables.map(v => ({ label: `{{${v.name}}}`, type: 'variable', detail: v.description })),
+        ...variables.map(v => ({
+          label: `{{${v.name}}}`,
+          type: 'variable',
+          detail: v.description,
+        })),
       ],
     }
   }
@@ -229,8 +261,10 @@ export function getLuceneExtensions(fields: { name: string, type: string }[] = [
     luceneHighlight,
     variableHighlight,
     EditorView.lineWrapping,
-    EditorState.languageData.of(() => [{
-      autocomplete: fieldCompletion,
-    }]),
+    EditorState.languageData.of(() => [
+      {
+        autocomplete: fieldCompletion,
+      },
+    ]),
   ]
 }

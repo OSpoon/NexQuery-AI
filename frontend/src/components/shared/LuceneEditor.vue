@@ -1,23 +1,27 @@
 <script setup lang="ts">
-import { AlertCircle, Braces as BracesIcon, CheckCircle2, Eraser, HelpCircle } from 'lucide-vue-next'
+import {
+  AlertCircle,
+  Braces as BracesIcon,
+  CheckCircle2,
+  Eraser,
+  HelpCircle,
+} from 'lucide-vue-next'
 import { computed, ref, watch } from 'vue'
 import { Button } from '@/components/ui/button'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@/components/ui/popover'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { getLuceneExtensions } from '@/lib/codemirror-extensions'
 import CodeMirrorEditor from './CodeMirrorEditor.vue'
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  variables?: Array<{ name: string, description?: string }>
-  fields?: Array<{ name: string, type: string }>
-  readonly?: boolean
-  hideToolbar?: boolean
-}>(), {
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    variables?: Array<{ name: string, description?: string }>
+    fields?: Array<{ name: string, type: string }>
+    readonly?: boolean
+    hideToolbar?: boolean
+  }>(),
+  {},
+)
 
 const emit = defineEmits(['update:modelValue'])
 
@@ -47,9 +51,12 @@ function validateLucene() {
   }
 }
 
-watch(() => props.modelValue, () => {
-  validateLucene()
-})
+watch(
+  () => props.modelValue,
+  () => {
+    validateLucene()
+  },
+)
 
 function clearSql() {
   emit('update:modelValue', '')
@@ -66,9 +73,7 @@ defineExpose({
 <template>
   <div
     class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px] font-mono text-sm shadow-inner group transition-colors duration-200 bg-white border-zinc-200"
-    :class="[
-      { 'min-h-[150px]': hideToolbar, 'border-red-900/50': syntaxError },
-    ]"
+    :class="[{ 'min-h-[150px]': hideToolbar, 'border-red-900/50': syntaxError }]"
   >
     <!-- Toolbar -->
     <div
@@ -97,18 +102,33 @@ defineExpose({
               <HelpCircle class="h-3.5 w-3.5" />
             </Button>
           </PopoverTrigger>
-          <PopoverContent class="w-80 p-0 shadow-lg bg-white border-zinc-200" side="bottom" align="start">
-            <div class="p-3 border-b text-xs font-semibold bg-emerald-50 border-zinc-200 text-zinc-800">
+          <PopoverContent
+            class="w-80 p-0 shadow-lg bg-white border-zinc-200"
+            side="bottom"
+            align="start"
+          >
+            <div
+              class="p-3 border-b text-xs font-semibold bg-emerald-50 border-zinc-200 text-zinc-800"
+            >
               Lucene 语法快速参考
             </div>
             <div class="p-2 grid gap-1.5">
-              <div v-for="item in luceneHelp" :key="item.title" class="px-2 py-1.5 rounded-sm transition-colors hover:bg-zinc-50">
+              <div
+                v-for="item in luceneHelp"
+                :key="item.title"
+                class="px-2 py-1.5 rounded-sm transition-colors hover:bg-zinc-50"
+              >
                 <div class="text-[11px] font-medium text-emerald-500 mb-0.5">
                   {{ item.title }}
                 </div>
                 <div
                   class="text-[10px] text-zinc-600"
-                  v-html="item.content.replace(/`([^`]+)`/g, `<code class='px-1 rounded font-mono bg-zinc-100 text-zinc-900'>$1</code>`)"
+                  v-html="
+                    item.content.replace(
+                      /`([^`]+)`/g,
+                      `<code class='px-1 rounded font-mono bg-zinc-100 text-zinc-900'>$1</code>`,
+                    )
+                  "
                 />
               </div>
               <div class="mt-1 pt-2 border-t px-2 text-[10px] italic border-zinc-200 text-zinc-400">
@@ -169,24 +189,33 @@ defineExpose({
         leave-from-class="translate-y-0 opacity-100"
         leave-to-class="translate-y-1 opacity-0"
       >
-        <div v-if="syntaxError" class="absolute bottom-2 left-2 right-2 flex items-start gap-2 rounded border p-2 text-[11px] backdrop-blur-md shadow-xl z-50 transition-all duration-300 border-red-200 bg-red-50/95 text-red-700 shadow-red-200/20">
+        <div
+          v-if="syntaxError"
+          class="absolute bottom-2 left-2 right-2 flex items-start gap-2 rounded border p-2 text-[11px] backdrop-blur-md shadow-xl z-50 transition-all duration-300 border-red-200 bg-red-50/95 text-red-700 shadow-red-200/20"
+        >
           <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
           <span class="leading-relaxed">{{ syntaxError }}</span>
         </div>
       </Transition>
 
-      <div v-if="!modelValue && !readonly" class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10 select-none">
+      <div
+        v-if="!modelValue && !readonly"
+        class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10 select-none"
+      >
         <div class="flex flex-col items-center gap-3">
           <HelpCircle class="h-10 w-10 text-zinc-200" />
           <p v-pre class="text-[11px] font-medium text-zinc-300">
-            输入 Lucene 查询或使用 {{变量}}
+            输入 Lucene 查询或使用 {{ 变量 }}
           </p>
         </div>
       </div>
     </div>
 
     <!-- Footer Status -->
-    <div v-if="!hideToolbar" class="flex h-6 items-center justify-between border-t px-2 text-[10px] transition-colors bg-zinc-50 border-zinc-200 text-zinc-500">
+    <div
+      v-if="!hideToolbar"
+      class="flex h-6 items-center justify-between border-t px-2 text-[10px] transition-colors bg-zinc-50 border-zinc-200 text-zinc-500"
+    >
       <div class="flex items-center gap-3">
         <div v-if="syntaxError" class="flex items-center gap-1">
           <AlertCircle class="h-3 w-3 text-red-500/70" />

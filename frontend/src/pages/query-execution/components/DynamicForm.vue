@@ -111,11 +111,7 @@ const onSubmit = handleSubmit((values) => {
     </div>
 
     <div class="flex justify-start pt-2" :class="{ 'mt-0': schema.length === 0 }">
-      <Button
-        type="submit"
-        class="w-full md:w-auto px-8"
-        :disabled="isExecuting"
-      >
+      <Button type="submit" class="w-full md:w-auto px-8" :disabled="isExecuting">
         <template v-if="isExecuting">
           <Loader2 class="mr-2 h-4 w-4 animate-spin" />
           Running...

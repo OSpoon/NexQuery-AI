@@ -3,7 +3,9 @@ import CryptoJS from 'crypto-js'
 // IMPORTANT: Deep fix for "Native crypto module could not be used" in environments without window.crypto (like WeChat)
 // Only patch if we are strictly in an environment without native crypto to avoid downgrading security in Browsers/Node.
 try {
-  const hasNativeCrypto = (typeof window !== 'undefined' && (window.crypto || (window as any).msCrypto))
+  const hasNativeCrypto
+    = (typeof window !== 'undefined'
+      && (window.crypto || (window as any).msCrypto))
     || (typeof globalThis !== 'undefined' && (globalThis as any).crypto)
 
   if (!hasNativeCrypto) {
@@ -16,7 +18,9 @@ try {
         }
         return lib.WordArray.create(words, nBytes)
       }
-      console.warn('NexQuery: CryptoJS.lib.WordArray.random has been patched (Insecure Fallback for Non-Standard Env)')
+      console.warn(
+        'NexQuery: CryptoJS.lib.WordArray.random has been patched (Insecure Fallback for Non-Standard Env)',
+      )
     }
   }
 }

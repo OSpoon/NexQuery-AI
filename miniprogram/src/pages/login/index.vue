@@ -92,20 +92,31 @@ function handleWechatLogin() {
     </view>
 
     <view class="content">
-      <button class="login-btn" type="button" :loading="loading" @click="handleWechatLogin">
+      <button
+        class="login-btn"
+        type="button"
+        :loading="loading"
+        @click="handleWechatLogin"
+      >
         微信一键登录
       </button>
       <view class="agreement-box">
         <text class="tips">
           登录即代表您同意
         </text>
-        <text class="link" @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })">
+        <text
+          class="link"
+          @click="uni.navigateTo({ url: '/pages/profile/policy?type=service' })"
+        >
           《用户协议》
         </text>
         <text class="tips">
           和
         </text>
-        <text class="link" @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })">
+        <text
+          class="link"
+          @click="uni.navigateTo({ url: '/pages/profile/policy?type=privacy' })"
+        >
           《隐私政策》
         </text>
       </view>

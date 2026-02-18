@@ -26,7 +26,9 @@ export default class EvalSpider extends BaseCommand {
     const sampleOffset = this.offset
     const dbFilter = this.db
 
-    this.logger.info(`Starting Spider evaluation (Limit: ${sampleLimit}, Offset: ${sampleOffset}${dbFilter ? `, DB: ${dbFilter}` : ''})...`)
+    this.logger.info(
+      `Starting Spider evaluation (Limit: ${sampleLimit}, Offset: ${sampleOffset}${dbFilter ? `, DB: ${dbFilter}` : ''})...`,
+    )
 
     const samples = await evalService.loadSamples(sampleLimit, sampleOffset, dbFilter)
     if (samples.length === 0) {

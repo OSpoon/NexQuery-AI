@@ -38,7 +38,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { useAuthStore } from '@/stores/auth'
-
+import { useNotificationStore } from '@/stores/notification'
 import { useSettingsStore } from '@/stores/settings'
 
 defineProps<{
@@ -133,7 +133,7 @@ function setTheme(themeValue: string) {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem @click="router.push('/profile')">
+            <DropdownMenuItem aria-label="Account Settings" @click="router.push('/profile')">
               <BadgeCheck />
               Account
             </DropdownMenuItem>
@@ -188,6 +188,7 @@ function setTheme(themeValue: string) {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="flex items-center gap-2 cursor-pointer w-full"
+                :aria-label="`Open ${item.label}`"
               >
                 <component :is="item.icon" class="size-4" />
                 {{ item.label }}
@@ -199,6 +200,7 @@ function setTheme(themeValue: string) {
                 target="_blank"
                 rel="noopener noreferrer"
                 class="flex items-center gap-2 cursor-pointer w-full"
+                aria-label="View on GitHub"
               >
                 <Github class="size-4" />
                 GitHub
@@ -206,7 +208,7 @@ function setTheme(themeValue: string) {
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleLogout">
+          <DropdownMenuItem aria-label="Log out of account" @click="handleLogout">
             <LogOut />
             Log out
           </DropdownMenuItem>

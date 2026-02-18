@@ -145,9 +145,7 @@ onMounted(fetchRoles)
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>
-            {{
-              editingRole ? t('roles.edit_role') : t('roles.create_role')
-            }}
+            {{ editingRole ? t('roles.edit_role') : t('roles.create_role') }}
           </DialogTitle>
           <DialogDescription>{{ t('roles.config_desc') }}</DialogDescription>
         </DialogHeader>

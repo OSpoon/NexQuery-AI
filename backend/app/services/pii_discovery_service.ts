@@ -58,7 +58,9 @@ export default class PiiDiscoveryService {
             && attempts < maxAttempts
           ) {
             const delay = 2 ** attempts * 2000 // 4s, 8s, 16s, 32s...
-            logger.warn(`[PiiDiscovery] Rate limit hit (Attempt ${attempts}/${maxAttempts}). Retrying in ${delay}ms...`)
+            logger.warn(
+              `[PiiDiscovery] Rate limit hit (Attempt ${attempts}/${maxAttempts}). Retrying in ${delay}ms...`,
+            )
             await new Promise(resolve => setTimeout(resolve, delay))
             continue
           }
@@ -72,11 +74,17 @@ export default class PiiDiscoveryService {
 
       let content = response.content as string
       // Clean up markdown block if present
-      content = content.replace(/```json/g, '').replace(/```/g, '').trim()
+      content = content
+        .replace(/```json/g, '')
+        .replace(/```/g, '')
+        .trim()
 
       const discovered = JSON.parse(content) as PiiTableConfig[]
 
-      logger.info({ dataSourceId: (schema as any).dataSourceId, tablesFound: discovered.length }, 'PII Discovery completed successfully')
+      logger.info(
+        { dataSourceId: (schema as any).dataSourceId, tablesFound: discovered.length },
+        'PII Discovery completed successfully',
+      )
       return discovered
     } catch (e) {
       logger.error({ error: e, stack: e.stack }, 'PII Discovery failed')
@@ -123,6 +131,9 @@ export default class PiiDiscoveryService {
     }
 
     await ds.save()
-    logger.info({ dataSourceId: ds.id, tablesDiscovered: piiConfig.length }, 'PII discovery applied to advanced_config')
+    logger.info(
+      { dataSourceId: ds.id, tablesDiscovered: piiConfig.length },
+      'PII discovery applied to advanced_config',
+    )
   }
 }

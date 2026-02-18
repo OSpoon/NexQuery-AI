@@ -76,7 +76,12 @@ const columns: ColumnDef<Permission>[] = [
   {
     accessorKey: 'description',
     header: () => t('permissions.description'),
-    cell: ({ row }) => h('div', { class: 'text-sm text-muted-foreground max-w-[300px] truncate' }, row.getValue('description') as string || '-'),
+    cell: ({ row }) =>
+      h(
+        'div',
+        { class: 'text-sm text-muted-foreground max-w-[300px] truncate' },
+        (row.getValue('description') as string) || '-',
+      ),
   },
   {
     id: 'actions',
@@ -136,9 +141,7 @@ onMounted(fetchPermissions)
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>
-            {{
-              editingPermission ? t('permissions.edit') : t('permissions.create')
-            }}
+            {{ editingPermission ? t('permissions.edit') : t('permissions.create') }}
           </DialogTitle>
           <DialogDescription>{{ t('permissions.config_desc') }}</DialogDescription>
         </DialogHeader>

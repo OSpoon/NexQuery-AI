@@ -23,12 +23,7 @@ export default defineConfig(({ mode }) => {
       tailwindcss(),
       vueDevTools(),
       AutoImport({
-        imports: [
-          'vue',
-          'vue-router',
-          'pinia',
-          '@vueuse/core',
-        ],
+        imports: ['vue', 'vue-router', 'pinia', '@vueuse/core'],
         dts: 'src/auto-imports.d.ts',
         dirs: ['./src/composables', './src/stores'],
         vueTemplate: true,

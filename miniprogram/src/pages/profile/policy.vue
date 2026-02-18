@@ -108,23 +108,23 @@ NexQuery AI（以下简称“我们”）非常重视用户的隐私和个人信
 
 <style scoped>
 .container {
-    min-height: 100vh;
-    background-color: #fff;
-    padding: 40rpx;
+  min-height: 100vh;
+  background-color: #fff;
+  padding: 40rpx;
 }
 
 .title {
-    font-size: 36rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 30rpx;
-    text-align: center;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 30rpx;
+  text-align: center;
 }
 
 .content {
-    font-size: 28rpx;
-    color: #666;
-    line-height: 1.8;
-    white-space: pre-wrap;
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.8;
+  white-space: pre-wrap;
 }
 </style>

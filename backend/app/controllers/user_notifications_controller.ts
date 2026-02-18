@@ -12,9 +12,7 @@ export default class UserNotificationsController {
     const type = request.input('type')
     const onlyUnread = request.input('unread') === 'true'
 
-    const query = Notification.query()
-      .where('userId', user.id)
-      .orderBy('createdAt', 'desc')
+    const query = Notification.query().where('userId', user.id).orderBy('createdAt', 'desc')
 
     if (type) {
       query.where('type', type)

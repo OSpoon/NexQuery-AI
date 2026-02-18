@@ -190,7 +190,9 @@ export default class DbHelper {
   /**
    * [EVALUATION ONLY] Get raw sqlite connection from a direct file path
    */
-  static async getRawConnectionFromPath(filePath: string): Promise<{ client: any, dbType: string }> {
+  static async getRawConnectionFromPath(
+    filePath: string,
+  ): Promise<{ client: any, dbType: string }> {
     const dbInstance = new sqlite3.Database(filePath)
     return { client: dbInstance, dbType: 'sqlite' }
   }
@@ -272,7 +274,9 @@ export default class DbHelper {
       try {
         const { default: ESClient } = await import('#services/elasticsearch_service')
         const esService = new ESClient({
-          node: config.host.startsWith('http') ? config.host : `http://${config.host}:${config.port}`,
+          node: config.host.startsWith('http')
+            ? config.host
+            : `http://${config.host}:${config.port}`,
           auth: {
             username: config.username,
             password: config.password,

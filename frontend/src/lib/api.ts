@@ -30,6 +30,13 @@ api.interceptors.request.use((config) => {
     config.headers.Authorization = `Bearer ${token}`
   }
 
+  // Handle FormData Content-Type
+  if (config.data instanceof FormData) {
+    if (config.headers['Content-Type']) {
+      delete config.headers['Content-Type']
+    }
+  }
+
   // Encryption Logic
   if (cryptoService && config.data && !(config.data instanceof FormData)) {
     try {

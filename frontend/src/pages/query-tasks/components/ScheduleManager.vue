@@ -32,8 +32,7 @@ import { useSettingsStore } from '@/stores/settings'
 const props = defineProps<{
   queryTaskId: number
   hasParameters?: boolean
-}
->()
+}>()
 interface ScheduledQuery {
   id: number
   cronExpression: string | null
@@ -328,7 +327,10 @@ onMounted(async () => {
               </div>
             </TableCell>
             <TableCell>
-              <div v-if="s.parameters && Object.keys(s.parameters).length > 0" class="flex flex-wrap gap-1">
+              <div
+                v-if="s.parameters && Object.keys(s.parameters).length > 0"
+                class="flex flex-wrap gap-1"
+              >
                 <span
                   v-for="(val, key) in s.parameters"
                   :key="key"
@@ -355,17 +357,20 @@ onMounted(async () => {
               </div>
             </TableCell>
             <TableCell>
-              <Switch
-                :model-value="s.isActive"
-                @update:model-value="() => toggleActive(s)"
-              />
+              <Switch :model-value="s.isActive" @update:model-value="() => toggleActive(s)" />
             </TableCell>
             <TableCell class="text-xs text-muted-foreground">
               {{ s.creator?.fullName || 'System' }}
               <div>{{ new Date(s.createdAt).toLocaleDateString() }}</div>
             </TableCell>
             <TableCell class="text-right space-x-2">
-              <Button type="button" variant="ghost" size="icon" title="Run Now" @click="executeSchedule(s)">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                title="Run Now"
+                @click="executeSchedule(s)"
+              >
                 <Play class="h-4 w-4 text-green-600" />
               </Button>
               <Button type="button" variant="ghost" size="icon" @click="openEditDialog(s)">
@@ -489,14 +494,19 @@ onMounted(async () => {
           </Tabs>
 
           <!-- Dynamic Parameters Section -->
-          <div v-if="task?.formSchema && task.formSchema.length > 0" class="space-y-4 border-t pt-4">
+          <div
+            v-if="task?.formSchema && task.formSchema.length > 0"
+            class="space-y-4 border-t pt-4"
+          >
             <Label class="text-sm font-bold flex items-center gap-2">
               <Settings class="h-4 w-4" />
               Query Parameters
             </Label>
             <div class="grid grid-cols-1 gap-4">
               <div v-for="field in task.formSchema" :key="field.name" class="space-y-1.5">
-                <Label :for="`param-${field.name}`" class="text-xs">{{ field.label || field.name }}</Label>
+                <Label :for="`param-${field.name}`" class="text-xs">{{
+                  field.label || field.name
+                }}</Label>
                 <Input
                   :id="`param-${field.name}`"
                   v-model="form.parameters[field.name]"

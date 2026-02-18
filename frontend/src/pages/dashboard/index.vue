@@ -55,7 +55,10 @@ function getRouteTitle(name: string): string {
   }
 
   // Default to capitalizing the name if no translation found
-  return name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+  return name
+    .split('-')
+    .map(w => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
 }
 
 // Helper to translate menu title (same logic as AppSidebar)
@@ -92,7 +95,7 @@ const breadcrumbs = computed(() => {
 
   // If we are deep in workflow, we might want intermediate crumbs?
   // For now, keep it simple: Dashboard > Current Page Name
-  const currentTitle = getRouteTitle(route.name as string || '')
+  const currentTitle = getRouteTitle((route.name as string) || '')
 
   return [
     { label: t('sidebar.dashboard'), href: '/' },

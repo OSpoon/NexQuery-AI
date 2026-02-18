@@ -17,8 +17,6 @@ export class SecuritySkill extends BaseSkill {
   }
 
   getTools(_context: SkillContext) {
-    return [
-      new ValidateSqlTool(),
-    ]
+    return [new ValidateSqlTool()]
   }
 }

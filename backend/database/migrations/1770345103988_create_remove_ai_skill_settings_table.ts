@@ -5,7 +5,8 @@ export default class extends BaseSchema {
 
   async up() {
     this.defer(async (db) => {
-      await db.from('settings')
+      await db
+        .from('settings')
         .whereIn('key', [
           'ai_skill_discovery',
           'ai_skill_security',

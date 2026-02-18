@@ -1,88 +1,89 @@
 export const PERMISSIONS = {
-    VIEW_DASHBOARD: 'view_dashboard',
-    MANAGE_DATA_SOURCES: 'manage_data_sources',
-    MANAGE_TASKS: 'manage_tasks',
-    VIEW_HISTORY: 'view_history',
-    MANAGE_USERS: 'manage_users', // Admin group (users, roles, menus, settings)
-    MANAGE_ROLES: 'manage_roles',
-    MANAGE_MENUS: 'manage_menus',
-    MANAGE_API_KEYS: 'manage_api_keys',
-    MANAGE_AI_FEEDBACK: 'manage_ai_feedback',
-    MANAGE_KNOWLEDGE_BASE: 'manage_knowledge_base',
-    MANAGE_SETTINGS: 'manage_settings',
-    MANAGE_AI_FINOPS: 'manage_ai_finops',
-    MANAGE_EVALUATIONS: 'manage_evaluations',
-    MANAGE_PROMPTS: 'manage_prompts',
+  VIEW_DASHBOARD: "view_dashboard",
+  MANAGE_DATA_SOURCES: "manage_data_sources",
+  MANAGE_TASKS: "manage_tasks",
+  VIEW_HISTORY: "view_history",
+  MANAGE_USERS: "manage_users", // Admin group (users, roles, menus, settings)
+  MANAGE_ROLES: "manage_roles",
+  MANAGE_MENUS: "manage_menus",
+  MANAGE_API_KEYS: "manage_api_keys",
+  MANAGE_AI_FEEDBACK: "manage_ai_feedback",
+  MANAGE_KNOWLEDGE_BASE: "manage_knowledge_base",
+  MANAGE_SETTINGS: "manage_settings",
+  MANAGE_AI_FINOPS: "manage_ai_finops",
+  MANAGE_EVALUATIONS: "manage_evaluations",
+  MANAGE_PROMPTS: "manage_prompts",
 };
 export const PERMISSION_DETAILS = [
-    {
-        name: 'View Dashboard',
-        slug: PERMISSIONS.VIEW_DASHBOARD,
-        description: 'Can view the main dashboard',
-    },
-    {
-        name: 'Manage Data Sources',
-        slug: PERMISSIONS.MANAGE_DATA_SOURCES,
-        description: 'Can create/edit/delete data sources',
-    },
-    {
-        name: 'Manage Tasks',
-        slug: PERMISSIONS.MANAGE_TASKS,
-        description: 'Can create/edit/delete query tasks',
-    },
-    {
-        name: 'View History',
-        slug: PERMISSIONS.VIEW_HISTORY,
-        description: 'Can view query execution history',
-    },
-    {
-        name: 'Manage Users/Admin',
-        slug: PERMISSIONS.MANAGE_USERS,
-        description: 'Can manage platform users and general admin settings',
-    },
-    {
-        name: 'Manage Roles',
-        slug: PERMISSIONS.MANAGE_ROLES,
-        description: 'Can define roles and permissions',
-    },
-    {
-        name: 'Manage Menus',
-        slug: PERMISSIONS.MANAGE_MENUS,
-        description: 'Can configure sidebar navigation',
-    },
-    {
-        name: 'Manage API Keys',
-        slug: PERMISSIONS.MANAGE_API_KEYS,
-        description: 'Can manage API keys (API Access)',
-    },
-    {
-        name: 'Manage AI Feedback',
-        slug: PERMISSIONS.MANAGE_AI_FEEDBACK,
-        description: 'Can review user ratings and promote corrections to Knowledge Base',
-    },
-    {
-        name: 'Manage Knowledge Base',
-        slug: PERMISSIONS.MANAGE_KNOWLEDGE_BASE,
-        description: 'Can manage vector search knowledge base',
-    },
-    {
-        name: 'Manage Settings',
-        slug: PERMISSIONS.MANAGE_SETTINGS,
-        description: 'Can update platform-wide settings',
-    },
-    {
-        name: 'Manage AI FinOps',
-        slug: PERMISSIONS.MANAGE_AI_FINOPS,
-        description: 'Can monitor AI token usage and costs',
-    },
-    {
-        name: 'Manage Evaluations',
-        slug: PERMISSIONS.MANAGE_EVALUATIONS,
-        description: 'Can view and manage agent evaluation reports and trends',
-    },
-    {
-        name: 'Manage Global Prompts',
-        slug: PERMISSIONS.MANAGE_PROMPTS,
-        description: 'Can edit and manage global system prompts (CMS)',
-    },
+  {
+    name: "View Dashboard",
+    slug: PERMISSIONS.VIEW_DASHBOARD,
+    description: "Can view the main dashboard",
+  },
+  {
+    name: "Manage Data Sources",
+    slug: PERMISSIONS.MANAGE_DATA_SOURCES,
+    description: "Can create/edit/delete data sources",
+  },
+  {
+    name: "Manage Tasks",
+    slug: PERMISSIONS.MANAGE_TASKS,
+    description: "Can create/edit/delete query tasks",
+  },
+  {
+    name: "View History",
+    slug: PERMISSIONS.VIEW_HISTORY,
+    description: "Can view query execution history",
+  },
+  {
+    name: "Manage Users/Admin",
+    slug: PERMISSIONS.MANAGE_USERS,
+    description: "Can manage platform users and general admin settings",
+  },
+  {
+    name: "Manage Roles",
+    slug: PERMISSIONS.MANAGE_ROLES,
+    description: "Can define roles and permissions",
+  },
+  {
+    name: "Manage Menus",
+    slug: PERMISSIONS.MANAGE_MENUS,
+    description: "Can configure sidebar navigation",
+  },
+  {
+    name: "Manage API Keys",
+    slug: PERMISSIONS.MANAGE_API_KEYS,
+    description: "Can manage API keys (API Access)",
+  },
+  {
+    name: "Manage AI Feedback",
+    slug: PERMISSIONS.MANAGE_AI_FEEDBACK,
+    description:
+      "Can review user ratings and promote corrections to Knowledge Base",
+  },
+  {
+    name: "Manage Knowledge Base",
+    slug: PERMISSIONS.MANAGE_KNOWLEDGE_BASE,
+    description: "Can manage vector search knowledge base",
+  },
+  {
+    name: "Manage Settings",
+    slug: PERMISSIONS.MANAGE_SETTINGS,
+    description: "Can update platform-wide settings",
+  },
+  {
+    name: "Manage AI FinOps",
+    slug: PERMISSIONS.MANAGE_AI_FINOPS,
+    description: "Can monitor AI token usage and costs",
+  },
+  {
+    name: "Manage Evaluations",
+    slug: PERMISSIONS.MANAGE_EVALUATIONS,
+    description: "Can view and manage agent evaluation reports and trends",
+  },
+  {
+    name: "Manage Global Prompts",
+    slug: PERMISSIONS.MANAGE_PROMPTS,
+    description: "Can edit and manage global system prompts (CMS)",
+  },
 ];

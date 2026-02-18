@@ -27,7 +27,7 @@ import { useSettingsStore } from '@/stores/settings'
 
 const authStore = useAuthStore()
 const settingsStore = useSettingsStore()
-const user = authStore.user
+const user = computed(() => authStore.user)
 const { t } = useI18n()
 
 // State
@@ -70,7 +70,7 @@ async function fetchData() {
       isWechatBound.value = !!res.data.user.isWechatBound
 
       // Auto-trigger setup if mandatory and not enabled
-      if (!twoFactorEnabled.value) {
+      if (settingsStore.require2fa && !twoFactorEnabled.value) {
         startEnable2FA()
       }
     }
@@ -85,8 +85,9 @@ async function fetchData() {
 const lastPasswordChangeAtFormatted = computed(() => {
   if (!lastPasswordChangeAt.value) {
     return createdAt.value
-      ? `${DateTime.fromISO(createdAt.value).toLocaleString(DateTime.DATETIME_MED)
-      } ${t('profile.account_created')}`
+      ? `${DateTime.fromISO(createdAt.value).toLocaleString(
+        DateTime.DATETIME_MED,
+      )} ${t('profile.account_created')}`
       : t('profile.never')
   }
   return DateTime.fromISO(lastPasswordChangeAt.value).toLocaleString(DateTime.DATETIME_MED)
@@ -239,12 +240,12 @@ async function confirmUnbind() {
         </div>
 
         <div class="grid w-full max-w-sm items-center gap-1.5">
-          <Label>{{ t('profile.full_name') }}</Label>
-          <Input :model-value="user?.fullName" disabled />
+          <Label for="fullName">{{ t('profile.full_name') }}</Label>
+          <Input id="fullName" :model-value="user?.fullName" disabled />
         </div>
         <div class="grid w-full max-w-sm items-center gap-1.5">
-          <Label>{{ t('auth.email') }}</Label>
-          <Input :model-value="user?.email" disabled />
+          <Label for="email">{{ t('auth.email') }}</Label>
+          <Input id="email" :model-value="user?.email" disabled />
         </div>
       </CardContent>
     </Card>
@@ -340,9 +341,7 @@ async function confirmUnbind() {
               {{ t('third_party.wechat_mp') }}
             </div>
             <div class="text-sm text-muted-foreground">
-              {{
-                isWechatBound ? t('third_party.bound_wechat') : t('third_party.unbound_wechat')
-              }}
+              {{ isWechatBound ? t('third_party.bound_wechat') : t('third_party.unbound_wechat') }}
             </div>
           </div>
           <div>
@@ -379,9 +378,7 @@ async function confirmUnbind() {
         </div>
         <DialogFooter>
           <Button variant="outline" @click="showDisableDialog = false">
-            {{
-              t('common.cancel')
-            }}
+            {{ t('common.cancel') }}
           </Button>
           <Button variant="destructive" :disabled="isLoading" @click="confirmDisable2FA">
             {{ t('profile.disable_2fa') }}
@@ -419,14 +416,10 @@ async function confirmUnbind() {
         </div>
         <DialogFooter>
           <Button variant="outline" @click="showEnableDialog = false">
-            {{
-              t('common.cancel')
-            }}
+            {{ t('common.cancel') }}
           </Button>
           <Button :disabled="isLoading" @click="confirmEnable2FA">
-            {{
-              t('profile.verify_enable')
-            }}
+            {{ t('profile.verify_enable') }}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -469,9 +462,7 @@ async function confirmUnbind() {
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" @click="showUnbindDialog = false">
-            {{
-              t('common.cancel')
-            }}
+            {{ t('common.cancel') }}
           </Button>
           <Button variant="destructive" :disabled="isLoading" @click="confirmUnbind">
             {{ t('third_party.unbind') }}

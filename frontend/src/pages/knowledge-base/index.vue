@@ -104,7 +104,11 @@ const columns = computed<ColumnDef<KnowledgeBaseItem>[]>(() => [
     header: t('common.source_type'),
     cell: ({ row }) => {
       const type = row.getValue('sourceType') as string
-      return h(Badge, { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' }, () => type === 'elasticsearch' ? 'Elasticsearch' : 'SQL')
+      return h(
+        Badge,
+        { variant: type === 'elasticsearch' ? 'secondary' : 'outline', class: 'capitalize' },
+        () => (type === 'elasticsearch' ? 'Elasticsearch' : 'SQL'),
+      )
     },
   },
   {
@@ -241,7 +245,13 @@ onMounted(fetchItems)
     <Dialog :open="dialogOpen" @update:open="dialogOpen = $event">
       <DialogContent class="sm:max-w-[800px]">
         <DialogHeader>
-          <DialogTitle>{{ isEditing ? t('knowledge_base.dialog.edit_title') : t('knowledge_base.dialog.create_title') }}</DialogTitle>
+          <DialogTitle>
+            {{
+              isEditing
+                ? t('knowledge_base.dialog.edit_title')
+                : t('knowledge_base.dialog.create_title')
+            }}
+          </DialogTitle>
           <DialogDescription>
             {{ t('knowledge_base.dialog.desc') }}
           </DialogDescription>

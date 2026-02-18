@@ -50,8 +50,7 @@ export default class HealthChecksController {
           try {
             // Check all SQL data sources regardless of status (user request)
             // Exclude 'api' type sources as they are not SQL databases
-            const sources = await DataSource.query()
-              .whereNot('type', 'api')
+            const sources = await DataSource.query().whereNot('type', 'api')
             const total = sources.length
 
             if (total === 0) {
@@ -166,11 +165,16 @@ export default class HealthChecksController {
     const report = await health.run()
 
     // Log the report structure to debug the "undefined" error once and for all
-    logger.info({ reportKeys: Object.keys(report), isHealthy: report.isHealthy }, 'Health Check Report Structure')
+    logger.info(
+      { reportKeys: Object.keys(report), isHealthy: report.isHealthy },
+      'Health Check Report Structure',
+    )
 
     // Defensive check to avoid 500. AdonisJS 6 report might have .checks or other fields.
     const checks = (report as any).checks || (report as any).healthChecks || []
-    const systemDbHealthy = checks.find((c: any) => c.name === 'System Database' || c.name === 'database')?.status === 'ok'
+    const systemDbHealthy
+      = checks.find((c: any) => c.name === 'System Database' || c.name === 'database')?.status
+        === 'ok'
 
     if (!systemDbHealthy) {
       logger.warn('System Database check failed, but returning report for diagnosis')

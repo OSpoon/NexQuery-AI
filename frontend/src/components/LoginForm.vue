@@ -172,9 +172,7 @@ async function handleSubmit(e: Event) {
           </FieldDescription>
           <FieldDescription v-else class="text-center mt-4">
             <Button variant="link" size="sm" @click="isTwoFactorStep = false">
-              {{
-                t('auth.back_to_login')
-              }}
+              {{ t('auth.back_to_login') }}
             </Button>
           </FieldDescription>
         </form>

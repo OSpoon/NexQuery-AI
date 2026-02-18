@@ -156,9 +156,7 @@ onActivated(fetchDashboardData)
               {{ $t('dashboard.activity_trend') }}
             </CardTitle>
             <Badge variant="outline" class="text-[10px] font-bold">
-              {{
-                $t('dashboard.last_7_days')
-              }}
+              {{ $t('dashboard.last_7_days') }}
             </Badge>
           </div>
         </CardHeader>
@@ -187,11 +185,17 @@ onActivated(fetchDashboardData)
                 ? [
                   {
                     name: $t('history.success'),
-                    value: dashboardData.trend.reduce((a: any, c: { success: any }) => a + (c.success || 0), 0),
+                    value: dashboardData.trend.reduce(
+                      (a: any, c: { success: any }) => a + (c.success || 0),
+                      0,
+                    ),
                   },
                   {
                     name: $t('history.failed'),
-                    value: dashboardData.trend.reduce((a: any, c: { failed: any }) => a + (c.failed || 0), 0),
+                    value: dashboardData.trend.reduce(
+                      (a: any, c: { failed: any }) => a + (c.failed || 0),
+                      0,
+                    ),
                   },
                 ]
                 : []
@@ -284,11 +288,16 @@ onActivated(fetchDashboardData)
 
               <!-- Data Source Specific Errors -->
               <div
-                v-if="check.meta?.details && check.meta.details.some((d: { status: string }) => d.status === 'error')"
+                v-if="
+                  check.meta?.details
+                    && check.meta.details.some((d: { status: string }) => d.status === 'error')
+                "
                 class="mt-1 space-y-1"
               >
                 <div
-                  v-for="detail in check.meta.details.filter((d: { status: string }) => d.status === 'error')"
+                  v-for="detail in check.meta.details.filter(
+                    (d: { status: string }) => d.status === 'error',
+                  )"
                   :key="detail.name"
                   class="flex items-start gap-1 text-[10px] text-red-400 bg-red-500/5 p-1 rounded"
                 >

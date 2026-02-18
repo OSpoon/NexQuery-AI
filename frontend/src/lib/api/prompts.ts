@@ -17,8 +17,14 @@ export const promptsApi = {
 
   // Update a prompt (Save to DB)
   update: (key: string, data: { content: string, description?: string }) =>
-    api.put<{ message: string, data: PromptItem }>(`/admin/prompts/${encodeURIComponent(key)}`, data),
+    api.put<{ message: string, data: PromptItem }>(
+      `/admin/prompts/${encodeURIComponent(key)}`,
+      data,
+    ),
 
   // Reset a prompt (Delete from DB)
-  reset: (key: string) => api.delete<{ message: string, existsInFile: boolean }>(`/admin/prompts/${encodeURIComponent(key)}`),
+  reset: (key: string) =>
+    api.delete<{ message: string, existsInFile: boolean }>(
+      `/admin/prompts/${encodeURIComponent(key)}`,
+    ),
 }

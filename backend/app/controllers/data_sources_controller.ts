@@ -101,7 +101,11 @@ export default class DataSourcesController {
     await AuditService.logAdminAction({ request, auth } as any, 'update_data_source', {
       entityType: 'data_source',
       entityId: String(dataSource.id),
-      details: { name: dataSource.name, type: dataSource.type, updatedFields: Object.keys(payload) },
+      details: {
+        name: dataSource.name,
+        type: dataSource.type,
+        updatedFields: Object.keys(payload),
+      },
     })
 
     // Auto-sync schema in background if connection is successful
@@ -190,7 +194,9 @@ export default class DataSourcesController {
       // Trigger PII Discovery in background
       this.runPiiDiscovery(Number(dataSourceId), auth.user?.id)
 
-      return response.ok({ message: 'Schema sync started, PII discovery will run in the background' })
+      return response.ok({
+        message: 'Schema sync started, PII discovery will run in the background',
+      })
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'Failed to sync schema')
       return response.internalServerError({ message: `Failed to sync schema: ${error.message}` })
@@ -235,7 +241,12 @@ export default class DataSourcesController {
   private async runPiiDiscovery(dataSourceId: number, userId?: number) {
     try {
       if (userId) {
-        NotificationService.push(userId, 'PII Discovery', 'Starting automated sensitive data scan...', 'info')
+        NotificationService.push(
+          userId,
+          'PII Discovery',
+          'Starting automated sensitive data scan...',
+          'info',
+        )
       }
       const ds = await DataSource.findOrFail(dataSourceId)
       if (ds.type === 'api') {
@@ -251,15 +262,30 @@ export default class DataSourcesController {
       if (piiConfig.length > 0) {
         await discoveryService.mergeDiscoveryResults(ds, piiConfig)
         if (userId) {
-          NotificationService.push(userId, 'PII Discovery Success', `Successfully identified PII in ${piiConfig.length} tables for ${ds.name}`, 'success')
+          NotificationService.push(
+            userId,
+            'PII Discovery Success',
+            `Successfully identified PII in ${piiConfig.length} tables for ${ds.name}`,
+            'success',
+          )
         }
       } else if (userId) {
-        NotificationService.push(userId, 'PII Discovery Complete', `No new sensitive data identified for ${ds.name}`, 'info')
+        NotificationService.push(
+          userId,
+          'PII Discovery Complete',
+          `No new sensitive data identified for ${ds.name}`,
+          'info',
+        )
       }
     } catch (error: any) {
       logger.error({ error: error.message, dataSourceId }, 'PII discovery failed')
       if (userId) {
-        NotificationService.push(userId, 'PII Discovery Failed', `Failed to scan ${dataSourceId}: ${error.message}`, 'error')
+        NotificationService.push(
+          userId,
+          'PII Discovery Failed',
+          `Failed to scan ${dataSourceId}: ${error.message}`,
+          'error',
+        )
       }
     }
   }

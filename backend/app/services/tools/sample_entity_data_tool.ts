@@ -4,7 +4,8 @@ import DiscoveryService from '#services/discovery_service'
 
 export class SampleEntityDataTool extends StructuredTool {
   name = 'sample_entity_data'
-  description = 'Get a few sample records from an entity (table or index) to understand the data format and content.'
+  description
+    = 'Get a few sample records from an entity (table or index) to understand the data format and content.'
 
   schema = z.object({
     dataSourceId: z.number().describe('The ID of the data source'),

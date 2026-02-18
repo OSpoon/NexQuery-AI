@@ -43,7 +43,11 @@ export default class QueryExecutionService {
     let queryResults: any = null
     let duration = 0
 
-    const replaceVars = (template: string, params: Record<string, any>, mode: 'sql' | 'text' | 'pg' = 'sql') => {
+    const replaceVars = (
+      template: string,
+      params: Record<string, any>,
+      mode: 'sql' | 'text' | 'pg' = 'sql',
+    ) => {
       const values: any[] = []
       let pgCounter = 1
       const result = template.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, key) => {
@@ -150,17 +154,25 @@ export default class QueryExecutionService {
           : normalizedRows
         : null
 
-      await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
-        userId,
-        taskId: task.id,
-        dataSourceId: task.dataSourceId,
-        executedSql,
-        parameters: inputParams,
-        executionTimeMs: duration,
-        results: truncatedResults,
-        status: 'success',
-        deviceInfo,
-      })
+      await QueryLog.log(
+        {
+          request: {
+            ip: () => ipAddress || '',
+            header: (key: string) => (key === 'user-agent' ? userAgent : ''),
+          },
+        },
+        {
+          userId,
+          taskId: task.id,
+          dataSourceId: task.dataSourceId,
+          executedSql,
+          parameters: inputParams,
+          executionTimeMs: duration,
+          results: truncatedResults,
+          status: 'success',
+          deviceInfo,
+        },
+      )
 
       logger.info({ taskId: task.id, userId, duration }, 'Query executed successfully')
 
@@ -174,16 +186,24 @@ export default class QueryExecutionService {
         duration,
       }
     } catch (error: any) {
-      await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
-        userId,
-        taskId: task.id,
-        dataSourceId: task.dataSourceId,
-        executedSql: executedSql || sql,
-        parameters: inputParams,
-        status: 'failed',
-        errorMessage: error.message,
-        deviceInfo,
-      })
+      await QueryLog.log(
+        {
+          request: {
+            ip: () => ipAddress || '',
+            header: (key: string) => (key === 'user-agent' ? userAgent : ''),
+          },
+        },
+        {
+          userId,
+          taskId: task.id,
+          dataSourceId: task.dataSourceId,
+          executedSql: executedSql || sql,
+          parameters: inputParams,
+          status: 'failed',
+          errorMessage: error.message,
+          deviceInfo,
+        },
+      )
 
       logger.error({ taskId: task.id, userId, error: error.message }, 'Query execution failed')
 
@@ -246,14 +266,22 @@ export default class QueryExecutionService {
       const duration = Date.now() - startTime
 
       if (!options.skipLogging) {
-        await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
-          userId,
-          dataSourceId: dataSource.id,
-          executedSql: finalSql,
-          executionTimeMs: duration,
-          status: 'success',
-          deviceInfo,
-        })
+        await QueryLog.log(
+          {
+            request: {
+              ip: () => ipAddress || '',
+              header: (key: string) => (key === 'user-agent' ? userAgent : ''),
+            },
+          },
+          {
+            userId,
+            dataSourceId: dataSource.id,
+            executedSql: finalSql,
+            executionTimeMs: duration,
+            status: 'success',
+            deviceInfo,
+          },
+        )
       }
 
       return {
@@ -262,14 +290,22 @@ export default class QueryExecutionService {
       }
     } catch (error: any) {
       if (!options.skipLogging) {
-        await QueryLog.log({ request: { ip: () => ipAddress || '', header: (key: string) => (key === 'user-agent' ? userAgent : '') } }, {
-          userId,
-          dataSourceId: dataSource.id,
-          executedSql: finalSql || sql,
-          status: 'failed',
-          errorMessage: error.message,
-          deviceInfo,
-        })
+        await QueryLog.log(
+          {
+            request: {
+              ip: () => ipAddress || '',
+              header: (key: string) => (key === 'user-agent' ? userAgent : ''),
+            },
+          },
+          {
+            userId,
+            dataSourceId: dataSource.id,
+            executedSql: finalSql || sql,
+            status: 'failed',
+            errorMessage: error.message,
+            deviceInfo,
+          },
+        )
       }
 
       throw error

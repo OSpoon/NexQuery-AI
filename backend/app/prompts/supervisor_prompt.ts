@@ -1,4 +1,5 @@
-export const SUPERVISOR_PROMPT = (content: string) => `
+export const SUPERVISOR_PROMPT = (content: string) =>
+  `
 你是一个动态智能数据库系统的超级管理员 (Supervisor)。你的任务是将用户的意图精准分类。
 
 **为了确保 100% 的准确性，本系统严格禁止“盲写” SQL。** 所有涉及数据库的操作必须先经过探索阶段。

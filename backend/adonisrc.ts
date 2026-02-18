@@ -57,6 +57,9 @@ export default defineConfig({
     () => import('@adonisjs/cache/cache_provider'),
     () => import('#providers/scheduler_provider'),
     () => import('#providers/prompt_provider'),
+    () => import('@adonisjs/limiter/limiter_provider'),
+    () => import('@adonisjs/redis/redis_provider'),
+    () => import('@adonisjs/shield/shield_provider'),
   ],
 
   /*

@@ -1,6 +1,17 @@
 <script setup lang="ts">
 import { CryptoService } from '@nexquery/shared'
-import { Cpu, Database, Globe, Plug, Save, Settings2, Shield } from 'lucide-vue-next'
+import {
+  Cpu,
+  Database,
+  Globe,
+  Hash,
+  MessageSquare,
+  Mic,
+  Plug,
+  Save,
+  Settings2,
+  Shield,
+} from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -9,6 +20,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import api from '@/lib/api'
@@ -84,6 +96,22 @@ const settings = ref([
     value: '600',
     group: 'ai',
   },
+  {
+    key: 'ai_transcription_base_url',
+    value: '',
+    group: 'ai',
+  },
+  {
+    key: 'ai_transcription_api_key',
+    value: '',
+    group: 'ai',
+    type: 'password',
+  },
+  {
+    key: 'ai_transcription_model',
+    value: 'whisper-1',
+    group: 'ai',
+  },
 ])
 
 const testPayload = ref('')
@@ -116,28 +144,37 @@ const loading = ref(true)
 const saving = ref(false)
 const availableRoles = ref<{ id: number, name: string, slug: string }[]>([])
 
-// AI Connection Testing
-const isTestingConnection = ref(false)
+const testingCategory = ref<string | null>(null)
 
-async function testConnection() {
-  const baseUrl = settings.value.find(s => s.key === 'ai_base_url')?.value
-  const apiKey = settings.value.find(s => s.key === 'ai_api_key')?.value
+async function testConnection(category?: string) {
+  const targetCategory = category || 'chat'
 
-  if (!baseUrl) {
-    toast.error('Please configure AI Base URL first')
-    return
+  let baseUrl = ''
+  let apiKey = ''
+
+  if (targetCategory === 'chat') {
+    baseUrl = settings.value.find(s => s.key === 'ai_base_url')?.value || ''
+    apiKey = settings.value.find(s => s.key === 'ai_api_key')?.value || ''
+  }
+  else if (targetCategory === 'embedding') {
+    baseUrl = settings.value.find(s => s.key === 'ai_embedding_base_url')?.value || ''
+    apiKey = settings.value.find(s => s.key === 'ai_embedding_api_key')?.value || ''
+  }
+  else if (targetCategory === 'transcription') {
+    baseUrl = settings.value.find(s => s.key === 'ai_transcription_base_url')?.value || ''
+    apiKey = settings.value.find(s => s.key === 'ai_transcription_api_key')?.value || ''
   }
 
-  isTestingConnection.value = true
+  testingCategory.value = targetCategory
   try {
-    await api.post('/ai/test-connection', { baseUrl, apiKey })
+    await api.post('/ai/test-connection', { baseUrl, apiKey, category: targetCategory })
     toast.success(t('settings.connection_success'))
   }
   catch (e: any) {
     toast.error(e.response?.data?.message || t('settings.connection_failed'))
   }
   finally {
-    isTestingConnection.value = false
+    testingCategory.value = null
   }
 }
 
@@ -159,18 +196,21 @@ async function fetchSettings() {
       response.data.forEach((s: any) => {
         const existing = settings.value.find(local => local.key === s.key)
         if (existing) {
-          if (['ai_api_key'].includes(s.key) && cryptoService && s.value) {
+          if (
+            ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
+            && cryptoService
+            && s.value
+          ) {
             try {
               const decrypted = cryptoService.decrypt(s.value)
               existing.value = decrypted || s.value
             }
-            catch (e) {
-              console.error(`Failed to decrypt ${s.key}`, e)
-              existing.value = String(s.value)
+            catch {
+              existing.value = s.value === null || s.value === undefined ? '' : String(s.value)
             }
           }
           else {
-            existing.value = String(s.value)
+            existing.value = s.value === null || s.value === undefined ? '' : String(s.value)
           }
         }
         else {
@@ -191,7 +231,11 @@ async function saveSettings() {
   saving.value = true
   try {
     const settingsToSave = settings.value.map((s) => {
-      if (['ai_api_key'].includes(s.key) && cryptoService && s.value) {
+      if (
+        ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
+        && cryptoService
+        && s.value
+      ) {
         return {
           ...s,
           value: cryptoService.encrypt(s.value),
@@ -411,61 +455,197 @@ onMounted(() => {
                     <CardDescription>{{ t('settings.ai_desc') }}</CardDescription>
                   </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  class="ml-auto"
-                  :disabled="isTestingConnection"
-                  @click="testConnection"
-                >
-                  <Plug
-                    class="mr-2 h-3.5 w-3.5"
-                    :class="{ 'animate-pulse': isTestingConnection }"
-                  />
-                  {{ t('settings.test_connection') }}
-                </Button>
               </div>
             </CardHeader>
-            <CardContent class="grid gap-6 pt-0">
-              <div
-                v-for="s in settings.filter((s) => s.group === 'ai')"
-                :key="s.key"
-                class="grid gap-2"
-              >
+            <CardContent class="grid gap-8 pt-0">
+              <!-- Category 1: Standard Chat -->
+              <div class="space-y-4">
                 <div class="flex items-center justify-between">
-                  <Label :for="s.key">{{ t(`settings.keys.${s.key}`) }}</Label>
-                  <span
-                    v-if="(s.key === 'ai_api_key') && !s.value"
-                    class="text-[10px] bg-destructive/10 text-destructive px-1.5 py-0.5 rounded font-bold animate-pulse"
+                  <h4 class="text-sm font-semibold text-primary/80 flex items-center gap-2">
+                    <MessageSquare class="h-4 w-4" /> {{ t('settings.groups.ai_chat') }}
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-8 text-xs font-normal"
+                    :disabled="!!testingCategory"
+                    @click="testConnection('chat')"
                   >
-                    MISSING
-                  </span>
+                    <Plug
+                      class="mr-2 h-3 w-3"
+                      :class="{ 'animate-pulse': testingCategory === 'chat' }"
+                    />
+                    {{ t('settings.test_connection_chat') }}
+                  </Button>
                 </div>
-                <Input
-                  :id="s.key"
-                  v-model="s.value"
-                  :type="s.type || 'text'"
-                  class="bg-background"
-                  :class="{
-                    'border-destructive/50 focus-visible:ring-destructive':
-                      (s.key === 'ai_api_key') && !s.value,
-                  }"
-                />
-                <p class="text-xs text-muted-foreground">
-                  {{ t(`settings.keys.${s.key}_desc`) }}
-                </p>
+                <div class="grid gap-4">
+                  <div
+                    v-for="s in settings.filter(
+                      (s) =>
+                        s.group === 'ai'
+                        && !s.key.includes('embedding')
+                        && !s.key.includes('transcription'),
+                    )"
+                    :key="s.key"
+                    class="grid gap-2"
+                  >
+                    <div class="flex items-center justify-between">
+                      <Label :for="s.key" class="text-sm font-medium">{{
+                        t(`settings.keys.${s.key}`)
+                      }}</Label>
+                    </div>
+                    <div class="space-y-1">
+                      <Input
+                        v-if="s.type !== 'password'"
+                        :id="s.key"
+                        v-model="s.value"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <Input
+                        v-else
+                        :id="s.key"
+                        v-model="s.value"
+                        type="password"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <p class="text-[10px] text-muted-foreground">
+                        {{ t(`settings.keys.${s.key}_desc`) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <!-- Category 2: Embedding -->
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-sm font-semibold text-primary/80 flex items-center gap-2">
+                    <Hash class="h-4 w-4" /> {{ t('settings.groups.ai_embedding') }}
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-8 text-xs font-normal"
+                    :disabled="!!testingCategory"
+                    @click="testConnection('embedding')"
+                  >
+                    <Plug
+                      class="mr-2 h-3 w-3"
+                      :class="{ 'animate-pulse': testingCategory === 'embedding' }"
+                    />
+                    {{ t('settings.test_connection_embedding') }}
+                  </Button>
+                </div>
+                <div class="grid gap-4">
+                  <div
+                    v-for="s in settings.filter(
+                      (s) => s.group === 'ai' && s.key.includes('embedding'),
+                    )"
+                    :key="s.key"
+                    class="grid gap-2"
+                  >
+                    <div class="flex items-center justify-between">
+                      <Label :for="s.key" class="text-sm font-medium">{{
+                        t(`settings.keys.${s.key}`)
+                      }}</Label>
+                    </div>
+                    <div class="space-y-1">
+                      <Input
+                        v-if="s.type !== 'password'"
+                        :id="s.key"
+                        v-model="s.value"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <Input
+                        v-else
+                        :id="s.key"
+                        v-model="s.value"
+                        type="password"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <p class="text-[10px] text-muted-foreground">
+                        {{ t(`settings.keys.${s.key}_desc`) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              <!-- Category 3: Transcription -->
+              <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                  <h4 class="text-sm font-semibold text-primary/80 flex items-center gap-2">
+                    <Mic class="h-4 w-4" /> {{ t('settings.groups.ai_transcription') }}
+                  </h4>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    class="h-8 text-xs font-normal"
+                    :disabled="!!testingCategory"
+                    @click="testConnection('transcription')"
+                  >
+                    <Plug
+                      class="mr-2 h-3 w-3"
+                      :class="{ 'animate-pulse': testingCategory === 'transcription' }"
+                    />
+                    {{ t('settings.test_connection_transcription') }}
+                  </Button>
+                </div>
+                <div class="grid gap-4">
+                  <div
+                    v-for="s in settings.filter(
+                      (s) => s.group === 'ai' && s.key.includes('transcription'),
+                    )"
+                    :key="s.key"
+                    class="grid gap-2"
+                  >
+                    <div class="flex items-center justify-between">
+                      <Label :for="s.key" class="text-sm font-medium">{{
+                        t(`settings.keys.${s.key}`)
+                      }}</Label>
+                    </div>
+                    <div class="space-y-1">
+                      <Input
+                        v-if="s.type !== 'password'"
+                        :id="s.key"
+                        v-model="s.value"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <Input
+                        v-else
+                        :id="s.key"
+                        v-model="s.value"
+                        type="password"
+                        class="h-9"
+                        :placeholder="t(`settings.keys.${s.key}_desc`)"
+                      />
+                      <p class="text-[10px] text-muted-foreground">
+                        {{ t(`settings.keys.${s.key}_desc`) }}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
-
-          <!-- Prompt Studio Component -->
-          <div v-if="authStore.hasPermission('manage_prompts')" class="pt-4">
-            <h3 class="text-lg font-medium mb-4">
-              {{ t('prompts.title') }}
-            </h3>
-            <PromptStudio />
-          </div>
         </TabsContent>
+
+        <!-- Prompt Studio Component -->
+        <div v-if="authStore.hasPermission('manage_prompts')" class="pt-4">
+          <h3 class="text-lg font-medium mb-4">
+            {{ t('prompts.title') }}
+          </h3>
+          <PromptStudio />
+        </div>
       </Tabs>
     </div>
   </div>

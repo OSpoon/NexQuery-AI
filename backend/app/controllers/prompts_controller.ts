@@ -67,10 +67,7 @@ export default class PromptsController {
     const { content, description } = request.only(['content', 'description'])
 
     // 1. Persist to DB
-    const prompt = await Prompt.updateOrCreate(
-      { key },
-      { content, description },
-    )
+    const prompt = await Prompt.updateOrCreate({ key }, { content, description })
 
     // 2. Update Cache (Hot Swapping)
     PromptService.updateCache(key, content)

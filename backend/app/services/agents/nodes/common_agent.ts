@@ -15,8 +15,13 @@ export abstract class CommonAgentNode {
 
   async run(state: AgentState, config?: any) {
     const provider = new AiProviderService()
-    const llm = config?.llm || await provider.getChatModel({ streaming: true })
-    const nodeName = config?.nodeName || this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
+    const llm = config?.llm || (await provider.getChatModel({ streaming: true }))
+    const nodeName
+      = config?.nodeName
+        || this.constructor.name
+          .replace(/Node$/, '')
+          .replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+          .replace(/^_/, '')
 
     logger.info(`[Agent: ${nodeName}] Starting execution loop...`)
 
@@ -30,14 +35,17 @@ export abstract class CommonAgentNode {
     let tools = [...skills.flatMap(s => s.getTools(context)), ...this.getExtraTools(context)]
 
     // Security Agent: whitelist approach - only keep validate_sql, submit_sql_solution
-    const isSecurityAgent = this.constructor.name === 'SecurityAgentNode' || nodeName === 'security_agent'
+    const isSecurityAgent
+      = this.constructor.name === 'SecurityAgentNode' || nodeName === 'security_agent'
     if (isSecurityAgent) {
       // STRICT MODE: No discovery tools allowed. Trust the ROT.
       const allowedTools = ['validate_sql', 'submit_sql_solution']
       const originalCount = tools.length
       tools = tools.filter(t => allowedTools.includes(t.name))
       if (tools.length < originalCount) {
-        logger.info(`[Agent: ${nodeName}] Whitelisted ${tools.length} tools: ${tools.map(t => t.name).join(', ')} (stripped ${originalCount - tools.length}).`)
+        logger.info(
+          `[Agent: ${nodeName}] Whitelisted ${tools.length} tools: ${tools.map(t => t.name).join(', ')} (stripped ${originalCount - tools.length}).`,
+        )
       }
     }
     const skillPrompts = skills.map((s: any) => s.getSystemPrompt(context)).join('\n\n')
@@ -49,13 +57,18 @@ export abstract class CommonAgentNode {
     const envHeader = `[数据环境] ${state.dbType.toUpperCase()} | 数据源ID: ${state.dataSourceId || '未知'} | 期望语法: ${state.dbType === 'elasticsearch' ? 'LUCENE' : 'SQL'}\n`
 
     // Inject state.sql into Security Agent's prompt so it knows exactly what to validate
-    const sqlContext = isSecurityAgent && state.sql
-      ? `\n\n### ⚡ 待审计 SQL (来自上游 Generator)\n\`\`\`sql\n${state.sql}\n\`\`\`\n> 请对上述 SQL 执行 validate_sql 验证，确认无误后直接 submit_sql_solution 提交。\n`
-      : ''
+    const sqlContext
+      = isSecurityAgent && state.sql
+        ? `\n\n### ⚡ 待审计 SQL (来自上游 Generator)\n\`\`\`sql\n${state.sql}\n\`\`\`\n> 请对上述 SQL 执行 validate_sql 验证，确认无误后直接 submit_sql_solution 提交。\n`
+        : ''
 
-    const systemPrompt = envHeader + (typeof promptTemplate === 'function'
-      ? (promptTemplate as any)(state.dbType, skillPrompts)
-      : promptTemplate) + sqlContext + this.renderKnowledgeBase(state.intermediate_results || {})
+    const systemPrompt
+      = envHeader
+        + (typeof promptTemplate === 'function'
+          ? (promptTemplate as any)(state.dbType, skillPrompts)
+          : promptTemplate)
+        + sqlContext
+        + this.renderKnowledgeBase(state.intermediate_results || {})
 
     const modelWithTools = llm.bindTools(tools)
 
@@ -119,9 +132,12 @@ export abstract class CommonAgentNode {
       const response = await modelWithTools.invoke(messages, config)
       response.additional_kwargs = { ...response.additional_kwargs, node: nodeName }
 
-      const responseContent = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
+      const responseContent
+        = typeof response.content === 'string' ? response.content : JSON.stringify(response.content)
       if (responseContent.trim()) {
-        logger.info(`[Agent: ${nodeName}] Cycle ${loopCount} Thought: ${responseContent.slice(0, 100)}...`)
+        logger.info(
+          `[Agent: ${nodeName}] Cycle ${loopCount} Thought: ${responseContent.slice(0, 100)}...`,
+        )
       }
 
       messages.push(response)
@@ -129,19 +145,28 @@ export abstract class CommonAgentNode {
 
       if (response.tool_calls && response.tool_calls.length > 0) {
         // 1. Check for Submission / Termination Tools
-        const sqlSubmission = response.tool_calls.find((c: { name: string }) => c.name === 'submit_sql_solution')
+        const sqlSubmission = response.tool_calls.find(
+          (c: { name: string }) => c.name === 'submit_sql_solution',
+        )
         if (sqlSubmission) {
           logger.info('[Agent] SQL Solution Submitted')
-          return this.finalizeStep(state, newMessages, {
-            sql: sqlSubmission.args.sql,
-            explanation: sqlSubmission.args.explanation,
-            intermediate_results: intermediateResults,
-          }, true)
+          return this.finalizeStep(
+            state,
+            newMessages,
+            {
+              sql: sqlSubmission.args.sql,
+              explanation: sqlSubmission.args.explanation,
+              intermediate_results: intermediateResults,
+            },
+            true,
+          )
         }
 
         // P0-1: save_blueprint is a FIRST-CLASS termination signal.
         // Discovery Agent must exit immediately after saving the blueprint.
-        const blueprintCall = response.tool_calls.find((c: { name: string }) => c.name === 'save_blueprint')
+        const blueprintCall = response.tool_calls.find(
+          (c: { name: string }) => c.name === 'save_blueprint',
+        )
         if (blueprintCall) {
           intermediateResults.blueprint = blueprintCall.args.blueprint
           // Capture the Relational Operator Tree (ROT) if present
@@ -149,9 +174,14 @@ export abstract class CommonAgentNode {
             intermediateResults.queryPlanGraph = blueprintCall.args.queryPlanGraph
           }
           logger.info('[Agent] Blueprint & ROT saved. Discovery Agent terminating immediately.')
-          return this.finalizeStep(state, newMessages, {
-            intermediate_results: intermediateResults,
-          }, true)
+          return this.finalizeStep(
+            state,
+            newMessages,
+            {
+              intermediate_results: intermediateResults,
+            },
+            true,
+          )
         }
 
         // 2. Execute Regular Tools
@@ -176,7 +206,9 @@ export abstract class CommonAgentNode {
 
           let toolOutput = ''
           try {
-            logger.info(`[Agent: ${nodeName}] Tool Call: ${toolCall.name}(${JSON.stringify(toolCall.args)})`)
+            logger.info(
+              `[Agent: ${nodeName}] Tool Call: ${toolCall.name}(${JSON.stringify(toolCall.args)})`,
+            )
             // STRICT ENFORCEMENT: Never allow the LLM to guess or change the dataSourceId.
             // Always use the one provided by the system/frontend context.
             if (state.dataSourceId) {
@@ -211,7 +243,10 @@ export abstract class CommonAgentNode {
                     return false
                   try {
                     const parsedArgs = JSON.parse(k.replace('sample_entity_data_', ''))
-                    return parsedArgs.entityName === entityName && (parsedArgs.limit || 5) >= requestedLimit
+                    return (
+                      parsedArgs.entityName === entityName
+                      && (parsedArgs.limit || 5) >= requestedLimit
+                    )
                   } catch {
                     return false
                   }
@@ -223,7 +258,9 @@ export abstract class CommonAgentNode {
               }
 
               if (metaTools.includes(toolCall.name) && cachedResult) {
-                logger.info(`[Agent: ${nodeName}] Reusing cached discovery result for: ${toolCall.name} (Key: ${persistenceKey})`)
+                logger.info(
+                  `[Agent: ${nodeName}] Reusing cached discovery result for: ${toolCall.name} (Key: ${persistenceKey})`,
+                )
                 toolOutput = cachedResult
               } else {
                 try {
@@ -233,13 +270,16 @@ export abstract class CommonAgentNode {
                   if (
                     isSecurityAgent
                     && toolCall.name === 'validate_sql'
-                    && (toolOutput.startsWith('Validation Failed') || toolOutput.startsWith('Safety Error'))
+                    && (toolOutput.startsWith('Validation Failed')
+                      || toolOutput.startsWith('Safety Error'))
                   ) {
                     const currentRepairs = state.repairAttempts || 0
                     const MAX_REPAIRS = 3
 
                     if (currentRepairs < MAX_REPAIRS) {
-                      logger.warn(`[EGR] SQL Validation Failed. Triggering repair attempt ${currentRepairs + 1}/${MAX_REPAIRS}. Error: ${toolOutput}`)
+                      logger.warn(
+                        `[EGR] SQL Validation Failed. Triggering repair attempt ${currentRepairs + 1}/${MAX_REPAIRS}. Error: ${toolOutput}`,
+                      )
 
                       const feedbackMessage = new HumanMessage({
                         content: `[SYSTEM: SQL VALIDATION FAILED]
@@ -297,19 +337,31 @@ Instructions:
         }
 
         // Check if any clarification tool was called - if so, this step is NOT done
-        const isClarification = response.tool_calls.some((c: { name: string }) => c.name === 'clarify_intent' || c.name === 'request_metadata')
+        const isClarification = response.tool_calls.some(
+          (c: { name: string }) => c.name === 'clarify_intent' || c.name === 'request_metadata',
+        )
         if (isClarification) {
-          return this.finalizeStep(state, newMessages, {
-            intermediate_results: intermediateResults,
-          }, false)
+          return this.finalizeStep(
+            state,
+            newMessages,
+            {
+              intermediate_results: intermediateResults,
+            },
+            false,
+          )
         }
 
         // Otherwise, continue loop to let LLM process tool outputs
       } else {
         // No tools called, this is a direct conversational response, mark as done
-        return this.finalizeStep(state, newMessages, {
-          intermediate_results: intermediateResults,
-        }, true)
+        return this.finalizeStep(
+          state,
+          newMessages,
+          {
+            intermediate_results: intermediateResults,
+          },
+          true,
+        )
       }
     }
 
@@ -370,7 +422,9 @@ Instructions:
     }
 
     // 3. Related Knowledge & Few-shots
-    const knowledgeKeys = Object.keys(results).filter(k => k.startsWith('search_related_knowledge'))
+    const knowledgeKeys = Object.keys(results).filter(k =>
+      k.startsWith('search_related_knowledge'),
+    )
     if (knowledgeKeys.length > 0) {
       output += '#### 📚 业务背景与历史案例 (RELATED KNOWLEDGE & FEW-SHOTS)\n'
       knowledgeKeys.forEach((k) => {
@@ -392,7 +446,8 @@ Instructions:
       output += '\n'
     }
 
-    output += '\n> 注：若上述蓝图已明确连接路径与列映射，请直接进入 SQL 编写，严禁再次调用探测工具。\n'
+    output
+      += '\n> 注：若上述蓝图已明确连接路径与列映射，请直接进入 SQL 编写，严禁再次调用探测工具。\n'
 
     return output
   }
@@ -400,8 +455,16 @@ Instructions:
   /**
    * Helper to mark plan step as completed and decide on next hop
    */
-  private finalizeStep(_state: AgentState, newMessages: any[], updates: Partial<AgentState>, _isDone: boolean = false) {
-    const nodeName = this.constructor.name.replace(/Node$/, '').replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`).replace(/^_/, '')
+  private finalizeStep(
+    _state: AgentState,
+    newMessages: any[],
+    updates: Partial<AgentState>,
+    _isDone: boolean = false,
+  ) {
+    const nodeName = this.constructor.name
+      .replace(/Node$/, '')
+      .replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+      .replace(/^_/, '')
 
     return {
       ...updates,

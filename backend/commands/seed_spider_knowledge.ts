@@ -8,7 +8,8 @@ import VectorStoreService from '#services/vector_store_service'
 
 export default class SeedSpiderKnowledge extends BaseCommand {
   static commandName = 'seed:spider-knowledge'
-  static description = 'Seed Spider training data into Knowledge Base and Vector Store for few-shot RAG'
+  static description
+    = 'Seed Spider training data into Knowledge Base and Vector Store for few-shot RAG'
 
   static options: CommandOptions = {
     startApp: true,

@@ -7,6 +7,7 @@ import {
   History,
   Map,
   MessageCircle,
+  Mic,
   Minus,
   Play,
   Plus,
@@ -58,6 +59,7 @@ import {
 } from '@/components/ui/table'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
+import { audioRecorder } from '@/lib/audio'
 import { useAiStore } from '@/stores/ai'
 import { useDataSourceStore } from '@/stores/dataSource'
 import { useSettingsStore } from '@/stores/settings'
@@ -226,7 +228,9 @@ watch(selectedDataSource, (val) => {
 function getActiveNode(msg: any) {
   if (!msg.agentSteps)
     return undefined
-  const runningNode = [...msg.agentSteps].reverse().find(s => s.type === 'node' && s.status === 'running')
+  const runningNode = [...msg.agentSteps]
+    .reverse()
+    .find(s => s.type === 'node' && s.status === 'running')
   return runningNode?.nodeName
 }
 
@@ -242,6 +246,54 @@ function handleKeydown(e: KeyboardEvent) {
   if (e.key === 'Enter' && !e.shiftKey) {
     e.preventDefault()
     handleSend()
+  }
+}
+
+// Voice Input Logic
+const isRecording = ref(false)
+const isTranscribing = ref(false)
+
+async function toggleRecording() {
+  if (isRecording.value) {
+    isRecording.value = false
+    audioRecorder.stop()
+  }
+  else {
+    try {
+      await audioRecorder.start({
+        onStop: async (blob) => {
+          await handleTranscription(blob)
+        },
+        onError: () => {
+          toast.error('Recording failed')
+          isRecording.value = false
+        },
+      })
+      isRecording.value = true
+    }
+    catch {
+      toast.error('Microphone access denied or error occurred')
+    }
+  }
+}
+
+async function handleTranscription(blob: Blob) {
+  isTranscribing.value = true
+  const formData = new FormData()
+  formData.append('audio', blob, 'recording.webm')
+
+  try {
+    const res = await api.post('/ai/transcribe', formData)
+    if (res.data.text) {
+      input.value = (input.value ? `${input.value} ` : '') + res.data.text
+    }
+  }
+  catch (err) {
+    console.error('Transcription failed', err)
+    toast.error('Failed to transcribe audio')
+  }
+  finally {
+    isTranscribing.value = false
   }
 }
 
@@ -391,7 +443,9 @@ function selectOption(option: string) {
         @mousedown.prevent="startResize"
       >
         <!-- Optional visual indicator -->
-        <div class="w-12 h-1 rounded-full bg-border/50 group-hover:bg-primary/50 transition-colors" />
+        <div
+          class="w-12 h-1 rounded-full bg-border/50 group-hover:bg-primary/50 transition-colors"
+        />
       </div>
 
       <!-- Header -->
@@ -412,7 +466,10 @@ function selectOption(option: string) {
                 :title="t('ai_chat.view_graph')"
               >
                 <Map class="h-4 w-4" />
-                <span v-if="store.isLoading" class="absolute top-1 right-1 h-1.5 w-1.5 bg-blue-400 rounded-full animate-ping" />
+                <span
+                  v-if="store.isLoading"
+                  class="absolute top-1 right-1 h-1.5 w-1.5 bg-blue-400 rounded-full animate-ping"
+                />
               </Button>
             </PopoverTrigger>
             <PopoverContent
@@ -420,7 +477,9 @@ function selectOption(option: string) {
               side="top"
               align="end"
             >
-              <div class="text-[10px] text-muted-foreground mb-2 font-medium flex items-center justify-between px-1">
+              <div
+                class="text-[10px] text-muted-foreground mb-2 font-medium flex items-center justify-between px-1"
+              >
                 <span>{{ t('ai_chat.execution_graph') }}</span>
                 <Badge variant="outline" class="h-4 text-[9px] px-1 opacity-70">
                   Mermaid
@@ -533,7 +592,9 @@ function selectOption(option: string) {
               {{ t('ai_chat.no_context') }}
             </SelectItem>
             <SelectItem
-              v-for="ds in dataSourceStore.databaseSources.filter(s => s.type !== 'elasticsearch')"
+              v-for="ds in dataSourceStore.databaseSources.filter(
+                (s) => s.type !== 'elasticsearch',
+              )"
               :key="ds.id"
               :value="String(ds.id)"
             >
@@ -581,8 +642,12 @@ function selectOption(option: string) {
 
                   <!-- Run Button -->
                   <!-- SQL Run Button -->
-                  <div v-if="msg.role === 'assistant' && msg.generatedSql" class="mt-2 flex items-center gap-2">
+                  <div
+                    v-if="msg.role === 'assistant' && msg.generatedSql"
+                    class="mt-2 flex items-center gap-2"
+                  >
                     <Button
+                      id="run-sql-btn"
                       variant="outline"
                       size="sm"
                       class="h-7 text-xs gap-1.5 border-primary/30 hover:bg-primary/10"
@@ -590,16 +655,28 @@ function selectOption(option: string) {
                       @click="handleRunSql(msg, index)"
                     >
                       <Play v-if="!isRunningSql[index]" class="h-3 w-3" />
-                      <div v-else class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                      <div
+                        v-else
+                        class="h-3 w-3 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                      />
                       {{ isRunningSql[index] ? t('ai_chat.running') : t('ai_chat.run_sql') }}
                     </Button>
                   </div>
 
                   <!-- Results Table -->
-                  <div v-if="store.queryResults[index]" class="mt-4 border rounded-md overflow-hidden bg-background">
-                    <div class="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between text-[10px] text-muted-foreground">
+                  <div
+                    v-if="store.queryResults[index]"
+                    class="mt-4 border rounded-md overflow-hidden bg-background"
+                  >
+                    <div
+                      class="px-3 py-1.5 bg-muted/50 border-b flex items-center justify-between text-[10px] text-muted-foreground"
+                    >
                       <div class="flex items-center gap-2">
-                        <span>{{ t('ai_chat.results_count', { count: store.queryResults[index].data?.length || 0 }) }}</span>
+                        <span>{{
+                          t('ai_chat.results_count', {
+                            count: store.queryResults[index].data?.length || 0,
+                          })
+                        }}</span>
                         <span class="opacity-50">|</span>
                         <span>{{ store.queryResults[index].duration }}ms</span>
                       </div>
@@ -617,14 +694,25 @@ function selectOption(option: string) {
                       <Table v-if="store.queryResults[index].data?.length">
                         <TableHeader class="sticky top-0 bg-background z-10 shadow-sm">
                           <TableRow>
-                            <TableHead v-for="col in Object.keys(store.queryResults[index].data[0])" :key="col" class="h-8 py-0 px-3 text-[10px]">
+                            <TableHead
+                              v-for="col in Object.keys(store.queryResults[index].data[0])"
+                              :key="col"
+                              class="h-8 py-0 px-3 text-[10px]"
+                            >
                               {{ col }}
                             </TableHead>
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          <TableRow v-for="(row, rIdx) in store.queryResults[index].data" :key="rIdx">
-                            <TableCell v-for="col in Object.keys(row)" :key="col" class="py-1.5 px-3 text-[10px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]">
+                          <TableRow
+                            v-for="(row, rIdx) in store.queryResults[index].data"
+                            :key="rIdx"
+                          >
+                            <TableCell
+                              v-for="col in Object.keys(row)"
+                              :key="col"
+                              class="py-1.5 px-3 text-[10px] whitespace-nowrap overflow-hidden text-ellipsis max-w-[200px]"
+                            >
                               {{ row[col] }}
                             </TableCell>
                           </TableRow>
@@ -701,7 +789,13 @@ function selectOption(option: string) {
                 <Sparkles class="h-4 w-4 animate-pulse" />
               </div>
               <div class="p-3 rounded-lg bg-muted text-xs text-muted-foreground italic">
-                {{ store.dataSourceId && dataSourceStore.dataSources.find(ds => ds.id === store.dataSourceId)?.type === 'elasticsearch' ? t('ai_chat.generating_lucene') : t('ai_chat.generating_sql') }}
+                {{
+                  store.dataSourceId
+                    && dataSourceStore.dataSources.find((ds) => ds.id === store.dataSourceId)?.type
+                      === 'elasticsearch'
+                    ? t('ai_chat.generating_lucene')
+                    : t('ai_chat.generating_sql')
+                }}
               </div>
             </div>
           </div>
@@ -711,20 +805,50 @@ function selectOption(option: string) {
       <!-- Input -->
       <div class="p-3 pt-0">
         <form class="flex gap-2 items-end" @submit.prevent="handleSend">
-          <Textarea
-            ref="textareaComponent"
-            v-model="input"
-            rows="1"
-            :placeholder="
-              settingsStore.hasAiKey ? t('ai_chat.input_placeholder') : t('settings.keys.ai_key_missing')
-            "
-            class="flex-1 min-h-[40px] max-h-[200px] resize-none py-3"
-            :disabled="store.isLoading || !settingsStore.hasAiKey"
-            @keydown="handleKeydown"
-          />
-          <Button type="submit" size="icon" :disabled="store.isLoading || !settingsStore.hasAiKey">
-            <Send class="h-4 w-4" />
-          </Button>
+          <div class="relative flex-1">
+            <Textarea
+              ref="textareaComponent"
+              v-model="input"
+              rows="1"
+              :placeholder="
+                settingsStore.hasAiKey
+                  ? t('ai_chat.input_placeholder')
+                  : t('settings.keys.ai_key_missing')
+              "
+              class="w-full min-h-[40px] max-h-[200px] resize-none py-3 pr-20"
+              :disabled="store.isLoading || !settingsStore.hasAiKey"
+              @keydown="handleKeydown"
+            />
+            <div class="absolute right-2 bottom-2 flex items-center gap-1">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                class="h-7 w-7 rounded-full transition-colors"
+                :class="
+                  isRecording
+                    ? 'text-destructive bg-destructive/10 animate-pulse'
+                    : 'text-muted-foreground hover:text-foreground'
+                "
+                :disabled="isTranscribing || store.isLoading"
+                @click="toggleRecording"
+              >
+                <div
+                  v-if="isTranscribing"
+                  class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent"
+                />
+                <Mic v-else class="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                type="submit"
+                size="icon"
+                class="h-7 w-7 rounded-full"
+                :disabled="!input.trim() || store.isLoading || !settingsStore.hasAiKey"
+              >
+                <Send class="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          </div>
         </form>
       </div>
     </div>
@@ -742,6 +866,7 @@ function selectOption(option: string) {
       />
 
       <Button
+        id="ai-chat-toggle"
         size="lg"
         class="h-14 w-14 rounded-full shadow-lg p-0 bg-primary hover:bg-primary/90 transition-all hover:scale-105 relative z-10"
         @click="store.toggleOpen"

@@ -186,7 +186,11 @@ onMounted(fetchKeys)
             </TableCell>
             <TableCell>{{ new Date(key.createdAt).toLocaleDateString() }}</TableCell>
             <TableCell>
-              {{ key.lastUsedAt ? new Date(key.lastUsedAt).toLocaleString() : t('profile.never') || 'Never' }}
+              {{
+                key.lastUsedAt
+                  ? new Date(key.lastUsedAt).toLocaleString()
+                  : t('profile.never') || 'Never'
+              }}
             </TableCell>
             <TableCell class="text-right">
               <Button
@@ -224,7 +228,12 @@ onMounted(fetchKeys)
           </DialogDescription>
         </DialogHeader>
         <div class="grid gap-4 py-4">
-          <Input id="name" v-model="newKeyName" :placeholder="t('api_keys.key_name_placeholder')" @keyup.enter="createKey" />
+          <Input
+            id="name"
+            v-model="newKeyName"
+            :placeholder="t('api_keys.key_name_placeholder')"
+            @keyup.enter="createKey"
+          />
 
           <div class="grid gap-2">
             <Label for="expiration">{{ t('api_keys.expiration') }}</Label>

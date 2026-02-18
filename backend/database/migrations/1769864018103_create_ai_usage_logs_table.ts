@@ -7,7 +7,13 @@ export default class extends BaseSchema {
     this.schema.createTable(this.tableName, (table) => {
       table.increments('id')
       table.integer('user_id').unsigned().references('id').inTable('users').onDelete('CASCADE')
-      table.integer('conversation_id').unsigned().references('id').inTable('ai_conversations').onDelete('SET NULL').nullable()
+      table
+        .integer('conversation_id')
+        .unsigned()
+        .references('id')
+        .inTable('ai_conversations')
+        .onDelete('SET NULL')
+        .nullable()
       table.string('model_name').notNullable()
       table.string('provider').notNullable()
       table.integer('prompt_tokens').defaultTo(0)

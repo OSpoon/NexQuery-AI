@@ -40,7 +40,10 @@ export default class KnowledgeBaseService {
     let embedding = item.embedding
     if (!isUpdate || data.keyword !== item.keyword || data.description !== item.description) {
       try {
-        embedding = await embeddingService.generate(`${data.keyword}: ${data.description}`, data.userId)
+        embedding = await embeddingService.generate(
+          `${data.keyword}: ${data.description}`,
+          data.userId,
+        )
       } catch (e) {
         logger.warn(`[KnowledgeBaseService] Embedding generation failed: ${e.message}`)
       }
@@ -69,7 +72,10 @@ export default class KnowledgeBaseService {
           item.sourceType,
         )
       } catch (e) {
-        logger.error({ error: e }, `[KnowledgeBaseService] Vector Store sync failed for ${item.keyword}`)
+        logger.error(
+          { error: e },
+          `[KnowledgeBaseService] Vector Store sync failed for ${item.keyword}`,
+        )
       }
     }
 

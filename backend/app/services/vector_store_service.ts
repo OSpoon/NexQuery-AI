@@ -151,11 +151,7 @@ export default class VectorStoreService {
   /**
    * Search Knowledge Base
    */
-  public async searchKnowledge(
-    queryVector: number[],
-    limit: number = 5,
-    sourceType?: string,
-  ) {
+  public async searchKnowledge(queryVector: number[], limit: number = 5, sourceType?: string) {
     try {
       const filter: any = {
         must: [],

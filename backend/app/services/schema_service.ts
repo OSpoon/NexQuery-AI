@@ -151,7 +151,9 @@ export class SchemaService {
         WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name=? AND tc.table_schema='public';
       `
       const fks = await client.rawQuery(fkQuery, [tableName])
-      fkDesc = fks.rows.map((r: any) => `- ${r.column_name} -> ${r.foreign_table_name}.${r.foreign_column_name}`).join('\n')
+      fkDesc = fks.rows
+        .map((r: any) => `- ${r.column_name} -> ${r.foreign_table_name}.${r.foreign_column_name}`)
+        .join('\n')
     } else if (dbType === 'mysql') {
       const tableInfo = await client.rawQuery(`SHOW TABLE STATUS LIKE ?`, [tableName])
       if (tableInfo[0] && tableInfo[0][0] && tableInfo[0][0].Comment) {
@@ -175,10 +177,16 @@ export class SchemaService {
       `
       const fkRes = await client.rawQuery(fkQuery, [tableName])
       const fkRows = Array.isArray(fkRes[0]) ? fkRes[0] : fkRes
-      fkDesc = fkRows.map((r: any) => `- ${r.COLUMN_NAME} -> ${r.REFERENCED_TABLE_NAME}.${r.REFERENCED_COLUMN_NAME}`).join('\n')
+      fkDesc = fkRows
+        .map(
+          (r: any) => `- ${r.COLUMN_NAME} -> ${r.REFERENCED_TABLE_NAME}.${r.REFERENCED_COLUMN_NAME}`,
+        )
+        .join('\n')
     } else if (dbType === 'sqlite') {
       const columns = await client.rawQuery(`PRAGMA table_info(\`${tableName}\`)`)
-      columnsDesc = columns.map((c: any) => `- ${c.name} (${c.type})${c.pk ? ' // PRIMARY KEY' : ''}`).join('\n')
+      columnsDesc = columns
+        .map((c: any) => `- ${c.name} (${c.type})${c.pk ? ' // PRIMARY KEY' : ''}`)
+        .join('\n')
 
       const fks = await client.rawQuery(`PRAGMA foreign_key_list(\`${tableName}\`)`)
       fkDesc = fks.map((fk: any) => `- ${fk.from} -> ${fk.table}.${fk.to}`).join('\n')

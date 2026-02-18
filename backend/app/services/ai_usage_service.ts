@@ -33,7 +33,9 @@ export default class AiUsageService {
         estimatedCost,
       })
 
-      logger.info(`[AiUsageService] Recorded: ${params.modelName}, Cost: ${estimatedCost}, Tokens: ${totalTokens}, Context: ${params.context}`)
+      logger.info(
+        `[AiUsageService] Recorded: ${params.modelName}, Cost: ${estimatedCost}, Tokens: ${totalTokens}, Context: ${params.context}`,
+      )
 
       // 4. Budget Alert Check (FinOps)
       await this.checkBudgetAlert()
@@ -111,10 +113,11 @@ export default class AiUsageService {
     if (!usage)
       return
 
-    const actualModelName = response.response_metadata?.model_name
-      || response.response_metadata?.modelName
-      || options.modelName
-      || 'unknown'
+    const actualModelName
+      = response.response_metadata?.model_name
+        || response.response_metadata?.modelName
+        || options.modelName
+        || 'unknown'
 
     await this.recordUsage({
       userId: options.userId,
@@ -122,7 +125,8 @@ export default class AiUsageService {
       modelName: actualModelName,
       provider: options.provider || 'openai',
       promptTokens: usage.prompt_tokens ?? usage.input_tokens ?? usage.promptTokens ?? 0,
-      completionTokens: usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
+      completionTokens:
+        usage.completion_tokens ?? usage.output_tokens ?? usage.completionTokens ?? 0,
       context: options.context,
     })
   }

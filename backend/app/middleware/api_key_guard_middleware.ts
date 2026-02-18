@@ -24,7 +24,10 @@ export default class ApiKeyGuardMiddleware {
     // If there's an authenticated user and the token has a name, it's an API Key
     if (user && token && token.name) {
       const action = ctx.route?.meta.resolvedHandler?.method
-      const controller = ctx.route?.meta.resolvedHandler?.namespace?.split('/').pop()?.replace('Controller', '')
+      const controller = ctx.route?.meta.resolvedHandler?.namespace
+        ?.split('/')
+        .pop()
+        ?.replace('Controller', '')
 
       // Construct a string like 'QueryTasksController.index'
       // Note: meta.resolvedHandler might vary depending on Adonis version/setup,
@@ -36,7 +39,8 @@ export default class ApiKeyGuardMiddleware {
       if (!this.whitelist.includes(currentHandler)) {
         return ctx.response.forbidden({
           code: 'E_API_KEY_RESTRICTED',
-          message: 'This API Key is restricted to Task management and Execution only. Please use the Web UI for other actions.',
+          message:
+            'This API Key is restricted to Task management and Execution only. Please use the Web UI for other actions.',
         })
       }
     }

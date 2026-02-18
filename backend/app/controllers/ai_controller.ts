@@ -9,40 +9,69 @@ import { inject } from '@adonisjs/core'
 import { DateTime } from 'luxon'
 import { CryptoHelper } from '#services/crypto_helper'
 import SseService from '#services/sse_service'
+import AiProviderService from '#services/ai_provider_service'
 
 @inject()
 export default class AiController {
-  constructor(protected executionService: QueryExecutionService) {}
+  constructor(
+    protected executionService: QueryExecutionService,
+    protected aiProvider: AiProviderService,
+  ) {}
 
   async testConnection({ request, response }: HttpContext) {
-    let { baseUrl, apiKey } = request.all()
+    let { baseUrl, apiKey, category } = request.all()
 
-    // 1. Resolve API Key
-    if (apiKey) {
-      apiKey = CryptoHelper.tryDecrypt(apiKey)
-    } else {
-      // Fallback to DB
-      const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
-      if (apiKeySetting?.value) {
-        apiKey = CryptoHelper.tryDecrypt(apiKeySetting.value)
+    // 1. Resolve Settings Based on Category
+    if (!baseUrl || !apiKey) {
+      if (category === 'embedding') {
+        const baseUrlSetting = await Setting.findBy('key', 'ai_embedding_base_url')
+        const apiKeySetting = await Setting.findBy('key', 'ai_embedding_api_key')
+        const resolvedBaseUrl = baseUrl || baseUrlSetting?.value
+        const resolvedApiKey = apiKey || apiKeySetting?.value
+
+        if (!resolvedBaseUrl || !resolvedApiKey) {
+          return response.badRequest({ message: 'Embedding Base URL or API Key not provided' })
+        }
+        baseUrl = resolvedBaseUrl
+        apiKey = resolvedApiKey
+      } else if (category === 'transcription') {
+        const baseUrlSetting = await Setting.findBy('key', 'ai_transcription_base_url')
+        const apiKeySetting = await Setting.findBy('key', 'ai_transcription_api_key')
+        const resolvedBaseUrl = baseUrl || baseUrlSetting?.value
+        const resolvedApiKey = apiKey || apiKeySetting?.value
+
+        if (!resolvedBaseUrl || !resolvedApiKey) {
+          return response.badRequest({ message: 'Transcription Base URL or API Key not provided' })
+        }
+        baseUrl = resolvedBaseUrl
+        apiKey = resolvedApiKey
+      } else {
+        // General AI/Chat fallback
+        const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
+        const apiKeySetting = await Setting.findBy('key', 'ai_api_key')
+        baseUrl = baseUrl || baseUrlSetting?.value
+        apiKey = apiKey || apiKeySetting?.value
       }
     }
 
-    // 2. Resolve Base URL
-    if (!baseUrl) {
-      const baseUrlSetting = await Setting.findBy('key', 'ai_base_url')
-      baseUrl = baseUrlSetting?.value
+    // 2. Resolve API Key Decryption
+    if (apiKey) {
+      apiKey = CryptoHelper.tryDecrypt(apiKey)
     }
 
     if (!baseUrl || !apiKey) {
-      return response.badRequest({ message: 'Base URL and API Key are required' })
+      return response.badRequest({
+        message: 'Base URL and API Key are required or could not be resolved',
+      })
     }
 
     // Normalize Base URL
+    baseUrl = baseUrl.trim()
     if (baseUrl.endsWith('/'))
       baseUrl = baseUrl.slice(0, -1)
 
     try {
+      // Standard OpenAI /models check
       const fetchUrl = `${baseUrl}/models`
       const res = await fetch(fetchUrl, {
         headers: {
@@ -360,6 +389,34 @@ export default class AiController {
     } catch (error: any) {
       return response.internalServerError({
         message: 'Failed to generate graph visualization',
+        error: error.message,
+      })
+    }
+  }
+
+  async transcribe({ request, response }: HttpContext) {
+    const audio = request.file('audio', {
+      size: '10mb',
+      extnames: ['wav', 'mp3', 'm4a', 'webm', 'ogg'],
+    })
+
+    if (!audio) {
+      return response.badRequest({ message: 'Audio file is required' })
+    }
+
+    if (!audio.isValid) {
+      return response.badRequest({ message: 'Invalid audio file', errors: audio.errors })
+    }
+
+    try {
+      const text = await this.aiProvider.transcribe({
+        path: audio.tmpPath!,
+        clientName: audio.clientName,
+      })
+      return response.ok({ text })
+    } catch (error: any) {
+      return response.internalServerError({
+        message: 'Transcription failed',
         error: error.message,
       })
     }

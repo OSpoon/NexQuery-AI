@@ -215,13 +215,17 @@ const dbTypes = [
               <FormItem>
                 <FormLabel>
                   {{
-                    form.values.type === 'api' || form.values.type === 'elasticsearch' ? t('data_sources.base_url') : t('data_sources.host')
+                    form.values.type === 'api' || form.values.type === 'elasticsearch'
+                      ? t('data_sources.base_url')
+                      : t('data_sources.host')
                   }}
                 </FormLabel>
                 <FormControl>
                   <Input
                     :placeholder="
-                      form.values.type === 'api' || form.values.type === 'elasticsearch' ? 'https://log-server:9200' : 'localhost'
+                      form.values.type === 'api' || form.values.type === 'elasticsearch'
+                        ? 'https://log-server:9200'
+                        : 'localhost'
                     "
                     v-bind="componentField"
                   />
@@ -251,9 +255,16 @@ const dbTypes = [
           :validate-on-blur="false"
         >
           <FormItem>
-            <FormLabel>{{ form.values.type === 'elasticsearch' ? 'Default Index' : t('data_sources.database') }}</FormLabel>
+            <FormLabel>
+              {{
+                form.values.type === 'elasticsearch' ? 'Default Index' : t('data_sources.database')
+              }}
+            </FormLabel>
             <FormControl>
-              <Input :placeholder="form.values.type === 'elasticsearch' ? 'nexquery-logs-*' : 'main_db'" v-bind="componentField" />
+              <Input
+                :placeholder="form.values.type === 'elasticsearch' ? 'nexquery-logs-*' : 'main_db'"
+                v-bind="componentField"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -311,9 +322,7 @@ const dbTypes = [
       </Button>
       <div class="flex gap-2">
         <Button type="button" variant="ghost" @click="emit('cancel')">
-          {{
-            t('common.cancel')
-          }}
+          {{ t('common.cancel') }}
         </Button>
         <Button type="submit" :disabled="isSubmitting || isTestingConnection">
           {{ isSubmitting ? t('common.loading') : isEditing ? t('common.save') : t('common.save') }}

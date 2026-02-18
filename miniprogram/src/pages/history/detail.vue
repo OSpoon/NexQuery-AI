@@ -16,7 +16,13 @@ onLoad(() => {
         const results = parsed.results
 
         // If results is an object with { data: "ciphertext" }
-        if (results && typeof results === 'object' && results.data && typeof results.data === 'string' && cryptoService) {
+        if (
+          results
+          && typeof results === 'object'
+          && results.data
+          && typeof results.data === 'string'
+          && cryptoService
+        ) {
           try {
             const decrypted = cryptoService.decrypt(results.data)
             if (decrypted) {
@@ -74,14 +80,17 @@ function viewResults() {
     <view class="section header-section">
       <view class="task-info">
         <text class="task-name">
-          {{ log.task?.name || '未知任务' }}
+          {{ log.task?.name || "未知任务" }}
         </text>
         <text class="log-time">
           {{ formatDate(log.createdAt) }}
         </text>
       </view>
-      <view class="status-badge" :class="log.status === 'success' ? 'success' : 'failed'">
-        <text>{{ log.status === 'success' ? '执行成功' : '执行失败' }}</text>
+      <view
+        class="status-badge"
+        :class="log.status === 'success' ? 'success' : 'failed'"
+      >
+        <text>{{ log.status === "success" ? "执行成功" : "执行失败" }}</text>
       </view>
     </view>
 
@@ -104,7 +113,7 @@ function viewResults() {
             执行人
           </text>
           <text class="value">
-            {{ log.user?.fullName || 'Anonymous' }}
+            {{ log.user?.fullName || "Anonymous" }}
           </text>
         </view>
         <view v-if="log.ipAddress" class="info-item">
@@ -139,7 +148,10 @@ function viewResults() {
     </view>
 
     <!-- Parameters -->
-    <view v-if="log.parameters && Object.keys(log.parameters).length > 0" class="section">
+    <view
+      v-if="log.parameters && Object.keys(log.parameters).length > 0"
+      class="section"
+    >
       <view class="section-title">
         参数
       </view>
@@ -168,141 +180,141 @@ function viewResults() {
 
 <style scoped>
 .container {
-    min-height: 100vh;
-    background-color: #f5f5f5;
-    padding: 30rpx;
-    padding-bottom: 120rpx;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding: 30rpx;
+  padding-bottom: 120rpx;
 }
 
 .section {
-    background-color: #fff;
-    border-radius: 16rpx;
-    padding: 30rpx;
-    margin-bottom: 30rpx;
-    box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin-bottom: 30rpx;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.02);
 }
 
 .section-title {
-    font-size: 28rpx;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 20rpx;
-    border-left: 6rpx solid #409eff;
-    padding-left: 16rpx;
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 20rpx;
+  border-left: 6rpx solid #409eff;
+  padding-left: 16rpx;
 }
 
 .header-section {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
 }
 
 .task-info {
-    display: flex;
-    flex-direction: column;
-    gap: 10rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
 }
 
 .task-name {
-    font-size: 34rpx;
-    font-weight: bold;
-    color: #333;
+  font-size: 34rpx;
+  font-weight: bold;
+  color: #333;
 }
 
 .log-time {
-    font-size: 24rpx;
-    color: #999;
+  font-size: 24rpx;
+  color: #999;
 }
 
 .status-badge {
-    padding: 6rpx 16rpx;
-    border-radius: 8rpx;
-    font-size: 24rpx;
-    font-weight: bold;
+  padding: 6rpx 16rpx;
+  border-radius: 8rpx;
+  font-size: 24rpx;
+  font-weight: bold;
 }
 
 .status-badge.success {
-    background-color: #e6f7ff;
-    color: #1890ff;
+  background-color: #e6f7ff;
+  color: #1890ff;
 }
 
 .status-badge.failed {
-    background-color: #fff1f0;
-    color: #f5222d;
+  background-color: #fff1f0;
+  color: #f5222d;
 }
 
 .info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 30rpx;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30rpx;
 }
 
 .info-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8rpx;
+  display: flex;
+  flex-direction: column;
+  gap: 8rpx;
 }
 
 .label {
-    font-size: 24rpx;
-    color: #999;
+  font-size: 24rpx;
+  color: #999;
 }
 
 .value {
-    font-size: 28rpx;
-    color: #333;
-    font-weight: 500;
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
 }
 
 .code-block {
-    background-color: #f8f9fa;
-    padding: 24rpx;
-    border-radius: 12rpx;
-    font-size: 24rpx;
-    color: #444;
-    font-family: monospace;
-    word-break: break-all;
-    line-height: 1.4;
+  background-color: #f8f9fa;
+  padding: 24rpx;
+  border-radius: 12rpx;
+  font-size: 24rpx;
+  color: #444;
+  font-family: monospace;
+  word-break: break-all;
+  line-height: 1.4;
 }
 
 .results-block {
-    max-height: 400rpx;
-    overflow-y: auto;
-    background-color: #1e1e1e;
-    color: #d4d4d4;
+  max-height: 400rpx;
+  overflow-y: auto;
+  background-color: #1e1e1e;
+  color: #d4d4d4;
 }
 
 .error-section {
-    background-color: #fff1f0;
-    border: 2rpx solid #ffa39e;
+  background-color: #fff1f0;
+  border: 2rpx solid #ffa39e;
 }
 
 .error-title {
-    color: #f5222d;
-    border-left-color: #f5222d;
+  color: #f5222d;
+  border-left-color: #f5222d;
 }
 
 .error-content {
-    font-size: 26rpx;
-    color: #cf1322;
+  font-size: 26rpx;
+  color: #cf1322;
 }
 
 .footer-actions {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 30rpx;
-    background-color: #fff;
-    border-top: 2rpx solid #eee;
-    z-index: 100;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 30rpx;
+  background-color: #fff;
+  border-top: 2rpx solid #eee;
+  z-index: 100;
 }
 
 .view-result-btn {
-    width: 100%;
-    height: 80rpx;
-    line-height: 80rpx;
-    border-radius: 40rpx;
-    font-size: 30rpx;
+  width: 100%;
+  height: 80rpx;
+  line-height: 80rpx;
+  border-radius: 40rpx;
+  font-size: 30rpx;
 }
 </style>

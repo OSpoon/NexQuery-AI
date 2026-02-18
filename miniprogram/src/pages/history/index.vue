@@ -19,7 +19,7 @@ const availableTags = computed(() => {
 async function fetchGlobalTags() {
   try {
     const res = await api.get('/query-tasks')
-    const tasks = Array.isArray(res) ? res : (res.data || [])
+    const tasks = Array.isArray(res) ? res : res.data || []
     const tags = new Set<string>()
     tasks.forEach((task: any) => {
       if (task.tags) {
@@ -45,7 +45,11 @@ async function fetchLogs() {
     logs.value = data
 
     // Update cache if no filters
-    if (selectedTag.value === 'All' && !searchQuery.value && !statusFilter.value) {
+    if (
+      selectedTag.value === 'All'
+      && !searchQuery.value
+      && !statusFilter.value
+    ) {
       fullLogs.value = data
     }
   }
@@ -114,9 +118,16 @@ onPullDownRefresh(() => {
   <view class="container">
     <view class="filter-header">
       <view class="search-bar">
-        <image class="search-icon" src="/static/tabs/history_active.png" mode="aspectFit" />
+        <image
+          class="search-icon"
+          src="/static/tabs/history_active.png"
+          mode="aspectFit"
+        />
         <input
-          v-model="searchQuery" class="search-input" placeholder="搜索运行记录..." confirm-type="search"
+          v-model="searchQuery"
+          class="search-input"
+          placeholder="搜索运行记录..."
+          confirm-type="search"
           @input="onSearchInput"
         >
       </view>
@@ -126,13 +137,25 @@ onPullDownRefresh(() => {
           状态:
         </text>
         <view class="status-tabs">
-          <view class="tab-item" :class="{ active: statusFilter === '' }" @click="setStatus('')">
+          <view
+            class="tab-item"
+            :class="{ active: statusFilter === '' }"
+            @click="setStatus('')"
+          >
             全部
           </view>
-          <view class="tab-item" :class="{ active: statusFilter === 'success' }" @click="setStatus('success')">
+          <view
+            class="tab-item"
+            :class="{ active: statusFilter === 'success' }"
+            @click="setStatus('success')"
+          >
             成功
           </view>
-          <view class="tab-item" :class="{ active: statusFilter === 'failed' }" @click="setStatus('failed')">
+          <view
+            class="tab-item"
+            :class="{ active: statusFilter === 'failed' }"
+            @click="setStatus('failed')"
+          >
             失败
           </view>
         </view>
@@ -145,7 +168,10 @@ onPullDownRefresh(() => {
         <scroll-view scroll-x class="tag-filter" :show-scrollbar="false">
           <view class="tag-list">
             <view
-              v-for="tag in availableTags" :key="tag" class="tag-chip" :class="{ active: selectedTag === tag }"
+              v-for="tag in availableTags"
+              :key="tag"
+              class="tag-chip"
+              :class="{ active: selectedTag === tag }"
               @click="selectTag(tag)"
             >
               {{ tag }}
@@ -164,23 +190,34 @@ onPullDownRefresh(() => {
     </view>
 
     <view v-else class="log-list">
-      <view v-for="log in logs" :key="log.id" class="log-item" @click="viewResult(log)">
+      <view
+        v-for="log in logs"
+        :key="log.id"
+        class="log-item"
+        @click="viewResult(log)"
+      >
         <view class="log-info">
           <view class="log-header">
             <text class="task-title">
-              {{ log.task?.name || '未知任务' }}
+              {{ log.task?.name || "未知任务" }}
             </text>
             <view class="exec-info">
               <text class="exec-user">
-                {{ log.user?.fullName || '未知用户' }}
+                {{ log.user?.fullName || "未知用户" }}
               </text>
-              <text class="status-badge" :class="log.status === 'success' ? 'success' : 'failed'">
-                {{ log.status === 'success' ? '成功' : '失败' }}
+              <text
+                class="status-badge"
+                :class="log.status === 'success' ? 'success' : 'failed'"
+              >
+                {{ log.status === "success" ? "成功" : "失败" }}
               </text>
             </view>
           </view>
 
-          <view v-if="log.task?.tags && log.task.tags.length > 0" class="task-tags">
+          <view
+            v-if="log.task?.tags && log.task.tags.length > 0"
+            class="task-tags"
+          >
             <text v-for="tag in log.task.tags" :key="tag" class="task-tag">
               {{ tag }}
             </text>

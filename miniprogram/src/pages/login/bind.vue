@@ -85,7 +85,10 @@ async function handleBind() {
           邮箱
         </text>
         <input
-          v-model="email" class="input" type="text" placeholder="请输入注册邮箱"
+          v-model="email"
+          class="input"
+          type="text"
+          placeholder="请输入注册邮箱"
           placeholder-style="color: #ccc"
         >
       </view>
@@ -95,12 +98,20 @@ async function handleBind() {
           密码
         </text>
         <input
-          v-model="password" class="input" type="password" placeholder="请输入登录密码"
+          v-model="password"
+          class="input"
+          type="password"
+          placeholder="请输入登录密码"
           placeholder-style="color: #ccc"
         >
       </view>
 
-      <button class="bind-btn" type="button" :loading="loading" @click="handleBind">
+      <button
+        class="bind-btn"
+        type="button"
+        :loading="loading"
+        @click="handleBind"
+      >
         立即绑定
       </button>
 
@@ -115,74 +126,74 @@ async function handleBind() {
 
 <style scoped>
 .container {
-    padding: 60rpx 40rpx;
-    background-color: #f8f9fa;
-    min-height: 100vh;
+  padding: 60rpx 40rpx;
+  background-color: #f8f9fa;
+  min-height: 100vh;
 }
 
 .header {
-    margin-bottom: 60rpx;
+  margin-bottom: 60rpx;
 }
 
 .title {
-    font-size: 44rpx;
-    font-weight: bold;
-    color: #333;
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333;
 }
 
 .subtitle {
-    display: block;
-    font-size: 26rpx;
-    color: #666;
-    margin-top: 20rpx;
+  display: block;
+  font-size: 26rpx;
+  color: #666;
+  margin-top: 20rpx;
 }
 
 .form {
-    background-color: #fff;
-    padding: 40rpx;
-    border-radius: 20rpx;
-    box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  background-color: #fff;
+  padding: 40rpx;
+  border-radius: 20rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .input-group {
-    margin-bottom: 30rpx;
+  margin-bottom: 30rpx;
 }
 
 .label {
-    display: block;
-    font-size: 28rpx;
-    color: #333;
-    margin-bottom: 16rpx;
+  display: block;
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 16rpx;
 }
 
 .input {
-    width: 100%;
-    height: 90rpx;
-    background-color: #f5f5f5;
-    border-radius: 12rpx;
-    padding: 0 24rpx;
-    font-size: 28rpx;
-    box-sizing: border-box;
+  width: 100%;
+  height: 90rpx;
+  background-color: #f5f5f5;
+  border-radius: 12rpx;
+  padding: 0 24rpx;
+  font-size: 28rpx;
+  box-sizing: border-box;
 }
 
 .bind-btn {
-    width: 100%;
-    height: 90rpx;
-    line-height: 90rpx;
-    border-radius: 45rpx;
-    background-color: #07c160;
-    color: #fff;
-    font-size: 30rpx;
-    margin-top: 40rpx;
+  width: 100%;
+  height: 90rpx;
+  line-height: 90rpx;
+  border-radius: 45rpx;
+  background-color: #07c160;
+  color: #fff;
+  font-size: 30rpx;
+  margin-top: 40rpx;
 }
 
 .footer {
-    text-align: center;
-    margin-top: 30rpx;
+  text-align: center;
+  margin-top: 30rpx;
 }
 
 .back-link {
-    font-size: 26rpx;
-    color: #07c160;
+  font-size: 26rpx;
+  color: #07c160;
 }
 </style>

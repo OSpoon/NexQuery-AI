@@ -86,7 +86,9 @@ async function onExecute(params: any) {
     toast.success('Query executed successfully')
   }
   catch (error: any) {
-    toast.error(`Execution failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`)
+    toast.error(
+      `Execution failed: ${error.response?.data?.error || error.response?.data?.message || error.message}`,
+    )
   }
   finally {
     isExecuting.value = false
@@ -213,9 +215,7 @@ onMounted(fetchTask)
               <TableHeader class="sticky top-0 bg-background z-10 shadow-sm">
                 <TableRow>
                   <TableHead v-for="col in columns" :key="col" class="whitespace-nowrap">
-                    {{
-                      col
-                    }}
+                    {{ col }}
                   </TableHead>
                 </TableRow>
               </TableHeader>

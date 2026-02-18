@@ -12,9 +12,7 @@ export class SearchEntitiesTool extends StructuredTool {
     dataSourceId: z.number().describe('The ID of the data source to search in'),
     query: z
       .string()
-      .describe(
-        'Natural language description of the data (e.g., "customer orders", "log events")',
-      ),
+      .describe('Natural language description of the data (e.g., "customer orders", "log events")'),
   })
 
   async _call({ dataSourceId, query }: z.infer<typeof this.schema>): Promise<string> {

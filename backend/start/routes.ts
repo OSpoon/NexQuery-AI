@@ -1,5 +1,6 @@
 import router from '@adonisjs/core/services/router'
 import { middleware } from '#start/kernel'
+import { authThrottle, globalThrottle } from '#start/limiter'
 import { PERMISSIONS } from '@nexquery/shared'
 import AutoSwagger from 'adonis-autoswagger'
 import swagger from '#config/swagger'
@@ -44,13 +45,13 @@ router
     router.get('health', [HealthChecksController, 'handle'])
 
     // Public Auth
-    router.post('auth/2fa/verify', [AuthController, 'verify2fa']) // 2FA Verification during login
-    router.post('login', [AuthController, 'login'])
-    router.post('auth/miniprogram/login', [AuthController, 'miniProgramLogin'])
-    router.post('auth/miniprogram/bind', [AuthController, 'bindMiniProgram'])
-    router.post('register', [AuthController, 'register'])
-    router.post('password/email', [PasswordResetsController, 'sendResetLink'])
-    router.post('password/reset', [PasswordResetsController, 'reset'])
+    router.post('auth/2fa/verify', [AuthController, 'verify2fa']).use(authThrottle) // 2FA Verification during login
+    router.post('login', [AuthController, 'login']).use(authThrottle)
+    router.post('auth/miniprogram/login', [AuthController, 'miniProgramLogin']).use(authThrottle)
+    router.post('auth/miniprogram/bind', [AuthController, 'bindMiniProgram']).use(authThrottle)
+    router.post('register', [AuthController, 'register']).use(authThrottle)
+    router.post('password/email', [PasswordResetsController, 'sendResetLink']).use(authThrottle)
+    router.post('password/reset', [PasswordResetsController, 'reset']).use(authThrottle)
     router.get('settings', [SettingsController, 'index'])
 
     // Public Static Avatars (No Auth, No Encryption)
@@ -123,8 +124,14 @@ router
         router
           .group(() => {
             router.get('notifications', '#controllers/user_notifications_controller.index')
-            router.patch('notifications/:id/read', '#controllers/user_notifications_controller.markAsRead')
-            router.post('notifications/read-all', '#controllers/user_notifications_controller.markAllAsRead')
+            router.patch(
+              'notifications/:id/read',
+              '#controllers/user_notifications_controller.markAsRead',
+            )
+            router.post(
+              'notifications/read-all',
+              '#controllers/user_notifications_controller.markAllAsRead',
+            )
             router.delete('notifications/:id', '#controllers/user_notifications_controller.destroy')
           })
           .prefix('user')
@@ -139,6 +146,7 @@ router
         router.post('ai/chat/stream', [AiController, 'chatStream'])
         router.post('ai/preview', [AiController, 'preview'])
         router.post('ai/learn', [AiController, 'learn'])
+        router.post('ai/transcribe', [AiController, 'transcribe'])
         router.get('ai/graph/visualize', [AiController, 'visualizeGraph'])
         router.get('ai/conversations', [AiController, 'getConversations'])
         router.get('ai/conversations/:id', [AiController, 'getConversationMessages'])
@@ -202,13 +210,10 @@ router
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_PROMPTS }))
       })
-      .use([
-        middleware.auth(),
-        middleware.apiKeyGuard(),
-      ])
+      .use([middleware.auth(), middleware.apiKeyGuard()])
   })
   .prefix('api')
-  .use(middleware.encrypt())
+  .use([middleware.encrypt(), globalThrottle])
 
 // SSE Notifications (Manual auth in controller to support EventSource)
 // We keep it outside the group to bypass the group-level encrypt and auth middleware

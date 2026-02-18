@@ -1,5 +1,7 @@
 ## 放置说明：
+
 在 [spider](https://yale-lily.github.io/spider) 下载并解压后，请确保文件结构如下：
+
 ```bash
 /Users/osp/Documents/GitHub/nexquery-ai/backend/storage/eval/spider/
 ├── dev.json
@@ -10,6 +12,7 @@
 ```
 
 ## 完成放置后，再次运行评测：
+
 ```bash
 node ace eval:spider --limit 5
 

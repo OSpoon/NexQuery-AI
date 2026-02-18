@@ -13,7 +13,13 @@ onMounted(() => {
       let parsed = JSON.parse(data)
 
       // Defensive check: if storage contains { data: "ciphertext" }
-      if (parsed && typeof parsed === 'object' && parsed.data && typeof parsed.data === 'string' && cryptoService) {
+      if (
+        parsed
+        && typeof parsed === 'object'
+        && parsed.data
+        && typeof parsed.data === 'string'
+        && cryptoService
+      ) {
         try {
           const decrypted = cryptoService.decrypt(parsed.data)
           if (decrypted) {
@@ -52,7 +58,7 @@ function handleBack() {
         共 {{ result.length }} 条结果
       </text>
       <button class="toggle-btn" size="mini" @click="toggleView">
-        {{ viewMode === 'card' ? '文字视图' : '表格视图' }}
+        {{ viewMode === "card" ? "文字视图" : "表格视图" }}
       </button>
     </view>
 
@@ -75,7 +81,7 @@ function handleBack() {
                 {{ header }}
               </text>
               <text class="data-value">
-                {{ row[header] ?? '-' }}
+                {{ row[header] ?? "-" }}
               </text>
             </view>
           </view>

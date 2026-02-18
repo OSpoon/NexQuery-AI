@@ -6,13 +6,7 @@
       "request": "launch",
       "name": "Debug Spider Eval",
       "program": "${workspaceFolder}/backend/ace.js",
-      "args": [
-        "eval:spider",
-        "--limit",
-        "5",
-        "--offset",
-        "100"
-      ],
+      "args": ["eval:spider", "--limit", "5", "--offset", "100"],
       "cwd": "${workspaceFolder}/backend",
       "console": "integratedTerminal",
       "sourceMaps": true,

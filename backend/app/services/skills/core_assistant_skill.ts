@@ -19,10 +19,7 @@ export class CoreAssistantSkill extends BaseSkill {
   }
 
   getTools(_context: SkillContext) {
-    const tools: any[] = [
-      new ClarifyIntentTool(),
-      new GetCurrentTimeTool(),
-    ]
+    const tools: any[] = [new ClarifyIntentTool(), new GetCurrentTimeTool()]
 
     if (this.options.excludeSubmission !== true) {
       tools.push(new SubmitSqlTool())

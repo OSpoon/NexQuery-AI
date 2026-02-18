@@ -8,13 +8,15 @@ import { githubLight } from '@uiw/codemirror-theme-github'
 import { basicSetup } from 'codemirror'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  placeholder?: string
-  readonly?: boolean
-  extensions?: Extension[]
-}>(), {
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    placeholder?: string
+    readonly?: boolean
+    extensions?: Extension[]
+  }>(),
+  {},
+)
 
 const emit = defineEmits(['update:modelValue', 'change', 'mount', 'unmount'])
 
@@ -74,34 +76,44 @@ onUnmounted(() => {
 })
 
 // Watch for external content changes
-watch(() => props.modelValue, (newVal) => {
-  if (view && newVal !== view.state.doc.toString()) {
-    view.dispatch({
-      changes: { from: 0, to: view.state.doc.length, insert: newVal },
-    })
-  }
-})
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    if (view && newVal !== view.state.doc.toString()) {
+      view.dispatch({
+        changes: { from: 0, to: view.state.doc.length, insert: newVal },
+      })
+    }
+  },
+)
 
 // Watch for extension changes - Use Compartment to reconfigure instead of destroy
-watch(() => props.extensions, (newExts) => {
-  if (view) {
-    view.dispatch({
-      effects: extensionsConf.reconfigure(newExts || []),
-    })
-  }
-}, { deep: false }) // CM6 extensions are complex, deep watch can cause loops
+watch(
+  () => props.extensions,
+  (newExts) => {
+    if (view) {
+      view.dispatch({
+        effects: extensionsConf.reconfigure(newExts || []),
+      })
+    }
+  },
+  { deep: false },
+) // CM6 extensions are complex, deep watch can cause loops
 
 // Watch for readonly changes
-watch(() => props.readonly, (newVal) => {
-  if (view) {
-    view.dispatch({
-      effects: readonlyConf.reconfigure([
-        newVal ? EditorState.readOnly.of(true) : [],
-        EditorView.editable.of(!newVal),
-      ]),
-    })
-  }
-})
+watch(
+  () => props.readonly,
+  (newVal) => {
+    if (view) {
+      view.dispatch({
+        effects: readonlyConf.reconfigure([
+          newVal ? EditorState.readOnly.of(true) : [],
+          EditorView.editable.of(!newVal),
+        ]),
+      })
+    }
+  },
+)
 
 defineExpose({
   getView: () => view,

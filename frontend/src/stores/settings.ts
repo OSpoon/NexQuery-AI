@@ -60,7 +60,9 @@ export const useSettingsStore = defineStore('settings', () => {
   const showWatermark = computed(() => settings.value.show_watermark !== 'false') // Default to true if not present
   const hasAiKey = computed(() => !!settings.value.ai_api_key)
 
-  const aiBaseUrl = computed(() => settings.value.ai_base_url || 'https://open.bigmodel.cn/api/paas/v4/')
+  const aiBaseUrl = computed(
+    () => settings.value.ai_base_url || 'https://open.bigmodel.cn/api/paas/v4/',
+  )
   const aiApiKey = computed(() => settings.value.ai_api_key || '')
   const aiChatModel = computed(() => settings.value.ai_chat_model || 'glm-4.5-flash')
   const aiEmbeddingModel = computed(() => settings.value.ai_embedding_model || 'embedding-3')

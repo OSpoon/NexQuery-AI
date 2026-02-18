@@ -8,16 +8,18 @@ import api from '@/lib/api'
 import { getSqlExtensions } from '@/lib/codemirror-extensions'
 import CodeMirrorEditor from './CodeMirrorEditor.vue'
 
-const props = withDefaults(defineProps<{
-  modelValue: string
-  language?: string
-  variables?: Array<{ name: string, description?: string }>
-  dbType?: string
-  dataSourceId?: number
-  readonly?: boolean
-  hideToolbar?: boolean
-}>(), {
-})
+const props = withDefaults(
+  defineProps<{
+    modelValue: string
+    language?: string
+    variables?: Array<{ name: string, description?: string }>
+    dbType?: string
+    dataSourceId?: number
+    readonly?: boolean
+    hideToolbar?: boolean
+  }>(),
+  {},
+)
 const emit = defineEmits(['update:modelValue', 'run'])
 
 const fullWidthChars = /[；，。“”（）]/
@@ -36,8 +38,14 @@ const extensions = computed(() => {
 
 const isLoadingSchema = ref(false)
 async function fetchSchema() {
-  if (!props.dataSourceId || props.language === 'shell' || props.language === 'json' || isLoadingSchema.value)
+  if (
+    !props.dataSourceId
+    || props.language === 'shell'
+    || props.language === 'json'
+    || isLoadingSchema.value
+  ) {
     return
+  }
 
   isLoadingSchema.value = true
   try {
@@ -114,13 +122,19 @@ function insertVariable(variableName: string) {
   view.focus()
 }
 
-watch(() => props.modelValue, () => {
-  validateSql()
-})
+watch(
+  () => props.modelValue,
+  () => {
+    validateSql()
+  },
+)
 
-watch(() => props.dataSourceId, () => {
-  fetchSchema()
-})
+watch(
+  () => props.dataSourceId,
+  () => {
+    fetchSchema()
+  },
+)
 
 defineExpose({
   formatSql,
@@ -136,9 +150,7 @@ defineExpose({
 <template>
   <div
     class="flex flex-col border rounded-md overflow-hidden h-full min-h-[380px] font-mono text-sm shadow-inner group transition-colors duration-200 bg-white border-zinc-200"
-    :class="[
-      { 'min-h-[150px]': hideToolbar, 'border-red-900/50': syntaxError },
-    ]"
+    :class="[{ 'min-h-[150px]': hideToolbar, 'border-red-900/50': syntaxError }]"
   >
     <!-- Toolbar -->
     <div
@@ -152,7 +164,10 @@ defineExpose({
           <div class="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
           {{ language === 'shell' ? 'SHELL' : language === 'json' ? 'JSON' : 'SQL' }}
         </div>
-        <div v-if="dbType && language !== 'shell'" class="text-[10px] text-zinc-500 uppercase tracking-tighter opacity-60">
+        <div
+          v-if="dbType && language !== 'shell'"
+          class="text-[10px] text-zinc-500 uppercase tracking-tighter opacity-60"
+        >
           {{ dbType }}
         </div>
       </div>
@@ -220,19 +235,25 @@ defineExpose({
         leave-from-class="translate-y-0 opacity-100"
         leave-to-class="translate-y-1 opacity-0"
       >
-        <div v-if="syntaxError" class="absolute bottom-2 left-2 right-2 flex items-start gap-2 rounded border p-2 text-[11px] backdrop-blur-md shadow-xl z-50 transition-all duration-300 border-red-200 bg-red-50/95 text-red-700 shadow-red-200/20">
+        <div
+          v-if="syntaxError"
+          class="absolute bottom-2 left-2 right-2 flex items-start gap-2 rounded border p-2 text-[11px] backdrop-blur-md shadow-xl z-50 transition-all duration-300 border-red-200 bg-red-50/95 text-red-700 shadow-red-200/20"
+        >
           <AlertCircle class="mt-0.5 h-3.5 w-3.5 shrink-0 text-red-600" />
           <span class="leading-relaxed">{{ syntaxError }}</span>
         </div>
       </Transition>
 
       <!-- Empty State Hint -->
-      <div v-if="!modelValue && !readonly" class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10 select-none">
+      <div
+        v-if="!modelValue && !readonly"
+        class="pointer-events-none absolute inset-0 flex items-center justify-center opacity-10 select-none"
+      >
         <div class="flex flex-col items-center gap-3">
           <div class="flex flex-col items-center gap-3">
             <BracesIcon class="h-10 w-10 text-zinc-200" />
             <p v-pre class="text-[11px] font-medium text-zinc-300">
-              输入 SQL 或使用 {{变量}}
+              输入 SQL 或使用 {{ 变量 }}
             </p>
           </div>
         </div>
@@ -240,7 +261,10 @@ defineExpose({
     </div>
 
     <!-- Footer Status -->
-    <div v-if="!hideToolbar" class="flex h-6 items-center justify-between border-t px-2 text-[10px] transition-colors bg-zinc-50 border-zinc-200 text-zinc-500">
+    <div
+      v-if="!hideToolbar"
+      class="flex h-6 items-center justify-between border-t px-2 text-[10px] transition-colors bg-zinc-50 border-zinc-200 text-zinc-500"
+    >
       <div class="flex items-center gap-3">
         <div v-if="dataSourceId" class="flex items-center gap-1">
           <CheckCircle2 class="h-3 w-3 text-emerald-500/70" />

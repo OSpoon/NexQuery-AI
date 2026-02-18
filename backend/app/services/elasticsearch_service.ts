@@ -15,7 +15,11 @@ export default class ElasticsearchService {
     const { node, auth } = options
     this.client = new Client({
       node,
-      auth: auth?.apiKey ? { apiKey: auth.apiKey } : (auth?.username && auth?.password ? { username: auth.username, password: auth.password } : undefined),
+      auth: auth?.apiKey
+        ? { apiKey: auth.apiKey }
+        : auth?.username && auth?.password
+          ? { username: auth.username, password: auth.password }
+          : undefined,
       requestTimeout: 30000, // 30s global timeout
     })
   }
@@ -36,7 +40,9 @@ export default class ElasticsearchService {
   /**
    * List all indices
    */
-  async listIndices(): Promise<Array<{ name: string, isDataStream: boolean, docsCount: string, storeSize: string }>> {
+  async listIndices(): Promise<
+    Array<{ name: string, isDataStream: boolean, docsCount: string, storeSize: string }>
+  > {
     try {
       const response = await this.client.cat.indices({
         format: 'json',
@@ -58,12 +64,7 @@ export default class ElasticsearchService {
   /**
    * Search logs
    */
-  async search(options: {
-    index: string
-    query?: string
-    size?: number
-    from?: number
-  }) {
+  async search(options: { index: string, query?: string, size?: number, from?: number }) {
     const { index, query, size = 100, from = 0 } = options
 
     // Defensive size capping
@@ -88,9 +89,7 @@ export default class ElasticsearchService {
             : {
                 match_all: {},
               },
-          sort: [
-            { '@timestamp': { order: 'desc' } },
-          ],
+          sort: [{ '@timestamp': { order: 'desc' } }],
         },
       })
 
@@ -133,7 +132,8 @@ export default class ElasticsearchService {
       let body: any = {}
       if (type === 'keyword' || type === 'text') {
         // Use .keyword if it's a text field with multibfield
-        const aggField = type === 'text' && fieldMapping.fields?.keyword ? `${field}.keyword` : field
+        const aggField
+          = type === 'text' && fieldMapping.fields?.keyword ? `${field}.keyword` : field
         body = {
           size: 0,
           aggs: {
@@ -145,7 +145,19 @@ export default class ElasticsearchService {
             },
           },
         }
-      } else if (['long', 'integer', 'short', 'byte', 'double', 'float', 'half_float', 'scaled_float', 'date'].includes(type)) {
+      } else if (
+        [
+          'long',
+          'integer',
+          'short',
+          'byte',
+          'double',
+          'float',
+          'half_float',
+          'scaled_float',
+          'date',
+        ].includes(type)
+      ) {
         body = {
           size: 0,
           aggs: {

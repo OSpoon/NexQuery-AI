@@ -41,7 +41,11 @@ async function handleExecute() {
   // Validate required fields
   if (task.value?.formSchema) {
     for (const item of task.value.formSchema) {
-      if (item.required && (!formData.value[item.name] && formData.value[item.name] !== 0)) {
+      if (
+        item.required
+        && !formData.value[item.name]
+        && formData.value[item.name] !== 0
+      ) {
         uni.showToast({
           title: `请输入${item.label}`,
           icon: 'none',
@@ -80,7 +84,11 @@ async function handleExecute() {
     }
 
     // Log success and go to result page
-    if (finalData && ((Array.isArray(finalData) && finalData.length > 0) || (typeof finalData === 'object' && Object.keys(finalData).length > 0))) {
+    if (
+      finalData
+      && ((Array.isArray(finalData) && finalData.length > 0)
+        || (typeof finalData === 'object' && Object.keys(finalData).length > 0))
+    ) {
       uni.setStorageSync('last_query_result', JSON.stringify(finalData))
       uni.navigateTo({
         url: '/pages/result/index',
@@ -125,30 +133,42 @@ onMounted(() => {
           {{ task.name }}
         </text>
         <text class="task-desc">
-          {{ task.description || '无描述' }}
+          {{ task.description || "无描述" }}
         </text>
       </view>
 
       <view class="form-container">
-        <view v-for="item in task.formSchema" :key="item.name" class="form-item">
+        <view
+          v-for="item in task.formSchema"
+          :key="item.name"
+          class="form-item"
+        >
           <text class="label">
-            {{ item.label }} <text v-if="item.required" class="required">
+            {{ item.label }}
+            <text v-if="item.required" class="required">
               *
             </text>
           </text>
 
           <input
-            v-if="item.type === 'text' || item.type === 'input'" v-model="formData[item.name]" class="input"
+            v-if="item.type === 'text' || item.type === 'input'"
+            v-model="formData[item.name]"
+            class="input"
             :placeholder="`请输入${item.label}`"
           >
 
           <input
-            v-else-if="item.type === 'number'" v-model="formData[item.name]" class="input" type="number"
+            v-else-if="item.type === 'number'"
+            v-model="formData[item.name]"
+            class="input"
+            type="number"
             :placeholder="`请输入${item.label}`"
           >
 
           <textarea
-            v-else-if="item.type === 'textarea'" v-model="formData[item.name]" class="textarea"
+            v-else-if="item.type === 'textarea'"
+            v-model="formData[item.name]"
+            class="textarea"
             :placeholder="`请输入${item.label}`"
           />
 
@@ -160,7 +180,12 @@ onMounted(() => {
       </view>
 
       <view class="footer">
-        <button class="execute-btn" type="button" :loading="executing" @click="handleExecute">
+        <button
+          class="execute-btn"
+          type="button"
+          :loading="executing"
+          @click="handleExecute"
+        >
           执行查询
         </button>
       </view>

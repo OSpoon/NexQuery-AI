@@ -13,24 +13,34 @@ import {
   Tooltip,
 } from 'chart.js'
 import { format } from 'date-fns'
-import {
-  Activity,
-  BarChart,
-  ChevronLeft,
-  ChevronRight,
-  Cpu,
-  Users,
-  Wallet,
-} from 'lucide-vue-next'
+import { Activity, BarChart, ChevronLeft, ChevronRight, Cpu, Users, Wallet } from 'lucide-vue-next'
 import { computed, onMounted, ref } from 'vue'
 import { Line, Pie } from 'vue-chartjs'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import api from '@/lib/api'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, ArcElement, Title, Tooltip, Legend, Filler)
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  BarElement,
+  ArcElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler,
+)
 
 const { t } = useI18n()
 const loading = ref(true)
@@ -96,21 +106,18 @@ const modelChartData = computed(() => {
     datasets: [
       {
         data: filteredData.map((m: any) => m.cost),
-        backgroundColor: [
-          '#3b82f6',
-          '#10b981',
-          '#f59e0b',
-          '#ef4444',
-          '#8b5cf6',
-          '#ec4899',
-        ],
+        backgroundColor: ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'],
       },
     ],
   }
 })
 
 function formatCost(val: number) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', minimumFractionDigits: 4 }).format(val)
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 4,
+  }).format(val)
 }
 
 function formatTokens(val: number) {
@@ -162,7 +169,10 @@ function formatTokens(val: number) {
         </Card>
         <Card class="overflow-hidden">
           <CardHeader class="flex flex-row items-center justify-between p-4 pb-2 space-y-0 gap-2">
-            <CardTitle class="text-sm font-medium truncate flex-1" :title="t('finops.total_tokens')">
+            <CardTitle
+              class="text-sm font-medium truncate flex-1"
+              :title="t('finops.total_tokens')"
+            >
               {{ t('finops.total_tokens') }}
             </CardTitle>
             <Cpu class="h-4 w-4 text-muted-foreground shrink-0" />
@@ -178,7 +188,10 @@ function formatTokens(val: number) {
         </Card>
         <Card class="overflow-hidden">
           <CardHeader class="flex flex-row items-center justify-between p-4 pb-2 space-y-0 gap-2">
-            <CardTitle class="text-sm font-medium truncate flex-1" :title="t('finops.total_requests')">
+            <CardTitle
+              class="text-sm font-medium truncate flex-1"
+              :title="t('finops.total_requests')"
+            >
               {{ t('finops.total_requests') }}
             </CardTitle>
             <BarChart class="h-4 w-4 text-muted-foreground shrink-0" />
@@ -202,7 +215,10 @@ function formatTokens(val: number) {
             <CardDescription>{{ t('finops.cost_trend_desc') }}</CardDescription>
           </CardHeader>
           <CardContent class="h-[300px]">
-            <Line :data="trendChartData" :options="{ maintainAspectRatio: false, responsive: true }" />
+            <Line
+              :data="trendChartData"
+              :options="{ maintainAspectRatio: false, responsive: true }"
+            />
           </CardContent>
         </Card>
         <Card>
@@ -211,7 +227,10 @@ function formatTokens(val: number) {
             <CardDescription>{{ t('finops.cost_by_model_desc') }}</CardDescription>
           </CardHeader>
           <CardContent class="h-[300px] flex justify-center">
-            <Pie :data="modelChartData" :options="{ maintainAspectRatio: false, responsive: true }" />
+            <Pie
+              :data="modelChartData"
+              :options="{ maintainAspectRatio: false, responsive: true }"
+            />
           </CardContent>
         </Card>
       </div>
@@ -283,7 +302,9 @@ function formatTokens(val: number) {
                     {{ format(new Date(log.createdAt), 'MM-dd HH:mm') }}
                   </TableCell>
                   <TableCell>
-                    <span class="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium">
+                    <span
+                      class="inline-flex items-center rounded-full bg-secondary px-2 py-0.5 text-[10px] font-medium"
+                    >
                       {{ log.modelName }}
                     </span>
                   </TableCell>
@@ -310,7 +331,9 @@ function formatTokens(val: number) {
               >
                 <ChevronLeft class="h-4 w-4" />
               </Button>
-              <span class="text-xs text-muted-foreground">{{ t('finops.pagination', { current: currentPage, total: totalPages }) }}</span>
+              <span class="text-xs text-muted-foreground">{{
+                t('finops.pagination', { current: currentPage, total: totalPages })
+              }}</span>
               <Button
                 variant="outline"
                 size="sm"

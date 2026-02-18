@@ -415,7 +415,15 @@
     "ai_desc": "LLM 模型接入及 AI 核心能力配置",
     "ai_skills": "AI 技能插件",
     "ai_skills_desc": "启用或停用特定的 Agent 能力模块。",
+    "groups": {
+      "ai_chat": "对话服务 (Main Chat)",
+      "ai_embedding": "向量嵌入 (Embedding)",
+      "ai_transcription": "语音转录 (Transcription / STT)"
+    },
     "test_connection": "测试连接",
+    "test_connection_chat": "测试对话连接",
+    "test_connection_embedding": "测试嵌入连接",
+    "test_connection_transcription": "测试转录连接",
     "connection_success": "连接成功",
     "connection_failed": "连接失败",
     "keys": {
@@ -442,6 +450,12 @@
       "ai_base_url_desc": "模型厂商的 API 端点 (如: https://api.deepseek.com/v1/)",
       "ai_api_key": "AI API 密钥",
       "ai_api_key_desc": "访问 OpenAI 协议模型的 API Key。",
+      "ai_transcription_base_url": "语音转录代理地址 (STT Base URL)",
+      "ai_transcription_base_url_desc": "专用于语音转录的 API 端点。留空则使用全局代理地址。",
+      "ai_transcription_api_key": "语音转录 API 密钥",
+      "ai_transcription_api_key_desc": "专用于语音转录的 API Key。留空则使用全局密钥。",
+      "ai_transcription_model": "语音转录模型",
+      "ai_transcription_model_desc": "专用于语音转录的模型名称 (如: whisper-1)。",
       "ai_key_missing": "尚未配置 API Key。AI 功能由于密钥缺失已停用。",
       "ai_skill_discovery": "探索技能",
       "ai_skill_discovery_desc": "允许 AI 遍历库表、获取 Schema 和采样数据 (DiscoverySkill)。",

@@ -8,7 +8,14 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 import api from '@/lib/api'
 
 interface ReportSummary {
@@ -136,7 +143,10 @@ function getDifficultyBadge(difficulty: string) {
                 <TableCell>{{ report.total }}</TableCell>
                 <TableCell>{{ report.correct }}</TableCell>
                 <TableCell>
-                  <Badge :variant="parseFloat(report.accuracy) >= 80 ? 'default' : 'secondary'" class="bg-blue-500">
+                  <Badge
+                    :variant="parseFloat(report.accuracy) >= 80 ? 'default' : 'secondary'"
+                    class="bg-blue-500"
+                  >
                     {{ report.accuracy }}
                   </Badge>
                 </TableCell>
@@ -167,7 +177,8 @@ function getDifficultyBadge(difficulty: string) {
             'eval.spider.correct': selectedReport.correct,
             'eval.spider.accuracy': selectedReport.accuracy,
             'eval.spider.run_time': format(new Date(selectedReport.timestamp), 'HH:mm:ss'),
-          }" :key="label"
+          }"
+          :key="label"
         >
           <CardHeader class="pb-2">
             <CardDescription>{{ t(label) }}</CardDescription>
@@ -187,7 +198,8 @@ function getDifficultyBadge(difficulty: string) {
           <ScrollArea class="h-[60vh] pr-4">
             <div class="space-y-4">
               <div
-                v-for="(result, idx) in selectedReport.results" :key="idx"
+                v-for="(result, idx) in selectedReport.results"
+                :key="idx"
                 class="p-4 rounded-lg border bg-card text-card-foreground shadow-sm group"
               >
                 <div class="flex items-start justify-between gap-4 mb-3">
@@ -199,7 +211,11 @@ function getDifficultyBadge(difficulty: string) {
                       </p>
                     </div>
                     <Badge :class="getDifficultyBadge(result.difficulty)">
-                      {{ result.difficulty ? t(`eval.spider.difficulty.${result.difficulty.toLowerCase()}`) : t('eval.spider.difficulty.unknown') }}
+                      {{
+                        result.difficulty
+                          ? t(`eval.spider.difficulty.${result.difficulty.toLowerCase()}`)
+                          : t('eval.spider.difficulty.unknown')
+                      }}
                     </Badge>
                   </div>
                   <div class="shrink-0">
@@ -216,7 +232,10 @@ function getDifficultyBadge(difficulty: string) {
                   />
                 </div>
 
-                <div v-if="result.error" class="mt-4 p-3 rounded bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-xs flex items-center gap-2">
+                <div
+                  v-if="result.error"
+                  class="mt-4 p-3 rounded bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-200 text-xs flex items-center gap-2"
+                >
                   <XCircle class="h-4 w-4" /> {{ t('eval.spider.error_prefix') }} {{ result.error }}
                 </div>
               </div>

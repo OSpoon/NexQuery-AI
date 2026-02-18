@@ -413,7 +413,15 @@
     "ai_desc": "LLM models and AI capability configuration",
     "ai_skills": "AI Skill Plugins",
     "ai_skills_desc": "Enable or disable specific Agent capability modules.",
+    "groups": {
+      "ai_chat": "Standard Chat (OpenAI Protocol)",
+      "ai_embedding": "Vector Embedding",
+      "ai_transcription": "Speech to Text (STT)"
+    },
     "test_connection": "Test Connection",
+    "test_connection_chat": "Test Chat Connection",
+    "test_connection_embedding": "Test Embedding Connection",
+    "test_connection_transcription": "Test Transcription Connection",
     "connection_success": "Connection successful",
     "connection_failed": "Connection failed",
     "keys": {
@@ -440,6 +448,12 @@
       "ai_base_url_desc": "The Base URL for the Model API (e.g., https://api.deepseek.com/v1/)",
       "ai_api_key": "AI API Key",
       "ai_api_key_desc": "API Key for accessing generic OpenAI-protocol models.",
+      "ai_transcription_base_url": "STT Base URL",
+      "ai_transcription_base_url_desc": "Independent Base URL for transcription. Leave empty to use global AI Base URL.",
+      "ai_transcription_api_key": "STT API Key",
+      "ai_transcription_api_key_desc": "Independent API Key for transcription. Leave empty to use global API Key.",
+      "ai_transcription_model": "STT Model",
+      "ai_transcription_model_desc": "Independent model name for transcription (e.g. whisper-1).",
       "ai_key_missing": "AI API Key is missing. AI features are disabled.",
       "ai_skill_discovery": "Discovery Skill",
       "ai_skill_discovery_desc": "Allows the AI to explore database tables, retrieve schemas, and sample data.",

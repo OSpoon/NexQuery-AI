@@ -1,7 +1,5 @@
 <script setup lang="ts">
-import {
-  CalendarDate,
-} from '@internationalized/date'
+import { CalendarDate } from '@internationalized/date'
 import { Calendar as CalendarIcon, Clock } from 'lucide-vue-next'
 import { DateTime } from 'luxon'
 import { computed, ref, watch } from 'vue'

@@ -14,13 +14,16 @@ import {
 } from '@/components/ui/dialog'
 import { getJsonExtensions } from '@/lib/codemirror-extensions'
 
-const props = withDefaults(defineProps<{
-  value: any
-  maxPreviewLength?: number
-  dark?: boolean
-}>(), {
-  dark: false,
-})
+const props = withDefaults(
+  defineProps<{
+    value: any
+    maxPreviewLength?: number
+    dark?: boolean
+  }>(),
+  {
+    dark: false,
+  },
+)
 
 const isDialogOpen = ref(false)
 const extensions = getJsonExtensions()
@@ -62,7 +65,9 @@ function copyToClipboard() {
 <template>
   <div v-if="isJson" class="group relative">
     <div class="flex items-center gap-2">
-      <code class="text-xs bg-muted/50 px-1.5 py-0.5 rounded border truncate max-w-[1000px] font-mono opacity-70 group-hover:opacity-100 transition-opacity">
+      <code
+        class="text-xs bg-muted/50 px-1.5 py-0.5 rounded border truncate max-w-[1000px] font-mono opacity-70 group-hover:opacity-100 transition-opacity"
+      >
         {{ previewText }}
       </code>
 
@@ -92,14 +97,21 @@ function copyToClipboard() {
             <Button
               variant="outline"
               size="sm"
-              :class="dark ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white' : 'bg-white border-zinc-200 text-zinc-700 hover:text-zinc-950'"
+              :class="
+                dark
+                  ? 'bg-zinc-900 border-zinc-800 text-zinc-300 hover:text-white'
+                  : 'bg-white border-zinc-200 text-zinc-700 hover:text-zinc-950'
+              "
               @click="copyToClipboard"
             >
               <Copy class="mr-2 h-4 w-4" />
               Copy JSON
             </Button>
           </DialogHeader>
-          <div class="flex-1 overflow-hidden m-6 mt-2 border rounded-md" :class="dark ? 'border-zinc-800' : 'border-zinc-200'">
+          <div
+            class="flex-1 overflow-hidden m-6 mt-2 border rounded-md"
+            :class="dark ? 'border-zinc-800' : 'border-zinc-200'"
+          >
             <CodeMirrorEditor
               :model-value="formattedJson"
               :extensions="extensions"

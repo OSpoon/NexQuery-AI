@@ -41,7 +41,10 @@ export default class SettingsController {
       const crypto = CryptoHelper.getInstance()
 
       for (const s of serializedSettings) {
-        if (['ai_api_key'].includes(s.key) && s.value) {
+        if (
+          ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
+          && s.value
+        ) {
           s.value = crypto.encrypt(s.value)
         }
       }
@@ -67,9 +70,12 @@ export default class SettingsController {
 
     for (const item of settings) {
       // Decrypt sensitive keys before saving
-      if (['ai_api_key'].includes(item.key) && crypto && item.value) {
+      if (
+        ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(item.key)
+        && crypto
+        && item.value
+      ) {
         try {
-          // It might be sent as encrypted string
           const decrypted = crypto.decrypt(item.value)
           if (decrypted !== null) {
             item.value = decrypted
@@ -77,6 +83,11 @@ export default class SettingsController {
         } catch (e) {
           console.warn(`[SettingsController] Failed to decrypt ${item.key}`, e)
         }
+      }
+
+      // Clean up string "null" if it leaked from frontend before fix
+      if (item.value === 'null') {
+        item.value = ''
       }
 
       const setting = await Setting.findBy('key', item.key)

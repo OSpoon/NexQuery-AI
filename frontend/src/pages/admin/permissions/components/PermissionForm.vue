@@ -6,13 +6,7 @@ import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import * as z from 'zod'
 import { Button } from '@/components/ui/button'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import api from '@/lib/api'
@@ -29,7 +23,10 @@ const { t } = useI18n()
 const formSchema = toTypedSchema(
   z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
-    slug: z.string().min(2, 'Slug must be at least 2 characters').regex(/^[a-z0-9_]+$/, 'Slug must only contain lowercase letters, numbers, and underscores'),
+    slug: z
+      .string()
+      .min(2, 'Slug must be at least 2 characters')
+      .regex(/^[a-z0-9_]+$/, 'Slug must only contain lowercase letters, numbers, and underscores'),
     description: z.string().optional(),
   }),
 )

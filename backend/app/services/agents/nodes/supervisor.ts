@@ -6,9 +6,10 @@ import { SUPERVISOR_PROMPT } from '#prompts/index'
 
 export const supervisorNode = async (state: AgentState) => {
   const lastMessage = state.messages[state.messages.length - 1]
-  const content = (typeof lastMessage.content === 'string'
-    ? lastMessage.content
-    : JSON.stringify(lastMessage.content))
+  const content
+    = typeof lastMessage.content === 'string'
+      ? lastMessage.content
+      : JSON.stringify(lastMessage.content)
 
   logger.info(`[Supervisor] Semantic reasoning for: "${content.slice(0, 50)}..."`)
 
@@ -16,9 +17,7 @@ export const supervisorNode = async (state: AgentState) => {
     const aiProvider = new AiProviderService()
     const model = await aiProvider.getChatModel({ temperature: 0 }) // Low temperature for consistent classification
 
-    const response = await model.invoke([
-      new HumanMessage(SUPERVISOR_PROMPT(content)),
-    ])
+    const response = await model.invoke([new HumanMessage(SUPERVISOR_PROMPT(content))])
 
     const decision = response.content.toString().trim().toLowerCase()
 
@@ -29,12 +28,19 @@ export const supervisorNode = async (state: AgentState) => {
     if (decision.includes('respond_directly')) {
       return {
         next: 'respond_directly',
-        messages: [new AIMessage({ content: '抱歉，我专注于数据库查询与分析任务，无法处理与此无关的闲聊或通用话题。请问有什么数据库相关的问题我可以帮您？' })],
+        messages: [
+          new AIMessage({
+            content:
+              '抱歉，我专注于数据库查询与分析任务，无法处理与此无关的闲聊或通用话题。请问有什么数据库相关的问题我可以帮您？',
+          }),
+        ],
       }
     }
 
     // Fallback: When in doubt, DISCOVER first. No blind writing.
-    logger.warn(`[Supervisor] Ambiguous decision: "${decision}". Routing to discovery_agent for safety.`)
+    logger.warn(
+      `[Supervisor] Ambiguous decision: "${decision}". Routing to discovery_agent for safety.`,
+    )
     return { next: 'discovery_agent' }
   } catch (error: any) {
     const isRateLimit = error.message?.includes('429') || error.status === 429
@@ -43,7 +49,9 @@ export const supervisorNode = async (state: AgentState) => {
       return {
         next: 'respond_directly',
         error: '您的请求过于频繁，请稍后再试。',
-        messages: [new AIMessage({ content: '抱歉，系统当前请求量过大（429），请稍等片刻再尝试。' })],
+        messages: [
+          new AIMessage({ content: '抱歉，系统当前请求量过大（429），请稍等片刻再尝试。' }),
+        ],
       }
     }
 

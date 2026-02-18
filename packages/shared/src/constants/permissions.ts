@@ -59,7 +59,8 @@ export const PERMISSION_DETAILS = [
   {
     name: 'Manage AI Feedback',
     slug: PERMISSIONS.MANAGE_AI_FEEDBACK,
-    description: 'Can review user ratings and promote corrections to Knowledge Base',
+    description:
+      'Can review user ratings and promote corrections to Knowledge Base',
   },
   {
     name: 'Manage Knowledge Base',

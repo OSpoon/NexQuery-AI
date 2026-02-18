@@ -12,7 +12,9 @@ export const DISCOVERY_PROTOCOL = () => {
     PromptService.getPromptSync('discovery/optimization'),
     PromptService.getPromptSync('discovery/guardrails'),
     PromptService.getPromptSync('discovery/rot_builder'),
-  ].join('\n').trim()
+  ]
+    .join('\n')
+    .trim()
 }
 
 /**

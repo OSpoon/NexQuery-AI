@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import type { Menu } from '@nexquery/shared'
 import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  ChevronDown,
-  ChevronRight,
-  Edit,
-  Menu as MenuIcon,
-  Plus,
-  Trash2,
-} from 'lucide-vue-next'
+import { ChevronDown, ChevronRight, Edit, Menu as MenuIcon, Plus, Trash2 } from 'lucide-vue-next'
 import { computed, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -145,7 +138,12 @@ const columns: ColumnDef<any>[] = [
   {
     accessorKey: 'component',
     header: () => 'Component',
-    cell: ({ row }) => h('div', { class: 'font-mono text-[10px] text-muted-foreground' }, row.getValue('component') as string || '-'),
+    cell: ({ row }) =>
+      h(
+        'div',
+        { class: 'font-mono text-[10px] text-muted-foreground' },
+        (row.getValue('component') as string) || '-',
+      ),
   },
   {
     accessorKey: 'parent',
@@ -222,9 +220,7 @@ onMounted(fetchMenus)
       <DialogContent class="sm:max-w-[600px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>
-            {{
-              editingMenu ? t('menus.edit_menu') : t('menus.create_item')
-            }}
+            {{ editingMenu ? t('menus.edit_menu') : t('menus.create_item') }}
           </DialogTitle>
           <DialogDescription>{{ t('menus.details') }}</DialogDescription>
         </DialogHeader>

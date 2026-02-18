@@ -441,9 +441,7 @@ async function saveConfig() {
 
       <div class="p-6 pt-4 border-t flex justify-end gap-2 bg-background">
         <Button variant="ghost" @click="emit('update:open', false)">
-          {{
-            t('common.cancel')
-          }}
+          {{ t('common.cancel') }}
         </Button>
         <Button :disabled="isSaving" @click="saveConfig">
           {{ isSaving ? t('common.saving') : t('data_sources.save_config') }}

@@ -51,7 +51,7 @@ export class PromptService {
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name)
       if (entry.isDirectory()) {
-        files.push(...await this.getAllPromptFiles(fullPath))
+        files.push(...(await this.getAllPromptFiles(fullPath)))
       } else if (entry.isFile() && entry.name.endsWith('.md')) {
         files.push(fullPath)
       }
@@ -79,7 +79,10 @@ export class PromptService {
   /**
    * Load a prompt file and interpolate variables (Async).
    */
-  public static async getPrompt(promptPath: string, variables: Record<string, any> = {}): Promise<string> {
+  public static async getPrompt(
+    promptPath: string,
+    variables: Record<string, any> = {},
+  ): Promise<string> {
     const fullPath = path.join(this.promptsDir, `${promptPath}.md`)
     let content: string
 

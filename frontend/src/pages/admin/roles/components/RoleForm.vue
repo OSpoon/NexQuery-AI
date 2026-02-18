@@ -182,9 +182,7 @@ onMounted(fetchPermissions)
     <!-- Fixed Footer -->
     <div class="shrink-0 p-6 pt-4 border-t bg-background flex justify-end gap-2 rounded-b-lg">
       <Button type="button" variant="ghost" @click="emit('cancel')">
-        {{
-          t('common.cancel')
-        }}
+        {{ t('common.cancel') }}
       </Button>
       <Button type="submit" :disabled="isSubmitting">
         {{

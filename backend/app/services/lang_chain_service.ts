@@ -1,15 +1,8 @@
 import KnowledgeBaseService from '#services/knowledge_base_service'
 import AiUsageService from '#services/ai_usage_service'
 
-import type {
-  AIMessageChunk,
-  BaseMessage,
-} from '@langchain/core/messages'
-import {
-  AIMessage,
-  HumanMessage,
-  SystemMessage,
-} from '@langchain/core/messages'
+import type { AIMessageChunk, BaseMessage } from '@langchain/core/messages'
+import { AIMessage, HumanMessage, SystemMessage } from '@langchain/core/messages'
 import AiProviderService from '#services/ai_provider_service'
 import { DiscoverySkill } from '#services/skills/discovery_skill'
 import { SecuritySkill } from '#services/skills/security_skill'
@@ -18,10 +11,7 @@ import type { BaseSkill, SkillContext } from '#services/skills/skill_interface'
 import DataSource from '#models/data_source'
 import logger from '@adonisjs/core/services/logger'
 
-import {
-  GENERAL_CHAT_SYSTEM_PROMPT,
-  SQL_OPTIMIZATION_PROMPT_TEMPLATE,
-} from '#prompts/index'
+import { GENERAL_CHAT_SYSTEM_PROMPT, SQL_OPTIMIZATION_PROMPT_TEMPLATE } from '#prompts/index'
 
 interface StreamState {
   potentialFinalResponse: string
@@ -34,16 +24,10 @@ export default class LangChainService {
     const isElasticsearch = _context.dbType === 'elasticsearch'
 
     if (isElasticsearch) {
-      return [
-        new CoreAssistantSkill(),
-      ]
+      return [new CoreAssistantSkill()]
     }
 
-    return [
-      new CoreAssistantSkill(),
-      new DiscoverySkill(),
-      new SecuritySkill(),
-    ]
+    return [new CoreAssistantSkill(), new DiscoverySkill(), new SecuritySkill()]
   }
 
   private async getModel(bindTools = false, dataSourceId?: number, callbacks?: any[]) {
@@ -66,7 +50,12 @@ export default class LangChainService {
   /**
    * Learn from a successful interaction
    */
-  public async learnInteraction(question: string, sql: string, description?: string, sourceType: string = 'sql') {
+  public async learnInteraction(
+    question: string,
+    sql: string,
+    description?: string,
+    sourceType: string = 'sql',
+  ) {
     return await KnowledgeBaseService.upsert({
       keyword: question,
       description: description || 'Auto-learned from successful execution',
@@ -80,7 +69,13 @@ export default class LangChainService {
    */
   async* naturalLanguageToSqlStream(
     question: string,
-    context: { dbType?: string, dataSourceId?: number, history?: any[], userId?: number, conversationId?: number },
+    context: {
+      dbType?: string
+      dataSourceId?: number
+      history?: any[]
+      userId?: number
+      conversationId?: number
+    },
   ) {
     const dataSourceId = context.dataSourceId ? Number(context.dataSourceId) : undefined
     // --- General Chat Mode (No DataSource) ---
@@ -218,14 +213,21 @@ export default class LangChainService {
       }
     } catch (error: any) {
       logger.error({ error }, 'Multi-Agent error')
-      yield JSON.stringify({ type: 'response', content: `Sorry, I encountered an error: ${error.message}` })
+      yield JSON.stringify({
+        type: 'response',
+        content: `Sorry, I encountered an error: ${error.message}`,
+      })
     }
   }
 
   /**
    * Main Dispatcher for Stream Events
    */
-  private async* handleStreamEvent(event: any, state: StreamState, context: { userId?: number, conversationId?: number, modelName?: string }): AsyncGenerator<string> {
+  private async* handleStreamEvent(
+    event: any,
+    state: StreamState,
+    context: { userId?: number, conversationId?: number, modelName?: string },
+  ): AsyncGenerator<string> {
     const { data, name, run_id, event: eventType } = event
 
     switch (eventType) {
@@ -251,7 +253,15 @@ export default class LangChainService {
       case 'on_chain_start':
         if (data.input && data.input.messages) {
           // Only track main nodes, skip internal branches or LangGraph internal chains
-          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'discovery_agent', 'generator_agent', 'security_agent', 'respond_directly']
+          const validNodes = [
+            'supervisor',
+            'sql_agent',
+            'es_agent',
+            'discovery_agent',
+            'generator_agent',
+            'security_agent',
+            'respond_directly',
+          ]
           if (validNodes.includes(name)) {
             yield JSON.stringify({ type: 'node_start', node: name, id: run_id })
           }
@@ -260,7 +270,15 @@ export default class LangChainService {
 
       case 'on_chain_end':
         if (data.output && (data.output.messages || data.output.next)) {
-          const validNodes = ['supervisor', 'sql_agent', 'es_agent', 'discovery_agent', 'generator_agent', 'security_agent', 'respond_directly']
+          const validNodes = [
+            'supervisor',
+            'sql_agent',
+            'es_agent',
+            'discovery_agent',
+            'generator_agent',
+            'security_agent',
+            'respond_directly',
+          ]
           if (validNodes.includes(name)) {
             yield JSON.stringify({ type: 'node_end', node: name, id: run_id })
           }
@@ -314,7 +332,7 @@ export default class LangChainService {
       state.finalSql = data.input.sql
       state.finalContent = data.input.explanation
       if (data.input.error) {
-        (state as any).finalError = data.input.error
+        ;(state as any).finalError = data.input.error
       }
     }
 
@@ -336,7 +354,10 @@ export default class LangChainService {
   }
 
   // Keep legacy logical method for optimizing SQL (simpler chain)
-  async* optimizeSqlStream(sql: string, context: { dbType?: string, schema?: any, userId?: number, conversationId?: number }) {
+  async* optimizeSqlStream(
+    sql: string,
+    context: { dbType?: string, schema?: any, userId?: number, conversationId?: number },
+  ) {
     const aiProvider = new AiProviderService()
     const traceHandler = aiProvider.getLangfuseHandler({
       sessionId: context.conversationId ? `conv_${context.conversationId}` : undefined,
@@ -349,15 +370,18 @@ export default class LangChainService {
     const { llm } = await this.getModel(false, undefined, [traceHandler])
     const dbType = context.dbType || 'mysql'
 
-    const prompt = SQL_OPTIMIZATION_PROMPT_TEMPLATE(dbType, JSON.stringify(context.schema || {}), sql)
+    const prompt = SQL_OPTIMIZATION_PROMPT_TEMPLATE(
+      dbType,
+      JSON.stringify(context.schema || {}),
+      sql,
+    )
     const stream = await llm.stream([new HumanMessage(prompt)])
     let fullResponse: AIMessageChunk | undefined
 
     for await (const chunk of stream) {
       if (!fullResponse)
         fullResponse = chunk
-      else
-        fullResponse = fullResponse.concat(chunk)
+      else fullResponse = fullResponse.concat(chunk)
 
       if (chunk.content)
         yield chunk.content.toString()

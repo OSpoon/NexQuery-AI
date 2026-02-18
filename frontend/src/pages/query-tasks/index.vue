@@ -247,9 +247,7 @@ onMounted(fetchTasks)
       <DialogContent class="sm:max-w-[800px] max-h-[90vh] p-0 flex flex-col">
         <DialogHeader class="p-6 pb-2 shrink-0">
           <DialogTitle>
-            {{
-              editingTask ? t('query_tasks.edit_task') : t('query_tasks.create_task')
-            }}
+            {{ editingTask ? t('query_tasks.edit_task') : t('query_tasks.create_task') }}
           </DialogTitle>
           <DialogDescription>
             {{ t('query_tasks.desc') }}
@@ -287,7 +285,14 @@ onMounted(fetchTasks)
           <ScheduleManager
             v-if="isSheetOpen && schedulingTask"
             :query-task-id="schedulingTask.id"
-            :has-parameters="!!(schedulingTask.formSchema && (Array.isArray(schedulingTask.formSchema) ? schedulingTask.formSchema.length > 0 : Object.keys(schedulingTask.formSchema as any).length > 0))"
+            :has-parameters="
+              !!(
+                schedulingTask.formSchema
+                && (Array.isArray(schedulingTask.formSchema)
+                  ? schedulingTask.formSchema.length > 0
+                  : Object.keys(schedulingTask.formSchema as any).length > 0)
+              )
+            "
           />
         </div>
       </SheetContent>

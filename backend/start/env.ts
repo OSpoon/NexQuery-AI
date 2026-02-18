@@ -86,4 +86,15 @@ export default await Env.create(new URL('../', import.meta.url), {
   FLOWABLE_USER: Env.schema.string.optional(),
   FLOWABLE_PASSWORD: Env.schema.string.optional(),
   CACHE_DRIVER: Env.schema.enum.optional(['memory', 'redis'] as const),
+
+  /*
+  |----------------------------------------------------------
+  | Variables for configuring the limiter package
+  |----------------------------------------------------------
+  */
+  LIMITER_STORE: Env.schema.enum(['database', 'memory'] as const),
+
+  REDIS_HOST: Env.schema.string({ format: 'host' }),
+  REDIS_PORT: Env.schema.number(),
+  REDIS_PASSWORD: Env.schema.string.optional(),
 })

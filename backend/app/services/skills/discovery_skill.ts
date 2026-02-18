@@ -23,11 +23,7 @@ export class DiscoverySkill extends BaseSkill {
 
   getTools(_context: SkillContext) {
     if (this.options.lite) {
-      return [
-        new GetEntitySchemaTool(),
-        new SampleEntityDataTool(),
-        new RunQuerySampleTool(),
-      ]
+      return [new GetEntitySchemaTool(), new SampleEntityDataTool(), new RunQuerySampleTool()]
     }
     // P1-2: Streamlined tool set (12 -> 7)
     // Added back: search_related_knowledge for Few-shot RAG

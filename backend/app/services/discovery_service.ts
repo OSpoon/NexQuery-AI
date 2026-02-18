@@ -94,7 +94,9 @@ export default class DiscoveryService {
   static async listEntities(dataSourceId: number): Promise<EntityMetadata[]> {
     if (dataSourceId === 9999) {
       const { client } = await DbHelper.getConnection(dataSourceId)
-      const results = await client.rawQuery('SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\'')
+      const results = await client.rawQuery(
+        'SELECT name FROM sqlite_master WHERE type=\'table\' AND name NOT LIKE \'sqlite_%\'',
+      )
       return results.map((row: any) => ({
         name: row.name,
         type: 'table',
@@ -123,10 +125,11 @@ export default class DiscoveryService {
     }
 
     const results = await client.rawQuery(query)
-    const rows = dbType === 'postgresql' ? results.rows : (Array.isArray(results[0]) ? results[0] : results)
+    const rows
+      = dbType === 'postgresql' ? results.rows : Array.isArray(results[0]) ? results[0] : results
 
     return rows.map((row: any) => ({
-      name: row.name || Object.values(row)[0] as string,
+      name: row.name || (Object.values(row)[0] as string),
       type: 'table',
     }))
   }
@@ -146,13 +149,17 @@ export default class DiscoveryService {
     }
 
     // If embedding is empty (API failure or not configured), skip vector search
-    const vectorResults = queryEmbedding.length > 0
-      ? await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
-      : []
+    const vectorResults
+      = queryEmbedding.length > 0
+        ? await vectorStore.searchTables(dataSourceId, queryEmbedding, 20)
+        : []
 
     // Fuzzy Matching Logic (Lexical Fallback)
     const allEntities = await this.listEntities(dataSourceId)
-    const tokens = query.toLowerCase().split(/\s+/).filter(t => t.length > 3) // Only match words > 3 chars
+    const tokens = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(t => t.length > 3) // Only match words > 3 chars
     const fuzzyMatches: any[] = []
 
     for (const entity of allEntities) {
@@ -164,14 +171,22 @@ export default class DiscoveryService {
       for (const token of tokens) {
         // 1. Direct inclusion
         if (tableName.includes(token) || token.includes(tableName)) {
-          fuzzyMatches.push({ entity: entity.name, description: `Exact/Partial match for token "${token}"`, relevance: '1.0' })
+          fuzzyMatches.push({
+            entity: entity.name,
+            description: `Exact/Partial match for token "${token}"`,
+            relevance: '1.0',
+          })
           break
         }
 
         // 2. Simple Singularization (cards -> card)
         const stem = token.endsWith('s') ? token.slice(0, -1) : token
         if (stem.length > 2 && tableName.includes(stem)) {
-          fuzzyMatches.push({ entity: entity.name, description: `Stem match for token "${token}" (Stem: "${stem}")`, relevance: '0.9' })
+          fuzzyMatches.push({
+            entity: entity.name,
+            description: `Stem match for token "${token}" (Stem: "${stem}")`,
+            relevance: '0.9',
+          })
           break
         }
 
@@ -179,7 +194,11 @@ export default class DiscoveryService {
         const dist = this.levenshteinDistance(token, tableName)
         const threshold = Math.min(2, Math.floor(tableName.length / 3))
         if (dist <= threshold) {
-          fuzzyMatches.push({ entity: entity.name, description: `Fuzzy match for token "${token}" (Distance: ${dist})`, relevance: (1 - dist / tableName.length).toFixed(2) })
+          fuzzyMatches.push({
+            entity: entity.name,
+            description: `Fuzzy match for token "${token}" (Distance: ${dist})`,
+            relevance: (1 - dist / tableName.length).toFixed(2),
+          })
           break
         }
       }
@@ -187,15 +206,20 @@ export default class DiscoveryService {
 
     // Dedup and Merge: Prioritize fuzzy labels for typo resilience visibility
     const combined = new Map<string, any>()
-    vectorResults.forEach((r: any) => combined.set(r.payload?.tableName as string, {
-      entity: r.payload?.tableName,
-      description: `${(r.payload?.fullSchema as string)?.slice(0, 200)}...`,
-      relevance: r.score.toFixed(4),
-    }))
+    vectorResults.forEach((r: any) =>
+      combined.set(r.payload?.tableName as string, {
+        entity: r.payload?.tableName,
+        description: `${(r.payload?.fullSchema as string)?.slice(0, 200)}...`,
+        relevance: r.score.toFixed(4),
+      }),
+    )
 
     fuzzyMatches.forEach((r) => {
       const existing = combined.get(r.entity)
-      if (!existing || (!existing.description.includes('match') && r.description.includes('match'))) {
+      if (
+        !existing
+        || (!existing.description.includes('match') && r.description.includes('match'))
+      ) {
         combined.set(r.entity, r)
       }
     })
@@ -345,7 +369,8 @@ export default class DiscoveryService {
     const foreignKeys: any[] = []
 
     if (dbType === 'postgresql') {
-      const result = await client.rawQuery(`
+      const result = await client.rawQuery(
+        `
         SELECT 
           a.attname AS name,
           format_type(a.atttypid, a.atttypmod) AS type,
@@ -357,16 +382,20 @@ export default class DiscoveryService {
         JOIN pg_namespace n ON c.relnamespace = n.oid
         LEFT JOIN pg_description d ON d.objoid = c.oid AND d.objsubid = a.attnum
         WHERE c.relname = ? AND n.nspname = 'public' AND a.attnum > 0 AND NOT a.attisdropped;
-      `, [entityName])
+      `,
+        [entityName],
+      )
 
-      fields.push(...result.rows.map((r: any) => ({
-        name: r.name,
-        type: r.type,
-        isPrimary: r.is_primary,
-        isNullable: r.is_nullable,
-        comment: r.comment,
-        isSensitive: this.isSensitive(r.name),
-      })))
+      fields.push(
+        ...result.rows.map((r: any) => ({
+          name: r.name,
+          type: r.type,
+          isPrimary: r.is_primary,
+          isNullable: r.is_nullable,
+          comment: r.comment,
+          isSensitive: this.isSensitive(r.name),
+        })),
+      )
 
       // Foreign Keys for Postgres
       const fkQuery = `
@@ -385,22 +414,26 @@ export default class DiscoveryService {
         WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_name=? AND tc.table_schema='public';
       `
       const fkRes = await client.rawQuery(fkQuery, [entityName])
-      foreignKeys.push(...fkRes.rows.map((r: any) => ({
-        column: r.column_name,
-        referencedTable: r.foreign_table_name,
-        referencedColumn: r.foreign_column_name,
-      })))
+      foreignKeys.push(
+        ...fkRes.rows.map((r: any) => ({
+          column: r.column_name,
+          referencedTable: r.foreign_table_name,
+          referencedColumn: r.foreign_column_name,
+        })),
+      )
     } else {
       const result = await client.rawQuery(`SHOW FULL COLUMNS FROM \`${entityName}\``)
       const rows = Array.isArray(result[0]) ? result[0] : result
-      fields.push(...rows.map((r: any) => ({
-        name: r.Field,
-        type: r.Type,
-        isPrimary: r.Key === 'PRI',
-        isNullable: r.Null === 'YES',
-        comment: r.Comment,
-        isSensitive: this.isSensitive(r.Field),
-      })))
+      fields.push(
+        ...rows.map((r: any) => ({
+          name: r.Field,
+          type: r.Type,
+          isPrimary: r.Key === 'PRI',
+          isNullable: r.Null === 'YES',
+          comment: r.Comment,
+          isSensitive: this.isSensitive(r.Field),
+        })),
+      )
 
       // Foreign Keys for MySQL
       const fkQuery = `
@@ -413,11 +446,13 @@ export default class DiscoveryService {
       `
       const fkRes = await client.rawQuery(fkQuery, [entityName])
       const fkRows = Array.isArray(fkRes[0]) ? fkRes[0] : fkRes
-      foreignKeys.push(...fkRows.map((r: any) => ({
-        column: r.COLUMN_NAME,
-        referencedTable: r.REFERENCED_TABLE_NAME,
-        referencedColumn: r.REFERENCED_COLUMN_NAME,
-      })))
+      foreignKeys.push(
+        ...fkRows.map((r: any) => ({
+          column: r.COLUMN_NAME,
+          referencedTable: r.REFERENCED_TABLE_NAME,
+          referencedColumn: r.REFERENCED_COLUMN_NAME,
+        })),
+      )
     }
 
     return { entityName, fields, foreignKeys }
@@ -426,7 +461,11 @@ export default class DiscoveryService {
   /**
    * Sample data from an entity
    */
-  static async sampleData(dataSourceId: number, entityName: string, limit: number = 3): Promise<any[]> {
+  static async sampleData(
+    dataSourceId: number,
+    entityName: string,
+    limit: number = 3,
+  ): Promise<any[]> {
     if (dataSourceId === 9999) {
       const { client } = await DbHelper.getConnection(dataSourceId)
       return await client.from(entityName).limit(limit)
@@ -448,7 +487,7 @@ export default class DiscoveryService {
     }
 
     const result = await client.rawQuery(query)
-    return dbType === 'postgresql' ? result.rows : (Array.isArray(result[0]) ? result[0] : result)
+    return dbType === 'postgresql' ? result.rows : Array.isArray(result[0]) ? result[0] : result
   }
 
   /**
@@ -476,31 +515,47 @@ export default class DiscoveryService {
     // Identify fields for different types of stats
     const numericAndDateFields = schema.fields.filter((f) => {
       const type = f.type.toLowerCase()
-      return type.includes('int') || type.includes('decimal') || type.includes('float')
-        || type.includes('double') || type.includes('date') || type.includes('time')
-        || type.includes('year') || type.includes('timestamp')
+      return (
+        type.includes('int')
+        || type.includes('decimal')
+        || type.includes('float')
+        || type.includes('double')
+        || type.includes('date')
+        || type.includes('time')
+        || type.includes('year')
+        || type.includes('timestamp')
+      )
     })
 
     const categoricalFields = schema.fields
       .filter((f) => {
         const type = f.type.toLowerCase()
-        return (type.includes('char') || type.includes('text') || type.includes('string') || type.includes('enum'))
+        return (
+          (type.includes('char')
+            || type.includes('text')
+            || type.includes('string')
+            || type.includes('enum'))
           && !this.isSensitive(f.name)
+        )
       })
       .slice(0, 5) // Limit to first 5 potential categorical fields
 
     // 1. Initial MIN/MAX/COUNT query
-    const minMaxSelect = numericAndDateFields.map((f) => {
-      const quoted = dbType === 'postgresql' ? `"${f.name}"` : `\`${f.name}\``
-      return `MIN(${quoted}) as "${f.name}_min", MAX(${quoted}) as "${f.name}_max", COUNT(${quoted}) as "${f.name}_non_null"`
-    }).join(', ')
+    const minMaxSelect = numericAndDateFields
+      .map((f) => {
+        const quoted = dbType === 'postgresql' ? `"${f.name}"` : `\`${f.name}\``
+        return `MIN(${quoted}) as "${f.name}_min", MAX(${quoted}) as "${f.name}_max", COUNT(${quoted}) as "${f.name}_non_null"`
+      })
+      .join(', ')
 
-    const baseQuery = dbType === 'postgresql'
-      ? `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM "${entityName}"`
-      : `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM \`${entityName}\``
+    const baseQuery
+      = dbType === 'postgresql'
+        ? `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM "${entityName}"`
+        : `SELECT COUNT(*) as count ${minMaxSelect ? `, ${minMaxSelect}` : ''} FROM \`${entityName}\``
 
     const result = await client.rawQuery(baseQuery)
-    const row = dbType === 'postgresql' ? result.rows[0] : (Array.isArray(result[0]) ? result[0][0] : result[0])
+    const row
+      = dbType === 'postgresql' ? result.rows[0] : Array.isArray(result[0]) ? result[0][0] : result[0]
 
     const totalRecords = Number.parseInt(row.count)
     const fieldStats = numericAndDateFields.map(f => ({
@@ -525,7 +580,10 @@ export default class DiscoveryService {
 
         profiling.push({
           name: f.name,
-          topValues: topRes.map((r: any) => ({ value: r[f.name], count: Number.parseInt(r.count) })),
+          topValues: topRes.map((r: any) => ({
+            value: r[f.name],
+            count: Number.parseInt(r.count),
+          })),
         })
       } catch (e) {
         // Skip if query fails (e.g. unsupported type for group by)
@@ -588,8 +646,10 @@ export default class DiscoveryService {
         const schema = await this.getEntitySchema(dataSourceId, table.name)
         const textFields = schema.fields.filter((f) => {
           const type = f.type.toLowerCase()
-          return (type.includes('char') || type.includes('text') || type.includes('string'))
+          return (
+            (type.includes('char') || type.includes('text') || type.includes('string'))
             && !f.isSensitive
+          )
         })
 
         if (textFields.length === 0)
@@ -597,7 +657,8 @@ export default class DiscoveryService {
 
         const { client, dbType: _dbType } = await DbHelper.getConnection(dataSourceId)
         for (const field of textFields) {
-          const query = client.from(table.name)
+          const query = client
+            .from(table.name)
             .where(field.name, 'like', `%${keyword}%`)
             .select(field.name)
             .distinct()
@@ -625,7 +686,11 @@ export default class DiscoveryService {
   /**
    * Find the shortest JOIN path between two tables using BFS
    */
-  static async findJoinPath(dataSourceId: number, startTable: string, endTable: string): Promise<string> {
+  static async findJoinPath(
+    dataSourceId: number,
+    startTable: string,
+    endTable: string,
+  ): Promise<string> {
     const fks = await this.getDatabaseCompass(dataSourceId)
     if (fks.length === 0)
       return `无法找到路径: 数据库未定义外键关联。`
@@ -671,7 +736,15 @@ export default class DiscoveryService {
           visited.add(neighbor.to)
           queue.push({
             current: neighbor.to,
-            path: [...path, { prev_table: current, to: neighbor.to, on_prev: neighbor.on_from, on_to: neighbor.on_to }],
+            path: [
+              ...path,
+              {
+                prev_table: current,
+                to: neighbor.to,
+                on_prev: neighbor.on_from,
+                on_to: neighbor.on_to,
+              },
+            ],
           })
         }
       }

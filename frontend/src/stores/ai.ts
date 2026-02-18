@@ -97,9 +97,7 @@ export const useAiStore = defineStore('ai', () => {
 
   function startNewChat() {
     currentConversationId.value = null
-    messages.value = [
-      { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
-    ]
+    messages.value = [{ role: 'assistant', content: i18n.global.t('ai_chat.greeting') }]
     queryResults.value = {}
   }
 
@@ -310,9 +308,7 @@ export const useAiStore = defineStore('ai', () => {
   }
 
   function clearMessages() {
-    messages.value = [
-      { role: 'assistant', content: i18n.global.t('ai_chat.greeting') },
-    ]
+    messages.value = [{ role: 'assistant', content: i18n.global.t('ai_chat.greeting') }]
     currentConversationId.value = null
     queryResults.value = {}
   }
@@ -343,7 +339,9 @@ export const useAiStore = defineStore('ai', () => {
     const lastMessage = messages.value[messages.value.length - 1]
     if (!lastMessage || !lastMessage.agentSteps)
       return undefined
-    const runningNode = [...lastMessage.agentSteps].reverse().find(s => s.type === 'node' && s.status === 'running')
+    const runningNode = [...lastMessage.agentSteps]
+      .reverse()
+      .find(s => s.type === 'node' && s.status === 'running')
     return runningNode?.nodeName
   })
 

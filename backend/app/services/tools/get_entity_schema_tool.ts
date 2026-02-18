@@ -4,7 +4,8 @@ import DiscoveryService from '#services/discovery_service'
 
 export class GetEntitySchemaTool extends StructuredTool {
   name = 'get_entity_schema'
-  description = 'Get the schema (fields, types, comments) for a specific entity (table or index). Use this to understand the structure before writing queries.'
+  description
+    = 'Get the schema (fields, types, comments) for a specific entity (table or index). Use this to understand the structure before writing queries.'
 
   schema = z.object({
     dataSourceId: z.number().describe('The ID of the data source'),
@@ -16,18 +17,22 @@ export class GetEntitySchemaTool extends StructuredTool {
       const schema = await DiscoveryService.getEntitySchema(dataSourceId, entityName)
 
       let description = `Entity: ${entityName}\nFields:\n`
-      description += schema.fields.map((f) => {
-        const primary = f.isPrimary ? ' [PRI]' : ''
-        const sensitive = f.isSensitive ? ' [SENSITIVE]' : ''
-        const comment = f.comment ? ` // ${f.comment}` : ''
-        return `- ${f.name} (${f.type}${primary})${sensitive}${comment}`
-      }).join('\n')
+      description += schema.fields
+        .map((f) => {
+          const primary = f.isPrimary ? ' [PRI]' : ''
+          const sensitive = f.isSensitive ? ' [SENSITIVE]' : ''
+          const comment = f.comment ? ` // ${f.comment}` : ''
+          return `- ${f.name} (${f.type}${primary})${sensitive}${comment}`
+        })
+        .join('\n')
 
       if (schema.foreignKeys && schema.foreignKeys.length > 0) {
         description += '\n\nForeign Keys (Relationships):\n'
-        description += schema.foreignKeys.map((fk) => {
-          return `- ${fk.column} -> ${fk.referencedTable}.${fk.referencedColumn}`
-        }).join('\n')
+        description += schema.foreignKeys
+          .map((fk) => {
+            return `- ${fk.column} -> ${fk.referencedTable}.${fk.referencedColumn}`
+          })
+          .join('\n')
       }
 
       return description

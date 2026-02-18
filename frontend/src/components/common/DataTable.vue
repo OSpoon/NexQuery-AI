@@ -1,17 +1,21 @@
 <script setup lang="ts" generic="TData, TValue">
-import type { ColumnDef, ColumnFiltersState, ExpandedState, SortingState, Updater, VisibilityState } from '@tanstack/vue-table'
+import type {
+  ColumnDef,
+  ColumnFiltersState,
+  ExpandedState,
+  SortingState,
+  Updater,
+  VisibilityState,
+} from '@tanstack/vue-table'
 import type { Ref } from 'vue'
 import {
-
   FlexRender,
   getCoreRowModel,
   getExpandedRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-
   useVueTable,
-
 } from '@tanstack/vue-table'
 import { useLocalStorage } from '@vueuse/core'
 
@@ -106,7 +110,11 @@ function valueUpdater<T extends Updater<any>>(updaterOrValue: T, ref: Ref<any>) 
         <Input
           v-if="searchKey"
           class="max-w-sm"
-          :placeholder="t('common.filter_placeholder', { key: searchKey.charAt(0).toUpperCase() + searchKey.slice(1) })"
+          :placeholder="
+            t('common.filter_placeholder', {
+              key: searchKey.charAt(0).toUpperCase() + searchKey.slice(1),
+            })
+          "
           :model-value="table.getColumn(searchKey)?.getFilterValue() as string"
           @update:model-value="table.getColumn(searchKey)?.setFilterValue($event)"
         />
