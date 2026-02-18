@@ -84,7 +84,8 @@ export default class EvaluationService {
         dataSourceId: 9999, // 虚拟 ID，映射到当前的评测 SQLite 文件
       }
 
-      const result = await graph.invoke(inputs, { callbacks: [traceHandler] })
+      const callbacks = [traceHandler].filter((h): h is NonNullable<typeof h> => !!h)
+      const result = await graph.invoke(inputs, { callbacks })
       generatedSql = (result.sql || '').trim()
       errorMsg = result.error || ''
 

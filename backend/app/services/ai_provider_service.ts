@@ -71,7 +71,7 @@ export default class AiProviderService {
     const rawTranscriptionApiKey = transcriptionApiKeySetting?.value
     const transcriptionApiKey
       = rawTranscriptionApiKey && rawTranscriptionApiKey !== 'null'
-        ? CryptoHelper.tryDecrypt(rawTranscriptionApiKey)
+        ? CryptoHelper.tryDecrypt(rawTranscriptionApiKey) ?? undefined
         : undefined
     const transcriptionModel = transcriptionModelSetting?.value
 
@@ -92,7 +92,14 @@ export default class AiProviderService {
   /**
    * Get Langfuse Callback Handler for tracing
    */
-  public getLangfuseHandler(options: { tags?: string[], metadata?: Record<string, any> } = {}) {
+  public getLangfuseHandler(
+    options: {
+      tags?: string[]
+      metadata?: Record<string, any>
+      sessionId?: string
+      userId?: string
+    } = {},
+  ) {
     if (env.get('LANGFUSE_PUBLIC_KEY')) {
       return new CallbackHandler(options)
     }

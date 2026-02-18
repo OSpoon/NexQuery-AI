@@ -91,7 +91,8 @@ export default class LangChainService {
         tags: ['general_chat'],
       })
 
-      const { llm: model } = await this.getModel(false, undefined, [traceHandler])
+      const callbacks = [traceHandler].filter((h): h is NonNullable<typeof h> => !!h)
+      const { llm: model } = await this.getModel(false, undefined, callbacks)
       const messages: BaseMessage[] = [new SystemMessage(systemPrompt)]
       for (const m of context.history || []) {
         if (m.role === 'user')
@@ -180,10 +181,11 @@ export default class LangChainService {
 
     try {
       // Use streamEvents to capture tokens and tool events
+      const callbacks = [traceHandler].filter((h): h is NonNullable<typeof h> => !!h)
       const stream = app.streamEvents(inputs, {
         version: 'v2',
         recursionLimit: 10,
-        callbacks: [traceHandler],
+        callbacks,
       })
 
       const streamState: StreamState = {
@@ -367,7 +369,8 @@ export default class LangChainService {
 
     const config = await aiProvider.getConfig()
     const modelName = config.chatModel
-    const { llm } = await this.getModel(false, undefined, [traceHandler])
+    const callbacks = [traceHandler].filter((h): h is NonNullable<typeof h> => !!h)
+    const { llm } = await this.getModel(false, undefined, callbacks)
     const dbType = context.dbType || 'mysql'
 
     const prompt = SQL_OPTIMIZATION_PROMPT_TEMPLATE(
