@@ -38,7 +38,11 @@
         1.  在对话框输入需求，例如：“查询上个月销售额最高的前 10 个商品”。
         2.  **换行技巧**: 输入框支持多行，按 `Shift + Enter` 换行，按 `Enter` 发送。
         3.  **歧义处理**: 如果 AI 不确定您的意思（比如“销售额”是指下定金额还是实付金额），它会弹出选项供您选择。
-        4.  **结果验证**: AI 会生成 SQL 并自动填充到编辑器。点击 **Run** 执行查询。
+        4.  **结果验证 (Code Editor)**:
+            *   AI 会生成 SQL 并自动填充到 **CodeMirror 6 Editor**。
+            *   **Syntax Highlighting**: 支持 SQL 与 Lucene 语法高亮。
+            *   **Auto-Completion**: 输入表名或字段名时尝试触发自动补全。
+            *   **Run**: 点击三角图标或 `Cmd/Ctrl + Enter` 执行查询。
 
 ### 2.2 智能调度与多智能体协作
 NexQuery 采用先进的 **Multi-Agent** 架构，系统会自动启动多个专家智能体协同工作：
@@ -48,6 +52,12 @@ NexQuery 采用先进的 **Multi-Agent** 架构，系统会自动启动多个专
 *   **Security (卫兵)**: 检查语句安全性并对敏感 PII 数据执行脱敏。
 
 **Mind Chain (思维链)**: 在对话过程中，点击“查看推理过程”可以实时观察各智能体的思考逻辑、工具调用及自我修补过程。
+
+**Graph Visualizer (流程可视化)**:
+点击聊天窗口右上角的 **Mermaid** 图标，悬浮窗将实时展示 Multi-Agent 的工作流状态：
+*   **Running (Active)**: 当前正在执行的节点会高亮闪烁。
+*   **Path**: 连线展示了 Agent 之间的跳转逻辑 (e.g., Supervisor -> Discovery -> Generator)。
+*   **Debug**: 配合思维链，可用于排查 AI 为何陷入循环或选择了错误的工具。
 
 ### 2.3 Elasticsearch 查询 (Lucene)
 对于日志分析或全文检索场景，NexQuery 支持连接 **Elasticsearch**。
@@ -67,8 +77,11 @@ NexQuery 采用先进的 **Multi-Agent** 架构，系统会自动启动多个专
 ### 3.1 创建任务
 1.  在查询页面调试好 SQL。如果您的 SQL 中包含占位符（如 `WHERE date > '{{date}}'`），系统会自动识别。
 2.  点击 **Save as Task**。
-3.  **Parameters (参数配置)**: 如果识别到占位符，您需要为这些参数提供默认值。这些值将在定时执行时被注入到 SQL 中。
-4.  **Schedule**: 配置 Cron 表达式（如 `0 9 * * 1` 每周一早9点），或选择 One-off 仅执行一次。
+3.  **Parameters (参数配置)**: 系统会自动提取 `{{variable}}` 形式的参数。您需要为每个参数提供 **Default Value** (测试用) 和 **Description** (给其他人看)。
+4.  **Schedule**: 配置 Cron 表达式。
+    *   `0 9 * * 1` : 每周一早 9 点
+    *   `0 8 * * *` : 每天早 8 点
+    *   **One-off**: 仅执行一次（适合耗时的大数据量跑批）
 
 ### 3.2 配置推送渠道
 让数据主动找您，而不是您找数据。
@@ -108,6 +121,18 @@ NexQuery AI 提供配套微信小程序，方便随时随地看数。
 *   **用户校正 (Correction)**: 如果 AI 生成的 SQL/Lucene 有误，用户可以提供正确的代码。
 *   **自动学习 (Adopt & Learn)**: 管理员审核反馈后，点击 **Promote**。系统会将优质案例**自动同步到知识库**，提升 AI 在下次遇到类似问题时的生成准确率。
 *   **双模知识库**: 知识库现已支持 **SQL** 和 **Lucene** 两种类型。AI 会在检索时自动根据当前数据源加载对应的知识。
+
+### 5.4 Hybrid AI 配置 (Hybrid AI Engine)
+管理员可以在 **Settings -> AI** 中灵活配置不同的模型提供商：
+*   **Chat Model**: 负责逻辑推理与生成 (e.g., GPT-4o, GLM-4)。
+*   **Embedding Model**: 负责知识库与 Schema 的向量化检索 (e.g., text-embedding-3-small)。
+*   **配置项**:
+    *   `AI Base URL` & `AI API Key`: 用于 **Chat Model**。
+        *   **OpenAI**: `https://api.openai.com/v1`
+        *   **DeepSeek**: `https://api.deepseek.com`
+        *   **Zhipu AI**: `https://open.bigmodel.cn/api/paas/v4/`
+    *   `AI Embedding Base URL` & `AI Embedding API Key`: 独立配置 **Embedding 服务**。
+        *   *Scenario*: 您可以使用便宜的 `text-embedding-3-small` (OpenAI) 处理向量检索，同时使用 `DeepSeek-V3` 处理复杂的逻辑推理，实现**最佳性价比**。
 
 ---
 

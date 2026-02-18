@@ -40,6 +40,7 @@
     *   **Lucene Agent**: 专为 Elasticsearch 设计，支持 Index 发现、Mapping 解析与查询语句生成。
 *   **Mind Chain**: 透明展示 AI 的推理过程 (Reasoning)、工具调用 (ListTables, ValidateSql) 与自我纠错逻辑。
 *   **Knowledge RAG**: 将用户认可的优质 SQL 沉淀为知识库，增强 AI 在特定业务场景下的准确率。
+*   **Hybrid AI Engine**: 支持同时接入 OpenAI 兼容模型 (如 GPT-4, DeepSeek) 与 智谱 AI (GLM-4) 等国产模型，灵活配置 Embedding 模型以优化 RAG 检索效果。
 
 ### 🔌 多源数据接入
 *   **Supported Sources**: PostgreSQL, MySQL, Elasticsearch, HTTP API (cURL 适配)。
@@ -77,6 +78,7 @@
 | **AI SQL Generation** | ✅ Implemented | Robust backend agent using LangChain, schema retrieval, and self-correction. |
 | **Reasoning Display** | ✅ Implemented | Users can see "thoughts" and "tool calls" (e.g., schema lookup, validation). |
 | **Data Report Display**| ✅ Implemented | Results are rendered as an interactive table directly inside the chat. |
+| **Code Editor** | ✅ Implemented | Integrated **CodeMirror 6** with SQL/Lucene syntax highlighting and auto-completion. |
 | **Mobile** | Uni-app + Vite | 跨平台小程序开发 |
 
 ---
