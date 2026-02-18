@@ -43,6 +43,7 @@
             *   **Syntax Highlighting**: 支持 SQL 与 Lucene 语法高亮。
             *   **Auto-Completion**: 输入表名或字段名时尝试触发自动补全。
             *   **Run**: 点击三角图标或 `Cmd/Ctrl + Enter` 执行查询。
+            *   **Download CSV**: 查询结果表格右上角提供下载按钮，支持一键导出 CSV。
 
 ### 2.2 智能调度与多智能体协作
 NexQuery 采用先进的 **Multi-Agent** 架构，系统会自动启动多个专家智能体协同工作：
@@ -143,6 +144,7 @@ NexQuery AI 致力于保障您的数据资产安全。
 ### 6.1 全链路传输加密
 系统内置 **End-to-End Encryption** 机制：
 *   **API 加密**: 为防止敏感负载（如 API Keys）被嗅探，前端在发送数据前会使用 `API_ENCRYPTION_KEY` 进行 AES-256 加密。
+    *   *Tip*: 在 API Keys 管理页面，生成的密钥仅显示一次。我们也提供了 **Copy** 按钮方便您一键复制。
 *   **响应解密**: 后端返回的数据同样经过加密，仅在您的浏览器中完成解密显示。
 
 ### 6.2 PII 数据脱敏

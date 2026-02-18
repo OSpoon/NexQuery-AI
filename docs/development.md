@@ -21,7 +21,7 @@ nexquery-ai/
 │   └── start/              # 路由与应用启动钩子
 ├── frontend/               # [Frontend] Vue 3 + Vite 应用
 │   ├── src/
-│   │   ├── components/     # UI 组件 (Shadcn)
+│   │   ├── components/     # UI 组件 (Shadcn + CodeMirror 6)
 │   │   ├── pages/          # 路由页面
 │   │   ├── stores/         # Pinia 状态管理
 │   │   └── ...
@@ -38,17 +38,19 @@ nexquery-ai/
 
 ## 2. 核心架构设计
 
-### 2.1 AI 双模引擎 (Dual-Mode Engine)
-核心逻辑位于 `backend/app/services/lang_chain_service.ts`。系统根据 `dataSourceId` 的存在与否，自动在两种模式间切换：
-
-1.  **Agentic Mode (SQL Agent)**:
+### 2.1 AI 双模引擎 (Hybrid Intelligence)
+核心逻辑位于 `backend/app/services/lang_chain_service.ts`。
+*   **Agentic Mode (SQL/Lucene Agent)**:
     *   **触发**: 用户选择了具体的数据源。
-    *   **机制**: 挂载 `ListTables`, `GetTableSchema`, `ValidateSql`, `SubmitSql` 等 Tools。
-    *   **流程**: RAG (Schema Retrieval) -> Reasoning -> Tool Execution -> Self-Correction -> SQL Generation。
-2.  **General Mode (Chat)**:
-    *   **触发**: 用户选择 "No Context" 或未选择数据源。
-    *   **机制**: 纯粹的 LLM 对话，不挂载任何数据库工具。
-    *   **用途**: 日常问答、代码解释、一般性咨询。
+    *   **机制**: 挂载 `ListTables`, `GetTableSchema`, `ValidateSql` 等 Tools。
+    *   **Flow**: RAG (Schema Retrieval) -> Reasoning -> Tool Execution -> Self-Correction -> SQL Generation。
+*   **General Mode (Chat)**:
+    *   **触发**: 用户选择 "No Context"。
+    *   **Logic**: 纯粹的 LLM 对话。
+*   **Hybrid Model Strategy**:
+    *   **Chat Model**: 负责推理 (e.g., GPT-4o, DeepSeek-V3)。
+    *   **Embedding Model**: 负责向量检索 (e.g., text-embedding-3-small, GLM-Embedding)。
+    *   两者可在 `Settings` 中独立配置，实现成本与性能的最优平衡。
 
 ### 2.2 FinOps 监控体系
 为了控制 AI 成本，系统实现了闭环的 FinOps 监控：
