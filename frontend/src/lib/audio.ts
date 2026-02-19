@@ -9,16 +9,45 @@ export class AudioRecorder {
   private chunks: Blob[] = []
   private stream: MediaStream | null = null
 
+  async prepare() {
+    if (this.stream && this.stream.active) {
+      return this.stream
+    }
+
+    try {
+      this.stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      })
+      return this.stream
+    }
+    catch (err: any) {
+      console.error('Failed to prepare stream', err)
+      throw err
+    }
+  }
+
   async start(options: AudioRecorderOptions = {}) {
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      // Use existing stream if active, or prepare a new one
+      const stream = await this.prepare()
 
-      // Standardize mime type
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/ogg;codecs=opus'
+      // Standardize mime type with better compatibility check
+      const types = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/mp4',
+        'audio/mpeg',
+      ]
+      const mimeType = types.find(t => MediaRecorder.isTypeSupported(t)) || ''
 
-      this.mediaRecorder = new MediaRecorder(this.stream, { mimeType })
+      this.mediaRecorder = mimeType
+        ? new MediaRecorder(stream, { mimeType })
+        : new MediaRecorder(stream)
       this.chunks = []
 
       this.mediaRecorder.ondataavailable = (e) => {
@@ -29,7 +58,15 @@ export class AudioRecorder {
       }
 
       this.mediaRecorder.onstop = () => {
-        const blob = new Blob(this.chunks, { type: this.mediaRecorder?.mimeType || 'audio/webm' })
+        const finalType = this.mediaRecorder?.mimeType || 'audio/webm'
+        const blob = new Blob(this.chunks, { type: finalType })
+
+        // Stop stream tracks immediately to respect user privacy and remove the 'mic in use' indicator
+        if (this.stream) {
+          this.stream.getTracks().forEach(track => track.stop())
+          this.stream = null
+        }
+
         options.onStop?.(blob)
       }
 
@@ -49,8 +86,13 @@ export class AudioRecorder {
     if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
       this.mediaRecorder.stop()
     }
+  }
+
+  close() {
+    this.stop()
     if (this.stream) {
       this.stream.getTracks().forEach(track => track.stop())
+      this.stream = null
     }
   }
 

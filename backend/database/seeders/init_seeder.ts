@@ -317,11 +317,11 @@ export default class extends BaseSeeder {
       },
       {
         key: 'ai_transcription_model',
-        value: 'whisper-1',
+        value: 'glm-asr-2512',
         type: 'string',
         group: 'ai',
         label: 'AI Transcription Model',
-        description: 'Model name for transcription (e.g., whisper-1).',
+        description: 'Model name for transcription (e.g., glm-asr-2512).',
       },
     ]
 

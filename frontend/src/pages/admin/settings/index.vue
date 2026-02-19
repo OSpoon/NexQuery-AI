@@ -196,22 +196,7 @@ async function fetchSettings() {
       response.data.forEach((s: any) => {
         const existing = settings.value.find(local => local.key === s.key)
         if (existing) {
-          if (
-            ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
-            && cryptoService
-            && s.value
-          ) {
-            try {
-              const decrypted = cryptoService.decrypt(s.value)
-              existing.value = decrypted || s.value
-            }
-            catch {
-              existing.value = s.value === null || s.value === undefined ? '' : String(s.value)
-            }
-          }
-          else {
-            existing.value = s.value === null || s.value === undefined ? '' : String(s.value)
-          }
+          existing.value = s.value === null || s.value === undefined ? '' : String(s.value)
         }
         else {
           settings.value.push({ ...s, group: s.group || 'other' })
@@ -230,19 +215,7 @@ async function fetchSettings() {
 async function saveSettings() {
   saving.value = true
   try {
-    const settingsToSave = settings.value.map((s) => {
-      if (
-        ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
-        && cryptoService
-        && s.value
-      ) {
-        return {
-          ...s,
-          value: cryptoService.encrypt(s.value),
-        }
-      }
-      return s
-    })
+    const settingsToSave = settings.value.map(s => s)
 
     await api.patch('/settings', { settings: settingsToSave })
 
@@ -303,6 +276,10 @@ onMounted(() => {
           <TabsTrigger value="ai" class="flex items-center gap-2">
             <Cpu class="h-4 w-4" />
             {{ t('settings.tabs.ai') }}
+          </TabsTrigger>
+          <TabsTrigger v-if="authStore.hasPermission('manage_prompts')" value="prompts" class="flex items-center gap-2">
+            <MessageSquare class="h-4 w-4" />
+            {{ t('prompts.title') }}
           </TabsTrigger>
         </TabsList>
 
@@ -639,13 +616,24 @@ onMounted(() => {
           </Card>
         </TabsContent>
 
-        <!-- Prompt Studio Component -->
-        <div v-if="authStore.hasPermission('manage_prompts')" class="pt-4">
-          <h3 class="text-lg font-medium mb-4">
-            {{ t('prompts.title') }}
-          </h3>
-          <PromptStudio />
-        </div>
+        <TabsContent v-if="authStore.hasPermission('manage_prompts')" value="prompts" class="space-y-6">
+          <Card class="shadow-sm">
+            <CardHeader>
+              <div class="flex items-center space-x-3 text-primary">
+                <MessageSquare class="h-5 w-5" />
+                <div>
+                  <CardTitle class="text-lg">
+                    {{ t('prompts.title') }}
+                  </CardTitle>
+                  <CardDescription>{{ t('prompts.subtitle', 'Manage system prompts and agent instructions') }}</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent class="pt-0">
+              <PromptStudio />
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   </div>

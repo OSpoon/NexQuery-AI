@@ -7,8 +7,8 @@ ENV NPM_CONFIG_REGISTRY="https://registry.npmjs.org"
 ENV COREPACK_NPM_REGISTRY="https://registry.npmjs.org"
 RUN corepack enable
 
-# Install curl for API data source execution
-RUN apk add --no-cache curl tzdata
+# Install curl for API data source execution and ffmpeg for ASR transcoding
+RUN apk add --no-cache curl tzdata ffmpeg
 
 WORKDIR /app
 

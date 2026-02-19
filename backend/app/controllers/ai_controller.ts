@@ -7,7 +7,6 @@ import QueryExecutionService from '#services/query_execution_service'
 import Setting from '#models/setting'
 import { inject } from '@adonisjs/core'
 import { DateTime } from 'luxon'
-import { CryptoHelper } from '#services/crypto_helper'
 import SseService from '#services/sse_service'
 import AiProviderService from '#services/ai_provider_service'
 
@@ -54,10 +53,7 @@ export default class AiController {
       }
     }
 
-    // 2. Resolve API Key Decryption
-    if (apiKey) {
-      apiKey = CryptoHelper.tryDecrypt(apiKey)
-    }
+    // 2. Resolve API Key (Already in plaintext)
 
     if (!baseUrl || !apiKey) {
       return response.badRequest({

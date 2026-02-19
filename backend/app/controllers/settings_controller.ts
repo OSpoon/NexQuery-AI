@@ -1,7 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import Setting from '#models/setting'
 import env from '#start/env'
-import { CryptoHelper } from '#services/crypto_helper'
+
 import { AuditService } from '#services/audit_service'
 
 export default class SettingsController {
@@ -36,22 +36,7 @@ export default class SettingsController {
       serializedSettings.push({ key: 'system_timezone', value: systemTimezone })
     }
 
-    // Encrypt sensitive keys if encryption is enabled
-    try {
-      const crypto = CryptoHelper.getInstance()
-
-      for (const s of serializedSettings) {
-        if (
-          ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(s.key)
-          && s.value
-        ) {
-          s.value = crypto.encrypt(s.value)
-        }
-      }
-      return response.ok(serializedSettings)
-    } catch {
-      return response.ok(serializedSettings)
-    }
+    return response.ok(serializedSettings)
 
     return response.ok(serializedSettings)
   }
@@ -63,28 +48,10 @@ export default class SettingsController {
       return response.forbidden({ message: 'You do not have permission to perform this action' })
     }
 
-    const crypto = CryptoHelper.getInstance()
-
     // Track changed keys for audit
     const changedKeys: string[] = []
 
     for (const item of settings) {
-      // Decrypt sensitive keys before saving
-      if (
-        ['ai_api_key', 'ai_embedding_api_key', 'ai_transcription_api_key'].includes(item.key)
-        && crypto
-        && item.value
-      ) {
-        try {
-          const decrypted = crypto.decrypt(item.value)
-          if (decrypted !== null) {
-            item.value = decrypted
-          }
-        } catch (e) {
-          console.warn(`[SettingsController] Failed to decrypt ${item.key}`, e)
-        }
-      }
-
       // Clean up string "null" if it leaked from frontend before fix
       if (item.value === 'null') {
         item.value = ''

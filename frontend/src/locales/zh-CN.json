@@ -634,9 +634,13 @@
     "config_desc": "配置权限基础信息。"
   },
   "ai_chat": {
+    "title": " NexQuery AI 助手",
     "greeting": "你好！我是你的 AI 助手。今天我能帮你做什么？",
+    "listening": "正在聆听...",
+    "starting": "正在启动麦克风...",
+    "stop": "停止录音",
     "error": "抱歉，在生成查询时遇到了错误。",
-    "input_placeholder": "提问... (Shift+Enter 换行)",
+    "input_placeholder": "输入您的问题... (Shift+Enter 换行)",
     "no_history": "暂无对话历史",
     "execution_graph": "执行路径可视化",
     "view_graph": "查看执行图",

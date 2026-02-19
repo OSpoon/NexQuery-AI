@@ -76,9 +76,15 @@ nexquery-ai/
 ### 3.1 依赖安装
 
 ```bash
-# 根目录执行
 pnpm install
 ```
+
+### 3.2 系统依赖 (System Dependencies)
+
+本地开发 ASR (语音转文字) 功能需要安装：
+- **FFmpeg**: 用于将浏览器音频转换为符合 AI 供应商要求的格式。
+  - macOS: `brew install ffmpeg`
+  - Ubuntu: `sudo apt install ffmpeg`
 
 ### 3.2 环境变量
 

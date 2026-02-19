@@ -1,8 +1,8 @@
 import Setting from '#models/setting'
 import env from '#start/env'
+import logger from '@adonisjs/core/services/logger'
 import { ChatOpenAI } from '@langchain/openai'
 import { CallbackHandler } from 'langfuse-langchain'
-import { CryptoHelper } from '#services/crypto_helper'
 
 export interface AiConfig {
   baseUrl: string
@@ -48,7 +48,7 @@ export default class AiProviderService {
 
     const baseUrl = (baseUrlSetting?.value || '').trim()
     const rawApiKey = apiKeySetting?.value
-    const apiKey = rawApiKey && rawApiKey !== 'null' ? CryptoHelper.tryDecrypt(rawApiKey) || '' : ''
+    const apiKey = rawApiKey && rawApiKey !== 'null' ? rawApiKey : ''
 
     const chatModel = chatModelSetting?.value || 'glm-4.5-flash'
     const embeddingModel = embeddingModelSetting?.value || 'embedding-3'
@@ -63,7 +63,7 @@ export default class AiProviderService {
     const rawEmbeddingApiKey = embeddingApiKeySetting?.value
     const embeddingApiKey
       = rawEmbeddingApiKey && rawEmbeddingApiKey !== 'null'
-        ? CryptoHelper.tryDecrypt(rawEmbeddingApiKey) || apiKey
+        ? rawEmbeddingApiKey || apiKey
         : apiKey
 
     // Transcription Config
@@ -71,8 +71,8 @@ export default class AiProviderService {
     const rawTranscriptionApiKey = transcriptionApiKeySetting?.value
     const transcriptionApiKey
       = rawTranscriptionApiKey && rawTranscriptionApiKey !== 'null'
-        ? CryptoHelper.tryDecrypt(rawTranscriptionApiKey) ?? undefined
-        : undefined
+        ? rawTranscriptionApiKey || apiKey
+        : apiKey
     const transcriptionModel = transcriptionModelSetting?.value
 
     return {
@@ -187,7 +187,6 @@ export default class AiProviderService {
   public async transcribe(file: { path: string, clientName: string }): Promise<string> {
     const config = await this.getConfig()
     const { readFileSync } = await import('node:fs')
-    const { Blob } = await import('node:buffer')
 
     // Resolve transcription config with fallback
     let baseUrl = (config.transcriptionBaseUrl || config.baseUrl).trim()
@@ -200,23 +199,73 @@ export default class AiProviderService {
 
     // OpenAI and many providers (including Zhipu AI's compatible layer)
     // usually want /v1/audio/transcriptions.
-    let endpoint = `${baseUrl}audio/transcriptions`
-    if (baseUrl.includes('/v4/') && !baseUrl.includes('/v1/')) {
-      endpoint = `${baseUrl.replace('/v4/', '/v4/v1/')}audio/transcriptions`
-    }
+    // NOTE: Zhipu AI v4 ASR endpoint is exactly /api/paas/v4/audio/transcriptions (no /v1/ injection)
+    const endpoint = `${baseUrl}audio/transcriptions`
 
-    // Use standard Web API FormData (Available globally in Node 22)
     const formData = new FormData()
 
-    // Read file and wrap in Blob (More compatible than File in some Node environments)
-    const buffer = readFileSync(file.path)
-    const blob = new Blob([buffer], { type: 'audio/webm' })
+    const { exec } = await import('node:child_process')
+    const { promisify } = await import('node:util')
+    const { unlink } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { tmpdir } = await import('node:os')
+    const execPromise = promisify(exec)
+
+    // Dynamically resolve MIME type based on extension
+    const ext = file.clientName.split('.').pop()?.toLowerCase() || ''
+    const mimeMap: Record<string, string> = {
+      wav: 'audio/wav',
+      mp3: 'audio/mpeg',
+      m4a: 'audio/mp4',
+      webm: 'audio/webm',
+      ogg: 'audio/ogg',
+    }
+    let contentType = mimeMap[ext] || 'application/octet-stream'
+
+    let finalPath = file.path
+    let finalName = file.clientName
+    let isConverted = false
+
+    // Zhipu AI (and possibly others) only support wav/mp3 consistently
+    if (ext !== 'wav' && ext !== 'mp3') {
+      const tempWavPath = join(tmpdir(), `converted_${Date.now()}.wav`)
+      try {
+        const inputSize = readFileSync(file.path).length
+        logger.info(`[AiProviderService.transcribe] Converting ${file.path} (${inputSize} bytes) to ${tempWavPath}`)
+
+        // Use 16kHz, mono, and stronger volume + highpass to cut low-end noise
+        const { stderr } = await execPromise(
+          `ffmpeg -i "${file.path}" -ar 16000 -ac 1 -af "highpass=f=200,volume=2.5" -c:a pcm_s16le "${tempWavPath}" -y`,
+        )
+        if (stderr && stderr.includes('error')) {
+          logger.warn(`[AiProviderService.transcribe] ffmpeg error: ${stderr}`)
+        }
+
+        const outputSize = readFileSync(tempWavPath).length
+        logger.info(`[AiProviderService.transcribe] Created ${tempWavPath} (${outputSize} bytes)`)
+
+        finalPath = tempWavPath
+        finalName = 'recording.wav'
+        contentType = 'audio/wav'
+        isConverted = true
+      } catch (err: any) {
+        logger.error(`[AiProviderService.transcribe] Conversion failed: ${err.message}`)
+      }
+    }
+
+    // Read file and wrap in Blob (Use Global Blob in Node 22+ for better fetch compatibility)
+    const buffer = readFileSync(finalPath)
+    const blob = new globalThis.Blob([buffer], { type: contentType })
 
     // Provide filename as 3rd argument (Standard FormData API)
-    formData.append('file', blob, file.clientName)
+    formData.append('file', blob, finalName)
     formData.append('model', model)
+    formData.append('stream', 'false')
 
     try {
+      logger.info(
+        `[AiProviderService.transcribe] POST ${endpoint} (Model: ${model}, Format: ${contentType}, Converted: ${isConverted})`,
+      )
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -227,16 +276,34 @@ export default class AiProviderService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => 'No error body')
+        logger.error(`[AiProviderService.transcribe] Provider Error (${response.status}): ${errorText}`)
         throw new Error(
           `Transcription API request failed: ${response.status} ${response.statusText} - ${errorText}`,
         )
       }
 
+      const contentTypeHeader = response.headers.get('content-type') || ''
+      if (!contentTypeHeader.includes('application/json')) {
+        const text = await response.text()
+        logger.error(
+          `[AiProviderService.transcribe] Unexpected content type: ${contentTypeHeader}, Body: ${text}`,
+        )
+        throw new Error(`Unexpected response format from AI Provider: ${contentTypeHeader}`)
+      }
+
       const data = (await response.json()) as any
       return data.text || ''
     } catch (error: any) {
-      console.error(`[AiProviderService.transcribe] Failed to call ${endpoint}:`, error.message)
+      logger.error(`[AiProviderService.transcribe] Fatal Exception: ${error.message}`)
       throw error
+    } finally {
+      // Clean up converted file if created
+      if (isConverted) {
+        unlink(finalPath, (err) => {
+          if (err)
+            logger.warn(`[AiProviderService.transcribe] Cleanup failed for ${finalPath}: ${err.message}`)
+        })
+      }
     }
   }
 }

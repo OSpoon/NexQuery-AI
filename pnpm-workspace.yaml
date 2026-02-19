@@ -1,5 +1,5 @@
 allowedBuilds:
-  - "@swc/core"
+  - '@swc/core'
   - esbuild
   - sharp
   - simple-git-hooks
@@ -11,17 +11,17 @@ packages:
   - backend
   - frontend
   - miniprogram
-  - "packages/*"
+  - 'packages/*'
 overrides:
   axios: ^1.7.9
   semver: ^7.5.4
 peerDependencyRules:
   allowAny:
-    - "@adonisjs/core"
+    - '@adonisjs/core'
     - langchain
     - vue
     - vite
   ignoreMissing:
-    - "@adonisjs/core"
-    - "@dcloudio/types"
+    - '@adonisjs/core'
+    - '@dcloudio/types'
     - langchain

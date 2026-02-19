@@ -634,6 +634,9 @@
   "ai_chat": {
     "greeting": "Hello! I am your AI Copilot. How can I help you today?",
     "error": "Sorry, I encountered an error creating that query.",
+    "listening": "Listening...",
+    "starting": "Initializing microphone...",
+    "stop": "Stop Recording",
     "input_placeholder": "Ask a question... (Shift+Enter for new line)",
     "no_history": "No history yet",
     "execution_graph": "Execution Path Visual",

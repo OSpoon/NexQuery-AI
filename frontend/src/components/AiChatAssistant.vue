@@ -13,6 +13,7 @@ import {
   Plus,
   Send,
   Sparkles,
+  Square,
   ThumbsDown,
   ThumbsUp,
   Trash2,
@@ -20,7 +21,7 @@ import {
   X,
 } from 'lucide-vue-next'
 import { MarkdownRender } from 'markstream-vue'
-import { nextTick, onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import SqlEditor from '@/components/shared/SqlEditor.vue'
@@ -144,6 +145,10 @@ onMounted(() => {
   store.fetchGraphVisual()
 })
 
+onUnmounted(() => {
+  audioRecorder.close()
+})
+
 // Bi-directional sync: Store -> UI
 // When a conversation is loaded (which updates store.dataSourceId),
 // we need to reflect that in the dropdown without triggering a reset.
@@ -168,6 +173,10 @@ watch(
       dataSourceStore.fetchDataSources()
       store.fetchConversations()
       scrollToBottom()
+    }
+    else {
+      // Release microphone when chat is closed for privacy
+      audioRecorder.close()
     }
   },
 )
@@ -251,36 +260,76 @@ function handleKeydown(e: KeyboardEvent) {
 
 // Voice Input Logic
 const isRecording = ref(false)
+const isPreparing = ref(false)
 const isTranscribing = ref(false)
+const isCancel = ref(false)
+const recordingStartTime = ref(0)
+
+function cancelRecording() {
+  isCancel.value = true
+  isRecording.value = false
+  audioRecorder.stop()
+}
 
 async function toggleRecording() {
   if (isRecording.value) {
+    const duration = Date.now() - recordingStartTime.value
+    if (duration < 500) {
+      // Too short, give it a bit more time or ignore
+      console.warn('[VoiceInput] Recording too short, ignoring')
+      cancelRecording()
+      toast.error('Recording too short')
+      return
+    }
     isRecording.value = false
     audioRecorder.stop()
   }
   else {
     try {
+      isPreparing.value = true
       await audioRecorder.start({
         onStop: async (blob) => {
+          if (isCancel.value) {
+            isCancel.value = false
+            return
+          }
           await handleTranscription(blob)
         },
         onError: () => {
           toast.error('Recording failed')
           isRecording.value = false
+          isPreparing.value = false
         },
       })
+      isCancel.value = false
       isRecording.value = true
+      recordingStartTime.value = Date.now()
     }
     catch {
       toast.error('Microphone access denied or error occurred')
+    }
+    finally {
+      isPreparing.value = false
     }
   }
 }
 
 async function handleTranscription(blob: Blob) {
   isTranscribing.value = true
+
+  // Resolve extension based on type
+  let ext = 'webm'
+  if (blob.type.includes('mp4'))
+    ext = 'm4a'
+  else if (blob.type.includes('ogg'))
+    ext = 'ogg'
+  else if (blob.type.includes('wav'))
+    ext = 'wav'
+  else if (blob.type.includes('mpeg'))
+    ext = 'mp3'
+
   const formData = new FormData()
-  formData.append('audio', blob, 'recording.webm')
+  formData.append('audio', blob, `recording.${ext}`)
 
   try {
     const res = await api.post('/ai/transcribe', formData)
@@ -802,6 +851,68 @@ function selectOption(option: string) {
         </ScrollArea>
       </div>
 
+      <!-- Recording Overlay -->
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-y-4"
+        enter-to-class="opacity-100 translate-y-0"
+        leave-active-class="transition duration-200 ease-in"
+        leave-from-class="opacity-100 translate-y-0"
+        leave-to-class="opacity-0 translate-y-4"
+      >
+        <div
+          v-if="isRecording || isPreparing"
+          class="absolute inset-x-0 bottom-0 bg-background/95 backdrop-blur-md z-50 flex flex-col items-center justify-center p-8 border-t"
+        >
+          <div class="flex items-center gap-2 text-primary text-sm font-medium mb-8">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+            </span>
+            {{ isPreparing ? t('ai_chat.starting') : t('ai_chat.listening') }}
+          </div>
+
+          <div class="flex items-center justify-center gap-1.5 h-12 mb-10">
+            <template v-if="!isPreparing">
+              <div
+                v-for="i in 12"
+                :key="i"
+                class="w-1 bg-primary/40 rounded-full animate-voice-bar"
+                :style="{
+                  animationDelay: `${i * 0.08}s`,
+                  height: `${25 + Math.sin(i * 0.5) * 20 + Math.random() * 30}%`,
+                }"
+              />
+            </template>
+            <div v-else class="flex gap-1 items-center">
+              <div v-for="i in 3" :key="i" class="w-1.5 h-1.5 bg-primary/40 rounded-full animate-bounce" :style="{ animationDelay: `${i * 0.15}s` }" />
+            </div>
+          </div>
+
+          <div class="flex gap-4 w-full max-w-xs">
+            <Button
+              variant="outline"
+              size="lg"
+              class="flex-1 rounded-xl h-12"
+              @click="cancelRecording"
+            >
+              <X class="h-4 w-4 mr-2" />
+              {{ t('common.cancel') }}
+            </Button>
+            <Button
+              variant="destructive"
+              size="lg"
+              class="flex-1 rounded-xl h-12 shadow-lg shadow-destructive/20 active:scale-95 transition-transform"
+              :disabled="isPreparing"
+              @click="toggleRecording"
+            >
+              <Square class="h-4 w-4 mr-2 fill-current" />
+              {{ t('ai_chat.stop') }}
+            </Button>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Input -->
       <div class="p-3 pt-0">
         <form class="flex gap-2 items-end" @submit.prevent="handleSend">
@@ -826,15 +937,15 @@ function selectOption(option: string) {
                 size="icon"
                 class="h-7 w-7 rounded-full transition-colors"
                 :class="
-                  isRecording
+                  isRecording || isPreparing
                     ? 'text-destructive bg-destructive/10 animate-pulse'
                     : 'text-muted-foreground hover:text-foreground'
                 "
-                :disabled="isTranscribing || store.isLoading"
+                :disabled="isTranscribing || isPreparing || store.isLoading"
                 @click="toggleRecording"
               >
                 <div
-                  v-if="isTranscribing"
+                  v-if="isTranscribing || isPreparing"
                   class="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary border-t-transparent"
                 />
                 <Mic v-else class="h-3.5 w-3.5" />
@@ -937,5 +1048,22 @@ function selectOption(option: string) {
 
 :deep(.markstream-vue) {
   --markstream-primary: var(--primary);
+}
+
+@keyframes voice-bar {
+  0%,
+  100% {
+    transform: scaleY(0.5);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scaleY(1.3);
+    opacity: 1;
+  }
+}
+
+.animate-voice-bar {
+  animation: voice-bar 1s ease-in-out infinite;
+  transform-origin: center;
 }
 </style>

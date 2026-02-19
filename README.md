@@ -101,6 +101,7 @@
 
 - [Docker](https://www.docker.com/) & Docker Compose
 - [Node.js](https://nodejs.org/) v20+ & pnpm
+- [FFmpeg](https://ffmpeg.org/) (用于语音输入转码)
 
 ### 开发环境启动
 

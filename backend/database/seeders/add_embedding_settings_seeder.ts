@@ -27,16 +27,35 @@ export default class extends BaseSeeder {
         label: 'Embedding API Key',
         description: 'API Key for the Embedding Provider. Leave empty to use main AI API Key.',
       },
+      {
+        key: 'ai_transcription_base_url',
+        value: 'https://open.bigmodel.cn/api/paas/v4/',
+        type: 'string',
+        group: 'ai',
+        label: 'Transcription Base URL',
+        description: 'Base URL for Transcription (e.g., Zhipu AI).',
+      },
+      {
+        key: 'ai_transcription_api_key',
+        value: defaultKey,
+        type: 'string',
+        group: 'ai',
+        label: 'Transcription API Key',
+        description: 'API Key for Transcription. Leave empty to use main AI API Key.',
+      },
+      {
+        key: 'ai_transcription_model',
+        value: 'glm-asr-2512',
+        type: 'string',
+        group: 'ai',
+        label: 'Transcription Model',
+        description: 'Model name for transcription (e.g., glm-asr-2512).',
+      },
     ]
 
     for (const s of newSettings) {
-      const existing = await Setting.findBy('key', s.key)
-      if (!existing) {
-        await Setting.create(s)
-        logger.info(`Created setting: ${s.key}`)
-      } else {
-        logger.info(`Setting ${s.key} already exists. Skipping.`)
-      }
+      await Setting.updateOrCreate({ key: s.key }, s)
+      logger.info(`Updated/Created setting: ${s.key}`)
     }
 
     // Ensure embedding model is set to Zhipu's default
