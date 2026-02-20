@@ -24,7 +24,7 @@
 1.  **自助提数 (Self-Service)**: 运营人员无需懂 SQL，直接提问即可获取数据报表。
 2.  **安全可控 (Enterprise Safe)**: 细粒度的 RBAC 权限、PII 敏感数据自动脱敏、SQL 注入防御与审计日志。
 3.  **闭环进化 (Self-Evolving)**: 支持用户反馈 (Feedback) 与知识库 (Knowledge Base) 联动，AI 越用越聪明。
-4.  **成本透明 (FinOps)**: 内置 AI 成本监控，实时追踪 Token 消耗与模型费用。
+4.  **团队协作 (Team Collaboration)**: 支持查询任务的私有化与公开分享，打破数据孤岛。
 
 ---
 
@@ -52,14 +52,14 @@
 
 ### 🛡 安全与治理
 
-- **End-to-End Encryption**: 基于 `CryptoService` 实现敏感 API 负载的全链路加密，确保 API 密钥与敏感数据在传输过程中不可被破解。
-- **RBAC**: 基于角色的权限控制 (Admin, Developer, Operator)，支持动态菜单与按钮级权限。
-- **Security Guardrails**:
-  - 拦截 `DROP`, `TRUNCATE` 等高危指令。
-  - 强制 WHERE 子句检查（防止全表更新）。
-  - 生产环境 SQL 报错屏蔽。
+- **End-to-End Encryption**: 基于 `CryptoService` 实现敏感 API 负载的全链路加密，确保 API 密钥与敏感数据不可通过网络嗅探获取。
+- **Precision RBAC**: 基于角色的权限控制，严格实施最小权限呈现原则。Dashboard 支持系统级全量视图与个人专属版面的动态区隔。
+- **Enterprise-Grade Protection**:
+  - **OOM Defense**: 查询引擎自带行数熔断 (LIMIT 1000兜底)，阻止巨量数据拉垮服务器内存。
+  - **RCE Prevention**: 核心沙箱阻隔 Shell 元字符注入，彻底杜绝命令执行逃逸。
+  - **IDOR Proof**: 数据源探测和任务协同均具备行列级越权防御，普通员工无法窥探越权数据。
+- **安全过滤拦截**: 拦截 `DROP`, `TRUNCATE` 等高危动作，并对生成的查询进行强制验证。
 - **2FA**: 集成 Google Authenticator 双重认证。
-- **FinOps**: 完整的 Token 消耗监控看板，支持按用户、模型维度的成本拆分。
 
 ### ⚙️ 自动化与触达
 
