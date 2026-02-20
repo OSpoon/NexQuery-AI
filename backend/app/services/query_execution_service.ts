@@ -65,15 +65,24 @@ export default class QueryExecutionService {
     }
 
     try {
+      // Safety check: Enforce a firm limit on results to prevent OOM
+      let finalSql = sql.trim()
+      if (ds.type === 'mysql' || ds.type === 'postgresql') {
+        finalSql = finalSql.replace(/;$/, '')
+        if (!/\bLIMIT\b/i.test(finalSql)) {
+          finalSql += ' LIMIT 1000'
+        }
+      }
+
       if (ds.type === 'mysql') {
-        const { result, values } = replaceVars(sql, inputParams, 'sql')
+        const { result, values } = replaceVars(finalSql, inputParams, 'sql')
         executedSql = result
         const { client } = await DbHelper.getRawConnection(ds.id, timeout)
         const [rows] = await (client as any).execute({ sql: executedSql, values, timeout })
         await client.end()
         queryResults = rows
       } else if (ds.type === 'postgresql') {
-        const { result, values } = replaceVars(sql, inputParams, 'pg')
+        const { result, values } = replaceVars(finalSql, inputParams, 'pg')
         executedSql = result
         const { client } = await DbHelper.getRawConnection(ds.id, timeout)
         try {
@@ -95,6 +104,14 @@ export default class QueryExecutionService {
           throw new Error(
             `Command validation failed: Only commands starting with [${ALLOWED_COMMAND_PREFIXES.join(', ')}] are allowed.`,
           )
+        }
+
+        // --- Phase 3: Critical Security Guard against Command Injection (RCE) ---
+        // Block all bash control operators, pipeline characters, command substitutions,
+        // environment variable access, and dangerous redirections to ensure `curl` cannot be escaped.
+        const forbiddenBashShellChars = /[;&|$`\n<>]/
+        if (forbiddenBashShellChars.test(commandToExecute)) {
+          throw new Error(`Command validation failed: Command contains forbidden shell meta-characters. Potential Command Injection isolated.`)
         }
 
         const { stdout } = await execAsync(executedSql, {

@@ -139,12 +139,18 @@ router
         // Execution
         router.post('query-tasks/:id/execute', [ExecutionController, 'execute'])
 
-        // AI Features
-        router.post('ai/test-connection', [AiController, 'testConnection'])
-        router.post('ai/optimize-sql', [AiController, 'optimizeSql'])
+        // Sensitive AI Features (Requires Data Source Management Permission)
+        router
+          .group(() => {
+            router.post('ai/test-connection', [AiController, 'testConnection'])
+            router.post('ai/optimize-sql', [AiController, 'optimizeSql'])
+            router.post('ai/preview', [AiController, 'preview'])
+          })
+          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_DATA_SOURCES }))
+
+        // General AI Features (Dialogue & Learning)
         router.post('ai/chat', [AiController, 'chat'])
         router.post('ai/chat/stream', [AiController, 'chatStream'])
-        router.post('ai/preview', [AiController, 'preview'])
         router.post('ai/learn', [AiController, 'learn'])
         router.post('ai/transcribe', [AiController, 'transcribe'])
         router.get('ai/graph/visualize', [AiController, 'visualizeGraph'])
