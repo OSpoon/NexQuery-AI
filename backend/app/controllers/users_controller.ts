@@ -3,10 +3,7 @@ import User from '#models/user'
 import { AuditService } from '#services/audit_service'
 
 export default class UsersController {
-  async index({ auth, response }: HttpContext) {
-    if (!auth.user!.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
+  async index({ response }: HttpContext) {
     const users = await User.query().preload('roles')
     return response.ok(
       users.map(user => ({
@@ -19,10 +16,6 @@ export default class UsersController {
   async update({ params, request, response, auth }: HttpContext) {
     const user = await User.findOrFail(params.id)
     const { fullName, email, roleIds, isActive } = request.all()
-    const currentUser = auth.user!
-    if (!currentUser.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
 
     const previousData = user.toJSON()
 
@@ -55,10 +48,6 @@ export default class UsersController {
 
   async destroy({ params, response, request, auth }: HttpContext) {
     const user = await User.query().where('id', params.id).preload('roles').firstOrFail()
-    const currentUser = auth.user!
-    if (!currentUser.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
 
     // Check if the user being deleted is an admin
     const isAdmin = user.roles.some(role => role.slug === 'admin')

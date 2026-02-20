@@ -16,10 +16,6 @@ export default class KnowledgeBasesController {
   }
 
   public async store({ request, response, auth }: HttpContext) {
-    if (!auth.user!.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
-
     const data = request.only(['keyword', 'description', 'exampleSql', 'sourceType'])
 
     // Validate that keyword is unique
@@ -40,10 +36,6 @@ export default class KnowledgeBasesController {
   }
 
   public async update({ params, request, response, auth }: HttpContext) {
-    if (!auth.user!.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
-
     const itemOriginal = await KnowledgeBase.findOrFail(params.id)
     const data = request.only(['keyword', 'description', 'exampleSql', 'status', 'sourceType'])
 
@@ -60,11 +52,7 @@ export default class KnowledgeBasesController {
     return response.json(item)
   }
 
-  public async destroy({ params, response, auth }: HttpContext) {
-    if (!auth.user!.isAdmin) {
-      return response.forbidden({ message: 'You do not have permission to perform this action' })
-    }
-
+  public async destroy({ params, response }: HttpContext) {
     await KnowledgeBaseService.delete(params.id)
 
     return response.json({ message: 'Deleted successfully' })
