@@ -65,6 +65,7 @@ const formSchema = toTypedSchema(
 
     dataSourceId: z.number(),
     storeResults: z.boolean().default(false),
+    visibility: z.enum(['private', 'public']).default('private'),
     tags: z.array(z.string().max(15)).max(3).optional(),
   }),
 )
@@ -88,6 +89,7 @@ const form = useForm({
         return val === 1
       return !!val
     })(),
+    visibility: (props.initialValues?.visibility || 'private') as 'private' | 'public',
     tags: props.initialValues?.tags || [],
   },
 })
@@ -182,6 +184,7 @@ watch(
 
         dataSourceId: newVal?.dataSourceId,
         storeResults: booleanStoreResults,
+        visibility: (newVal?.visibility || 'private') as 'private' | 'public',
         tags: newVal?.tags || [],
       },
     })
@@ -369,6 +372,33 @@ onMounted(fetchDataSources)
                 <SelectContent>
                   <SelectItem v-for="ds in dataSources" :key="ds.id" :value="ds.id.toString()">
                     {{ ds.name }} ({{ ds.type }})
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          </FormField>
+        </div>
+
+        <div>
+          <FormField v-slot="{ value }" name="visibility" :validate-on-blur="false">
+            <FormItem>
+              <FormLabel>{{ t('query_tasks.visibility') }}</FormLabel>
+              <Select
+                :model-value="value"
+                @update:model-value="(v) => form.setFieldValue('visibility', v as 'private' | 'public')"
+              >
+                <FormControl>
+                  <SelectTrigger class="w-full">
+                    <SelectValue :placeholder="t('query_tasks.visibility')" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="private">
+                    {{ t('query_tasks.private_visibility') }}
+                  </SelectItem>
+                  <SelectItem value="public">
+                    {{ t('query_tasks.public_visibility') }}
                   </SelectItem>
                 </SelectContent>
               </Select>

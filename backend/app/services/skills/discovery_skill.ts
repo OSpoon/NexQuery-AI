@@ -17,8 +17,8 @@ export class DiscoverySkill extends BaseSkill {
     super()
   }
 
-  getSystemPrompt(_context: SkillContext): string {
-    return DISCOVERY_PROTOCOL()
+  getSystemPrompt(context: SkillContext): string {
+    return DISCOVERY_PROTOCOL(context.dbType || 'mysql')
   }
 
   getTools(_context: SkillContext) {

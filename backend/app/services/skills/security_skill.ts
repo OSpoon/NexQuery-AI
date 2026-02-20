@@ -12,8 +12,8 @@ export class SecuritySkill extends BaseSkill {
   readonly name = 'Security'
   readonly description = 'SQL safety verification and submission'
 
-  getSystemPrompt(_context: SkillContext): string {
-    return GET_SECURITY_SKILL_PROMPT()
+  getSystemPrompt(context: SkillContext): string {
+    return GET_SECURITY_SKILL_PROMPT(context.dbType || 'mysql')
   }
 
   getTools(_context: SkillContext) {

@@ -1,19 +1,30 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import QueryTask from '#models/query_task'
 import { createQueryTaskValidator, updateQueryTaskValidator } from '#validators/query_task'
+import { PERMISSIONS } from '@nexquery/shared'
 
 export default class QueryTasksController {
   /**
    * Display a list of resource
    */
-  async index({ request, response }: HttpContext) {
+  async index({ request, response, auth }: HttpContext) {
     const search = request.input('search')
     const tag = request.input('tag')
+    const user = auth.user!
 
     const query = QueryTask.query()
       .preload('dataSource')
       .preload('creator')
       .orderBy('createdAt', 'desc')
+
+    const hasManageTasks = await user.hasPermission(PERMISSIONS.MANAGE_TASKS)
+
+    // Always enforce visibility rules
+    if (!hasManageTasks) {
+      query.where((q) => {
+        q.where('visibility', 'public').orWhere('createdBy', user.id)
+      })
+    }
 
     if (search && search !== '' && search !== 'undefined') {
       query.where((q) => {
@@ -44,6 +55,7 @@ export default class QueryTasksController {
       formSchema: payload.formSchema || null,
       dataSourceId: payload.dataSourceId,
       storeResults: payload.storeResults ?? false,
+      visibility: payload.visibility ?? 'private',
       tags: payload.tags || null,
       createdBy: user.id,
     })
@@ -54,20 +66,38 @@ export default class QueryTasksController {
   /**
    * Show individual record
    */
-  async show({ params, response }: HttpContext) {
+  async show({ params, response, auth }: HttpContext) {
+    const user = auth.user!
     const task = await QueryTask.query()
       .where('id', params.id)
       .preload('dataSource')
       .preload('creator')
       .firstOrFail()
+
+    const hasManageTasks = await user.hasPermission(PERMISSIONS.MANAGE_TASKS)
+    if (!hasManageTasks) {
+      if (task.visibility !== 'public' && task.createdBy !== user.id) {
+        return response.forbidden({ message: 'Not authorized to view this task' })
+      }
+    }
+
     return response.ok(task)
   }
 
   /**
    * Handle form submission for the edit action
    */
-  async update({ params, request, response }: HttpContext) {
+  async update({ params, request, response, auth }: HttpContext) {
+    const user = auth.user!
     const task = await QueryTask.findOrFail(params.id)
+
+    const hasManageTasks = await user.hasPermission(PERMISSIONS.MANAGE_TASKS)
+
+    // Only creators or admins can edit
+    if (!hasManageTasks && task.createdBy !== user.id) {
+      return response.forbidden({ message: 'You can only edit your own query tasks' })
+    }
+
     const payload = await request.validateUsing(updateQueryTaskValidator)
 
     if (payload.name !== undefined)
@@ -82,6 +112,8 @@ export default class QueryTasksController {
       task.dataSourceId = payload.dataSourceId
     if (payload.storeResults !== undefined)
       task.storeResults = payload.storeResults
+    if (payload.visibility !== undefined)
+      task.visibility = payload.visibility
     if (payload.tags !== undefined)
       task.tags = payload.tags
 
@@ -93,8 +125,17 @@ export default class QueryTasksController {
   /**
    * Delete record
    */
-  async destroy({ params, response }: HttpContext) {
+  async destroy({ params, response, auth }: HttpContext) {
+    const user = auth.user!
     const task = await QueryTask.findOrFail(params.id)
+
+    const hasManageTasks = await user.hasPermission(PERMISSIONS.MANAGE_TASKS)
+
+    // Only creators or admins can delete
+    if (!hasManageTasks && task.createdBy !== user.id) {
+      return response.forbidden({ message: 'You can only delete your own query tasks' })
+    }
+
     await task.delete()
     return response.noContent()
   }

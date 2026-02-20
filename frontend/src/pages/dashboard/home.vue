@@ -9,12 +9,15 @@ import {
   TrendingUp,
   XCircle,
 } from 'lucide-vue-next'
-import { computed, onActivated, onMounted, ref } from 'vue'
+import { computed, onActivated, onMounted, ref, watch } from 'vue'
 import AiChart from '@/components/shared/AiChart.vue'
 import Badge from '@/components/ui/badge/Badge.vue'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import api from '@/lib/api'
+
+const timeRange = ref('7d')
 
 const dashboardData = ref<any>({
   stats: {
@@ -27,6 +30,7 @@ const dashboardData = ref<any>({
   topSources: [],
   topUsers: [],
   recentLogs: [],
+  isGlobalView: false,
 })
 
 const health = ref<any>(null)
@@ -45,7 +49,7 @@ const successRate = computed(() => {
 async function fetchDashboardData() {
   try {
     const [statsResponse, healthResponse] = await Promise.all([
-      api.get('/dashboard/stats'),
+      api.get(`/dashboard/stats?timeRange=${timeRange.value}`),
       api.get('/health'),
     ])
 
@@ -56,6 +60,7 @@ async function fetchDashboardData() {
     console.error('Failed to fetch dashboard data', error)
   }
 }
+watch(timeRange, fetchDashboardData)
 
 onMounted(fetchDashboardData)
 onActivated(fetchDashboardData)
@@ -63,20 +68,41 @@ onActivated(fetchDashboardData)
 
 <template>
   <div class="p-8 space-y-8 max-w-[1600px] mx-auto animate-in fade-in duration-500">
-    <div class="flex flex-col gap-1">
-      <h1
-        class="text-3xl font-black tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"
-      >
-        {{ $t('dashboard.system_overview') }}
-      </h1>
-      <p class="text-muted-foreground text-sm">
-        {{ $t('dashboard.system_overview_desc') }}
-      </p>
+    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="flex flex-col gap-1">
+        <h1
+          class="text-3xl font-black tracking-tight bg-linear-to-r from-primary to-primary/60 bg-clip-text text-transparent"
+        >
+          {{ $t('dashboard.system_overview') }}
+        </h1>
+        <p class="text-muted-foreground text-sm">
+          {{ $t('dashboard.system_overview_desc') }}
+        </p>
+      </div>
+
+      <div class="mt-2 sm:mt-0">
+        <Tabs v-model="timeRange" class="w-full sm:w-auto">
+          <TabsList class="grid w-full grid-cols-4 sm:w-[300px]">
+            <TabsTrigger value="7d">
+              7D
+            </TabsTrigger>
+            <TabsTrigger value="30d">
+              30D
+            </TabsTrigger>
+            <TabsTrigger value="90d">
+              90D
+            </TabsTrigger>
+            <TabsTrigger value="all">
+              ALL
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
     </div>
 
     <!-- Quick Stats Card -->
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card class="border-primary/10 bg-background/50 backdrop-blur-sm">
+    <div class="grid gap-4 md:grid-cols-2" :class="dashboardData.isGlobalView ? 'lg:grid-cols-4' : 'lg:grid-cols-2'">
+      <Card v-if="dashboardData.isGlobalView" class="border-primary/10 bg-background/50 backdrop-blur-sm">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
             {{ $t('sidebar.data_sources') }}
@@ -93,7 +119,7 @@ onActivated(fetchDashboardData)
         </CardContent>
       </Card>
 
-      <Card class="border-primary/10 bg-background/50 backdrop-blur-sm">
+      <Card v-if="dashboardData.isGlobalView" class="border-primary/10 bg-background/50 backdrop-blur-sm">
         <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle class="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">
             {{ $t('dashboard.sql_tasks') }}
@@ -155,8 +181,8 @@ onActivated(fetchDashboardData)
               <Activity class="h-4 w-4 text-primary" />
               {{ $t('dashboard.activity_trend') }}
             </CardTitle>
-            <Badge variant="outline" class="text-[10px] font-bold">
-              {{ $t('dashboard.last_7_days') }}
+            <Badge variant="outline" class="text-[10px] font-bold uppercase">
+              {{ timeRange === 'all' ? 'All Time' : timeRange }}
             </Badge>
           </div>
         </CardHeader>
@@ -226,7 +252,7 @@ onActivated(fetchDashboardData)
       </Card>
 
       <!-- User Engagement -->
-      <Card class="lg:col-span-4 border-primary/5 shadow-sm overflow-hidden">
+      <Card v-if="dashboardData.isGlobalView" class="lg:col-span-4 border-primary/5 shadow-sm overflow-hidden">
         <CardHeader class="pb-2">
           <CardTitle class="text-sm font-bold flex items-center gap-2">
             <MousePointer2 class="h-4 w-4 text-primary" />

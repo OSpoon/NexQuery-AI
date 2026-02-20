@@ -20,7 +20,6 @@ const AiController = () => import('#controllers/ai_controller')
 const ScheduledQueriesController = () => import('#controllers/scheduled_queries_controller')
 const ApiKeysController = () => import('#controllers/api_keys_controller')
 const NotificationsController = () => import('#controllers/notifications_controller')
-const AiFinOpsController = () => import('#controllers/ai_fin_ops_controller')
 const EvaluationReportsController = () => import('#controllers/evaluation_reports_controller')
 
 const HealthChecksController = () => import('#controllers/health_checks_controller')
@@ -69,6 +68,11 @@ router
         router.post('auth/avatar', [AuthController, 'updateAvatar'])
         router.post('auth/miniprogram/unbind', [AuthController, 'unbindMiniProgram'])
 
+        // API Keys Management
+        router.get('auth/keys', [ApiKeysController, 'index'])
+        router.post('auth/keys', [ApiKeysController, 'store'])
+        router.delete('auth/keys/:id', [ApiKeysController, 'destroy'])
+
         // 2FA Management
         router.post('auth/2fa/generate', [TwoFactorAuthController, 'generate'])
         router.post('auth/2fa/enable', [TwoFactorAuthController, 'enable'])
@@ -101,7 +105,7 @@ router
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_KNOWLEDGE_BASE }))
 
-        // Query Tasks (Manage & View)
+        // Query Tasks & Scheduled Queries (Decentralized Access)
         router
           .group(() => {
             router.get('query-tasks', [QueryTasksController, 'index'])
@@ -118,7 +122,8 @@ router
             router.post('scheduled-queries/:id/execute', [ScheduledQueriesController, 'execute'])
             router.delete('scheduled-queries/:id', [ScheduledQueriesController, 'destroy'])
           })
-          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_TASKS }))
+          // We removed the MANAGE_TASKS requirement here because visibility logic is handled in the controller.
+          // ALL users can access query tasks now (to view public tasks or manage their own private tasks).
 
         // Message Center (Notifications)
         router
@@ -136,7 +141,7 @@ router
           })
           .prefix('user')
 
-        // Execution
+        // Execution (Decentralized Access inside Controller)
         router.post('query-tasks/:id/execute', [ExecutionController, 'execute'])
 
         // Sensitive AI Features (Requires Data Source Management Permission)
@@ -178,23 +183,6 @@ router
             router.resource('menus', MenusController).apiOnly()
           })
           .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_USERS }))
-
-        // API Keys Management
-        router
-          .group(() => {
-            router.get('auth/keys', [ApiKeysController, 'index'])
-            router.post('auth/keys', [ApiKeysController, 'store'])
-            router.delete('auth/keys/:id', [ApiKeysController, 'destroy'])
-          })
-          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_API_KEYS }))
-
-        // FinOps Monitoring
-        router
-          .group(() => {
-            router.get('finops/stats', [AiFinOpsController, 'getStats'])
-            router.get('finops/logs', [AiFinOpsController, 'getLogs'])
-          })
-          .use(middleware.rbac({ permission: PERMISSIONS.MANAGE_AI_FINOPS }))
 
         // Spider Evaluation Reports
         router

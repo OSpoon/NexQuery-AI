@@ -19,7 +19,19 @@
 - **最值对齐铁律 (The Spider Rule)**:
   - 判定单体目标（the oldest...）时，使用 \`ORDER BY ... LIMIT 1\`。
   - 判定集合匹配（all records with max...）时，必须使用 \`WHERE col = (SELECT MAX...)\`。
-- **SQLite 优化**: 字符串连接使用 \`||\`。处理日期使用字符串或 \`strftime\`。
+- **动态时态推演 (Temporal Dynamics) [CRITICAL]**:
+  - 当问题包含相对时间（如"今天", "昨天", "本月", "去年"）时，**绝不要硬编码具体的年份或日期**（例如绝对禁止写 \`WHERE Year = 2024\`）。
+  - 当前的数据库方言是 **{{dbType}}**。你必须基于此方言使用原生的日期/时间计算函数。
+    - 若 \`{{dbType}} === 'postgresql'\`: 使用 \`CURRENT_DATE\`, \`NOW()\`, \`INTERVAL\` 结合 \`EXTRACT\` 或 \`DATE_TRUNC\`。
+    - 若 \`{{dbType}} === 'mysql'\` 或 \`sqlite\`: 使用 \`CURDATE()\`, \`DATE_SUB()\`, 或 \`strftime\`。
+- **模糊安全匹配 (Fuzzy Context Matching)**:
+  - 当处理诸如"包含", "以...开头", "类似" 等非精确文本搜索指令时，需根据方言执行**大小写不敏感**的模糊匹配。
+  - 特别注意：若 \`{{dbType}} === 'postgresql'\`，绝对禁止使用普通的 \`LIKE\`，**必须且只能使用 \`ILIKE\`** 来保证检出率。
+  - 若 \`{{dbType}} === 'mysql'\`，普通的 \`LIKE\` 默认大小写不敏感，可以直接使用。
+- **高阶跨表策略 (Advanced CTE & Joins)**:
+  - 在遇到包含多个独立事实表（如不仅要查"销售总额"还要查"退货总额"和"仓储件数"）的复杂报表统计时，**禁止**直接用 \`LEFT JOIN\` 将多个百万级事实表暴力连接在一起，这会导致笛卡尔乘积爆炸和数据虚度。
+  - **必须**使用 \`WITH\` 子句（CTE）先对各自的事实表按主键进行聚合（GROUP BY + SUM/COUNT），然后再将聚合结果汇总到外层。
+- **SQLite / Postgres 细节**: 字符串连接使用 \`||\` 但如果 \`{{dbType}}\` 是 \`mysql\`，请使用 \`CONCAT()\`。
 - **极简输出规范 (Minimalist Selection) [CRITICAL]**:
   - 为了兼容严格评测，**SELECT 语句必须仅包含问题明确请求的列**。
   - **禁止多余列**: 除非用户明确要求显示计数、平均值等，否则严禁在 SELECT 中包含 \`COUNT(\*)\`、\`SUM\` 等聚合列。

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { QueryTask } from '@nexquery/shared'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { ArrowUpDown, Edit, FileCode, Play, Plus, Settings, Trash2 } from 'lucide-vue-next'
+import { ArrowUpDown, Edit, FileCode, Globe, Lock, Play, Plus, Settings, Trash2 } from 'lucide-vue-next'
 import { defineAsyncComponent, h, onMounted, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
@@ -113,6 +113,25 @@ const columns: ColumnDef<QueryTask>[] = [
             { class: 'text-xs text-muted-foreground truncate max-w-[300px]' },
             task.description,
           ),
+          h('div', { class: 'mt-1 flex items-center gap-1 text-xs' }, [
+            task.visibility === 'public'
+              ? h(
+                  'span',
+                  { class: 'text-green-600 flex items-center bg-green-50 px-1.5 py-0.5 rounded border border-green-200' },
+                  [
+                    h(Globe, { class: 'w-3 h-3 justify-center mr-1 inline-block' }),
+                    t('query_tasks.public'),
+                  ],
+                )
+              : h(
+                  'span',
+                  { class: 'text-slate-500 flex items-center bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200' },
+                  [
+                    h(Lock, { class: 'w-3 h-3 justify-center mr-1 inline-block' }),
+                    t('query_tasks.private'),
+                  ],
+                ),
+          ]),
         ]),
       ])
     },

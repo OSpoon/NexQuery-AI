@@ -50,9 +50,9 @@ ${skillPrompts}
 
 请开始。`
 
-export const SECURITY_PROMPT = (_dbType: string, skillPrompts: string) =>
+export const SECURITY_PROMPT = (dbType: string, skillPrompts: string) =>
   `
-${GET_SECURITY_SKILL_PROMPT()}
+${GET_SECURITY_SKILL_PROMPT(dbType)}
 
 ${skillPrompts}
 `.trim()

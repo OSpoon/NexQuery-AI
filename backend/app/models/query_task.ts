@@ -17,6 +17,9 @@ export default class QueryTask extends BaseModel {
   @column()
   declare sqlTemplate: string
 
+  @column()
+  declare visibility: 'private' | 'public'
+
   @column({
     columnName: 'form_schema',
     prepare: (value: any) => (value ? JSON.stringify(value) : null),

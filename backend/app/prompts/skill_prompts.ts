@@ -3,15 +3,15 @@ import { PromptService } from '#services/PromptService'
 /**
  * 核心发现协议 (针对所有具备数据探测能力的专家)
  */
-export const DISCOVERY_PROTOCOL = () => {
+export const DISCOVERY_PROTOCOL = (dbType: string) => {
   return [
     `### [DISCOVERY PROTOCOL] 寻路指令`,
-    PromptService.getPromptSync('discovery/lexical_authority'),
-    PromptService.getPromptSync('discovery/topology'),
-    PromptService.getPromptSync('discovery/projection'),
-    PromptService.getPromptSync('discovery/optimization'),
-    PromptService.getPromptSync('discovery/guardrails'),
-    PromptService.getPromptSync('discovery/rot_builder'),
+    PromptService.getPromptSync('discovery/lexical_authority', { dbType }),
+    PromptService.getPromptSync('discovery/topology', { dbType }),
+    PromptService.getPromptSync('discovery/projection', { dbType }),
+    PromptService.getPromptSync('discovery/optimization', { dbType }),
+    PromptService.getPromptSync('discovery/guardrails', { dbType }),
+    PromptService.getPromptSync('discovery/rot_builder', { dbType }),
   ]
     .join('\n')
     .trim()
@@ -20,8 +20,8 @@ export const DISCOVERY_PROTOCOL = () => {
 /**
  * 1. 拓扑探索者 (Discovery Agent)
  */
-export const DISCOVERY_SKILL_PROMPT = (_dbType: string) => {
-  return PromptService.getPromptSync('agents/discovery')
+export const DISCOVERY_SKILL_PROMPT = (dbType: string) => {
+  return PromptService.getPromptSync('agents/discovery', { dbType })
 }
 
 /**
@@ -68,13 +68,13 @@ export const SECURITY_SKILL_PROMPT = (() => {
 /**
  * 2. 治理审计者 (Security Agent) - REFACTORED TO FUNCTION
  */
-export const GET_SECURITY_SKILL_PROMPT = () => {
-  return PromptService.getPromptSync('agents/security')
+export const GET_SECURITY_SKILL_PROMPT = (dbType: string) => {
+  return PromptService.getPromptSync('agents/security', { dbType })
 }
 
 /**
  * 3. 精准编写者 (Generator Agent)
  */
-export const CORE_ASSISTANT_SKILL_PROMPT = (_dbType: string, _dataSourceId?: number) => {
-  return PromptService.getPromptSync('agents/generator')
+export const CORE_ASSISTANT_SKILL_PROMPT = (dbType: string, dataSourceId?: number) => {
+  return PromptService.getPromptSync('agents/generator', { dbType, dataSourceId })
 }

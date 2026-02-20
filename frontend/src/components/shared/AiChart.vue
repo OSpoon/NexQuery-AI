@@ -82,6 +82,12 @@ function initChart() {
       type: props.type,
       data: props.data.map(item => item[col as string]),
       smooth: props.type === 'line',
+      ...(props.type === 'line'
+        ? {
+            areaStyle: { opacity: 0.2 },
+            symbol: 'none',
+          }
+        : {}),
       itemStyle: {
         borderRadius: props.type === 'bar' ? [4, 4, 0, 0] : 0,
       },

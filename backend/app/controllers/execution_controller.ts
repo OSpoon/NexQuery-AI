@@ -1,6 +1,7 @@
 import type { HttpContext } from '@adonisjs/core/http'
 import QueryTask from '#models/query_task'
 import QueryExecutionService from '#services/query_execution_service'
+import { PERMISSIONS } from '@nexquery/shared'
 
 export default class ExecutionController {
   private executionService: QueryExecutionService
@@ -10,7 +11,18 @@ export default class ExecutionController {
   }
 
   async execute({ params, request, response, auth }: HttpContext) {
+    const user = auth.user!
     const task = await QueryTask.query().where('id', params.id).preload('dataSource').firstOrFail()
+
+    const hasManageTasks = await user.hasPermission(PERMISSIONS.MANAGE_TASKS)
+
+    // Authorization: Block execution if private and not creator
+    if (!hasManageTasks) {
+      if (task.visibility !== 'public' && task.createdBy !== user.id) {
+        return response.forbidden({ message: 'Not authorized to execute this task' })
+      }
+    }
+
     const inputParams = request.input('params', {})
 
     try {
