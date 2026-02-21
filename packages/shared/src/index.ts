@@ -73,6 +73,7 @@ export interface QueryTask {
   name: string
   description?: string
   sqlTemplate: string
+  visibility: 'private' | 'public'
   formSchema: any[]
   storeResults?: boolean
   dataSourceId: number
