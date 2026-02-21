@@ -14,10 +14,10 @@ import { Env } from '@adonisjs/core/env'
 // eslint-disable-next-line antfu/no-top-level-await
 export default await Env.create(new URL('../', import.meta.url), {
   NODE_ENV: Env.schema.enum(['development', 'production', 'test'] as const),
-  PORT: Env.schema.number(),
+  PORT: Env.schema.number.optional(),
   APP_KEY: Env.schema.string(),
-  HOST: Env.schema.string({ format: 'host' }),
-  LOG_LEVEL: Env.schema.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
+  HOST: Env.schema.string.optional({ format: 'host' }),
+  LOG_LEVEL: Env.schema.enum.optional(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']),
 
   /*
   |----------------------------------------------------------
@@ -35,12 +35,12 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring mail connection
   |----------------------------------------------------------
   */
-  SMTP_HOST: Env.schema.string(),
-  SMTP_PORT: Env.schema.number(),
+  SMTP_HOST: Env.schema.string.optional(),
+  SMTP_PORT: Env.schema.number.optional(),
   SMTP_USERNAME: Env.schema.string.optional(),
   SMTP_PASSWORD: Env.schema.string.optional(),
 
-  FRONTEND_URL: Env.schema.string(),
+  FRONTEND_URL: Env.schema.string.optional(),
 
   /*
   |----------------------------------------------------------
@@ -65,8 +65,8 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for Vector Database (Qdrant)
   |----------------------------------------------------------
   */
-  QDRANT_HOST: Env.schema.string({ format: 'host' }),
-  QDRANT_PORT: Env.schema.number(),
+  QDRANT_HOST: Env.schema.string.optional({ format: 'host' }),
+  QDRANT_PORT: Env.schema.number.optional(),
   QDRANT_API_KEY: Env.schema.string.optional(),
 
   /*
@@ -92,9 +92,9 @@ export default await Env.create(new URL('../', import.meta.url), {
   | Variables for configuring the limiter package
   |----------------------------------------------------------
   */
-  LIMITER_STORE: Env.schema.enum(['database', 'memory'] as const),
+  LIMITER_STORE: Env.schema.enum.optional(['database', 'memory'] as const),
 
-  REDIS_HOST: Env.schema.string({ format: 'host' }),
-  REDIS_PORT: Env.schema.number(),
+  REDIS_HOST: Env.schema.string.optional({ format: 'host' }),
+  REDIS_PORT: Env.schema.number.optional(),
   REDIS_PASSWORD: Env.schema.string.optional(),
 })

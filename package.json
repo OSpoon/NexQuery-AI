@@ -18,6 +18,7 @@
     "backend:dev": "pnpm --filter backend dev",
     "backend:build": "pnpm --filter backend build",
     "backend:test": "pnpm --filter backend test",
+    "backend:test:docker": "docker compose -f docker-compose.test.yml up -d --wait && DB_PORT=5433 DB_HOST=127.0.0.1 DB_USER=adonis DB_PASSWORD=password DB_DATABASE=nexquery_test pnpm backend:test && docker compose -f docker-compose.test.yml down -v",
     "backend:migrate": "pnpm --filter backend exec node ace migration:run",
     "backend:seed": "pnpm --filter backend exec node ace db:seed",
     "backend:fresh": "pnpm --filter backend exec node ace migration:fresh --seed",
