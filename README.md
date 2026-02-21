@@ -32,43 +32,38 @@
 
 ### 🤖 AI 智能引擎 (Agentic Engine)
 
-- **Multi-Agent Workflow (LangGraph)**:
-  - **Supervisor**: 智能调度中心，根据问题深度自动编排工作流。
-  - **Discovery Agent**: 自动探索 Schema、Index Mapping 及多表关联关系。
-  - **Generator Agent**: 支持 Text-to-SQL 与 Text-to-Lucene，具备错误自修复能力。
-  - **Security Agent**: 实时审计生成的脚本，拦截危险操作并对 PII 数据进行脱敏。
-- **Dual-Mode Chat**:
-  - **SQL Agent**: 深度结合数据库 Schema，支持 Text-to-SQL、歧义主动询问 (Disambiguation) 与思维链展示。
-  - **Lucene Agent**: 专为 Elasticsearch 设计，支持 Index 发现、Mapping 解析与查询语句生成。
-- **Mind Chain**: 透明展示 AI 的推理过程 (Reasoning)、工具调用 (ListTables, ValidateSql) 与自我纠错逻辑。
+- **4-Agent Pipeline (LangGraph)**:
+  - **Supervisor**: 智能调度中心，作为入口节点分析用户意图，并将任务精准路由给正确的执行智能体。
+  - **Discovery Agent**: 自动探索 Schema 及多表关联关系，获取生成查询所需的上下文元数据。
+  - **Generator Agent**: 根据前置元数据生成准确的 Text-to-SQL 查询。该节点具备**错误自修复**能力。
+  - **Security Agent**: 独立的安全审计节点。一旦识别到 `DROP`, `TRUNCATE` 等高风险动作立刻阻断，并对 PII（敏感个人信息）执行自动脱敏。
+- **Agentic Chat**:
+  - **SQL Agent**: 深度结合关系型数据库 Schema，支持 Text-to-SQL、歧义主动询问 (Disambiguation) 与思维链展示。
+- **Voice Input**: 基于微信 JSSDK 与后端 API 的双模语音识别 (Transcription)，支持直接长按录音发送自然语言指令（针对移动端与桌面端分别适配优化）。
+- **Mind Chain & Graph Visualizer**: 透明展示 AI 的推理过程 (Reasoning)、工具调用 (如 `ListTables`, `ValidateSql`) 与自我纠错逻辑。左侧悬浮窗支持实时可视化节点流转路径。
 - **Knowledge RAG**: 将用户认可的优质 SQL 沉淀为知识库，增强 AI 在特定业务场景下的准确率。
-- **Hybrid AI Engine**: 支持同时接入 OpenAI 兼容模型 (如 GPT-4, DeepSeek) 与 智谱 AI (GLM-4) 等国产模型，灵活配置 Embedding 模型以优化 RAG 检索效果。
+- **Hybrid AI Engine**: 支持多模型并行接入 (如 OpenAI 兼容模型，DeepSeek，智谱 GLM-4)。支持将**聊天模型 (Chat Model)** 与 **向量模型 (Embedding Model)** 分离配置，以实现最佳性价比与检索效果。
 
 ### 🔌 多源数据接入
 
-- **Supported Sources**: PostgreSQL, MySQL, Elasticsearch, HTTP API (cURL 适配)。
-- **Auto-Discovery**: 自动扫描数据库元数据，利用 AI 识别手机号、邮箱等 PII 敏感字段并配置脱敏规则。
-- **Schema Sync**: 定时或触发式同步最新的表结构至向量数据库。
+- **Supported Sources**: PostgreSQL, MySQL, HTTP API (cURL 适配)。
+- **Auto-Discovery & Schema Sync**: 自动扫描数据库元数据并同步至向量数据库。利用 AI 自动识别（如手机号、邮箱）并配置 PII 数据脱敏规则。
 
 ### 🛡 安全与治理
 
-- **End-to-End Encryption**: 基于 `CryptoService` 实现敏感 API 负载的全链路加密，确保 API 密钥与敏感数据不可通过网络嗅探获取。
-- **Precision RBAC**: 基于角色的权限控制，严格实施最小权限呈现原则。Dashboard 支持系统级全量视图与个人专属版面的动态区隔。
+- **End-to-End Encryption**: 基于 `CryptoService` 实现敏感 API 负载的全链路加密，确保 API 密钥与敏感数据不在网络嗅探中泄露。
+- **Precision RBAC**: 基于角色的权限控制，严格实施最小权限呈现原则。Dashboard 支持系统级全量视图与个人专属版面的动态隔离。
 - **Enterprise-Grade Protection**:
-  - **OOM Defense**: 查询引擎自带行数熔断 (LIMIT 1000兜底)，阻止巨量数据拉垮服务器内存。
-  - **RCE Prevention**: 核心沙箱阻隔 Shell 元字符注入，彻底杜绝命令执行逃逸。
-  - **IDOR Proof**: 数据源探测和任务协同均具备行列级越权防御，普通员工无法窥探越权数据。
-- **安全过滤拦截**: 拦截 `DROP`, `TRUNCATE` 等高危动作，并对生成的查询进行强制验证。
-- **2FA**: 集成 Google Authenticator 双重认证。
+  - **OOM Defense**: 强制行数熔断 (兜底 LIMIT 1000)，阻止巨量数据压垮服务器内存。
+  - **RCE Prevention**: 核心沙箱阻隔 Shell 元字符注入，杜绝命令执行逃逸。
 
-### ⚙️ 自动化与触达
+### ⚙️ 自动化与持续集成
 
-- **Parameterized Scheduler**: 支持 Crontab 定时执行 SQL 报表任务，支持配置**动态占位符参数**，实现千人千面的自动化报表。
-- **AI Feedback Loop**: 用户可以直接对 AI 生成的 SQL/Lucene 进行评价与校正，系统支持从反馈中**自动学习**，持续提升准确率。
+- **Parameterized Scheduler**: 具备极高韧性的数据库驱动调度器。支持配置**动态占位符参数**，实现千人千面的自动化报表触达。
 - **Multi-Channel Push**:
   - **Email**: 自动发送带有数据的 CSV 附件。
   - **IM Webhook**: 支持企业微信、钉钉、飞书群机器人实时推送数据摘要。
-- **Mini Program**: 配套微信小程序，随时随地查看报表与历史记录。
+- **CI/CD & Docker Native**: 原生拥抱 Docker 部署，在 GitHub Actions 流水线中深度集成了针对后端数据库测试的专用 `docker-compose.test.yml` 验证机制，确保发布稳定性。
 
 ---
 
@@ -78,13 +73,14 @@
 
 | Component               | Status         | Description                                                                          |
 | :---------------------- | :------------- | :----------------------------------------------------------------------------------- |
-| **Multi-Agent Graph**   | ✅ Implemented | LangGraph-based workflow with Supervisor and specialized agents.                     |
+| **Multi-Agent Graph**   | ✅ Implemented | LangGraph-based 4-Agent workflow (Supervisor, Discovery, Generator, Security).       |
+| **Voice Input**         | ✅ Implemented | Cross-platform audio transcription via WeChat JSSDK & HTML5 MediaRecorder.           |
+| **Mini Program**        | ✅ Implemented | WeChat client for mobile Task Dashboard, Execution, and WeChat Login.                |
 | **Payload Encryption**  | ✅ Implemented | AES-256 encryption for sensitive data exchange using shared key.                     |
 | **AI SQL Generation**   | ✅ Implemented | Robust backend agent using LangChain, schema retrieval, and self-correction.         |
-| **Reasoning Display**   | ✅ Implemented | Users can see "thoughts" and "tool calls" (e.g., schema lookup, validation).         |
-| **Data Report Display** | ✅ Implemented | Results are rendered as an interactive table directly inside the chat.               |
-| **Code Editor**         | ✅ Implemented | Integrated **CodeMirror 6** with SQL/Lucene syntax highlighting and auto-completion. |
-| **Mobile**              | Uni-app + Vite | 跨平台小程序开发                                                                     |
+| **Reasoning Display**   | ✅ Implemented | Users can see "thoughts", "tool calls" (e.g., schema lookup), and node execution.    |
+| **Code Editor**         | ✅ Implemented | Integrated **CodeMirror 6** with SQL syntax highlighting and auto-completion.        |
+| **Hybrid AI Engine**    | ✅ Implemented | Split Chat/Embedding models via custom config (OpenAI/GLM/DeepSeek).                 |
 
 ---
 
