@@ -6,11 +6,11 @@ services:
       POSTGRES_DB: ${DB_DATABASE:-nexquery_ai}
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-root123}
-      PGDATA: /var/lib/postgresql/data/pgdata
+      PGDATA: /var/lib/postgresql/pgdata
     ports:
       - '${DB_PORT:-5432}:5432'
     volumes:
-      - db_data:/var/lib/postgresql/data
+      - db_data:/var/lib/postgresql
     networks:
       - nexquery_network
   redis:
@@ -135,6 +135,7 @@ services:
       - ./backend/logs:/var/log/app:ro
       - /var/lib/docker/containers:/var/lib/docker/containers:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - filebeat_data:/usr/share/filebeat/data
     environment:
       - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
       - ELASTICSEARCH_USERNAME=elastic
@@ -153,3 +154,4 @@ volumes:
   redis_data:
   qdrant_data:
   es_data:
+  filebeat_data:
